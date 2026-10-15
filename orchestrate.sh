@@ -2,6 +2,7 @@
 # Overnight build: three parallel tracks in git worktrees, then integration, then the final clean-clone check.
 # Run as:  caffeinate -dimsu ./orchestrate.sh        (keeps the Mac awake; keep it plugged in, lid open)
 set -u
+setopt null_glob
 cd "$(dirname "$0")"; ROOT=$PWD
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 mkdir -p logs/orch .worktrees docs/status
