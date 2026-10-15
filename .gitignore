@@ -22,3 +22,5 @@ PROMPT*.md.bak
 *.egg-info/
 web/public/data/
 run_claude.sh
+.worktrees/
+data/imagery/

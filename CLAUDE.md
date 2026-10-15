@@ -22,6 +22,7 @@ Apple M3 Pro, 18 GB RAM, macOS. Tools present: claude, uv 0.11, python3 (3.14 sy
 - Licence Apache-2.0; `NOTICE` attributes OpenStreetMap (ODbL), SUMO (EPL-2.0), GASTAT open data.
 
 ## Workflow
+- Parallel tracks: milestones may run in git worktrees under `.worktrees/` on branches `trackA` (demand, policies, calibration), `trackB` (windows, events, strategist, evacuation) and `trackC` (lane audit, viewer, API); `prompts/_common.md` has the ownership and merge rules. Status per track in `docs/status/`.
 - Work milestone by milestone as ordered in PROJECT.md section 12. Do not start the next milestone until the current one passes its acceptance criteria.
 - Commit small and often on `main` with conventional messages (`feat(network): ...`). Initialise git in M0.
 - Keep `docs/STATUS.md` current: what is built, measured numbers (runtime, edges, teleports), decisions taken, what is next. Update it at the end of every milestone (skill `milestone-handoff`).
@@ -35,7 +36,8 @@ Apple M3 Pro, 18 GB RAM, macOS. Tools present: claude, uv 0.11, python3 (3.14 sy
 - `viewer-engineer`: React + deck.gl + MapLibre viewer and FastAPI streaming.
 - `strategist-engineer`: candidates, parallel what-ifs, ranking, explanations, decision log.
 - `data-scout`: finds and documents public Jeddah data and licences; writes `docs/data-sources.md`.
+- `imagery-analyst`: counts lanes on aerial imagery crops (lane audit only).
 - `verifier`: checks a milestone against its acceptance criteria; runs tests; reviews determinism and the assumptions register. Run it before declaring any milestone done.
 
 ## Skills (in `.claude/skills/`)
-`sumo-run`, `osm-jeddah-network`, `policy-yaml`, `milestone-handoff`, `assumptions-register`. Use them when their description matches the task.
+`sumo-run`, `osm-jeddah-network`, `policy-yaml`, `milestone-handoff`, `assumptions-register`, `lane-audit-imagery`. Use them when their description matches the task.
