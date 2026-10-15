@@ -1,10 +1,10 @@
 # Runner configuration (python -m sim.runner). Paths relative to the repo root.
 label: "synthetic demand, uncalibrated"
 
-# SUMO options shared by both tiers. Teleport time is a model setting, not a behavioural assumption.
+# SUMO options shared by both tiers (behavioural settings are registered under `assumptions:` below).
 sumo_common:
   - [--step-length, "1"]
-  - [--time-to-teleport, "300"]
+  - [--time-to-teleport, "300"]   # A-sim-002
   - --ignore-route-errors
   - --no-step-log
   - --duration-log.statistics
@@ -31,6 +31,9 @@ micro_only_options:
   - --netstate-dump
   - --lanechange.
   - --fcd-output
+  - --lanechange-output
+  - --queue-output
+  - --lanedata-output
 micro_only_additional_elements:
   - laneData
   - laneAreaDetector
@@ -65,3 +68,7 @@ assumptions:
     parameter: meso-tls-penalty
     value: 0.5
     assumption: "Scales the expected signal delay of a red phase on meso edges; SUMO docs suggest 0.5-1. No Jeddah signal timing data. Range 0.3-1.0; revisit in the M2 meso-vs-micro fidelity test."
+  A-sim-002:
+    parameter: time-to-teleport
+    value: 300
+    assumption: "Seconds a vehicle may stand still before SUMO teleports it; SUMO default. Governs the teleport acceptance metric (< 0.5 %). Range 120-600."

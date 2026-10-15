@@ -1,6 +1,7 @@
 """Streaming network statistics and GeoJSON export of edges (no full sumolib load).
 
 python -m sim.network.netinfo stats data/jeddah/jeddah.net.xml
+python -m sim.network.netinfo scc data/jeddah/jeddah.net.xml --vclass passenger
 python -m sim.network.netinfo edges-geojson data/jeddah/jeddah.net.xml web/public/data/edges.geojson
 """
 
@@ -146,6 +147,113 @@ def edges_geojson(net: Path, out: Path, precision: int = 5) -> int:
     return count
 
 
+def _lane_allows(lane: ET.Element, vclass: str) -> bool:
+    allow, disallow = lane.get("allow"), lane.get("disallow")
+    if allow is not None:
+        return vclass in allow.split() or "all" in allow.split()
+    if disallow is not None:
+        return vclass not in disallow.split() and "all" not in disallow.split()
+    return True
+
+
+def edge_graph(net: Path, vclass: str = "passenger") -> dict[str, set[str]]:
+    """Edge-to-edge successor graph for `vclass`, from lane connections (streaming parse)."""
+    ok_lanes: dict[str, set[str]] = {}
+    conns: list[tuple[str, str, str, str]] = []
+    current: str | None = None
+    for event, elem in ET.iterparse(net, events=("start", "end")):
+        if event == "start":
+            if elem.tag == "edge":
+                current = elem.get("id") if elem.get("function") != "internal" else None
+                if current:
+                    ok_lanes[current] = set()
+            continue
+        if elem.tag == "lane" and current:
+            if _lane_allows(elem, vclass):
+                ok_lanes[current].add(elem.get("index", ""))
+        elif elem.tag == "edge":
+            current = None
+            elem.clear()
+        elif elem.tag == "connection":
+            conns.append(
+                (
+                    elem.get("from", ""),
+                    elem.get("fromLane", ""),
+                    elem.get("to", ""),
+                    elem.get("toLane", ""),
+                )
+            )
+            elem.clear()
+        elif elem.tag in ("junction", "tlLogic"):
+            elem.clear()
+    graph = {e: set() for e, lanes in ok_lanes.items() if lanes}
+    for frm, frm_lane, to, to_lane in conns:
+        if frm in graph and to in graph and frm_lane in ok_lanes[frm] and to_lane in ok_lanes[to]:
+            graph[frm].add(to)
+    return graph
+
+
+def strongly_connected(graph: dict[str, set[str]]) -> list[list[str]]:
+    """Strongly connected components (iterative Tarjan), largest first."""
+    index: dict[str, int] = {}
+    low: dict[str, int] = {}
+    stack: list[str] = []
+    on_stack: set[str] = set()
+    comps: list[list[str]] = []
+    counter = 0
+    for root in sorted(graph):
+        if root in index:
+            continue
+        index[root] = low[root] = counter
+        counter += 1
+        stack.append(root)
+        on_stack.add(root)
+        work = [(root, iter(sorted(graph[root])))]
+        while work:
+            v, successors = work[-1]
+            w = next(successors, None)
+            if w is not None:
+                if w not in index:
+                    index[w] = low[w] = counter
+                    counter += 1
+                    stack.append(w)
+                    on_stack.add(w)
+                    work.append((w, iter(sorted(graph[w]))))
+                elif w in on_stack:
+                    low[v] = min(low[v], index[w])
+                continue
+            work.pop()
+            if work:
+                parent = work[-1][0]
+                low[parent] = min(low[parent], low[v])
+            if low[v] == index[v]:
+                comp = []
+                while True:
+                    x = stack.pop()
+                    on_stack.discard(x)
+                    comp.append(x)
+                    if x == v:
+                        break
+                comps.append(comp)
+    comps.sort(key=len, reverse=True)
+    return comps
+
+
+def scc_summary(net: Path, vclass: str = "passenger") -> dict[str, float | int]:
+    graph = edge_graph(net, vclass)
+    comps = strongly_connected(graph)
+    main = len(comps[0]) if comps else 0
+    return {
+        "vclass": vclass,
+        "edges": len(graph),
+        "components": len(comps),
+        "main_component_edges": main,
+        "main_component_share": round(main / len(graph), 5) if graph else 0.0,
+        "second_component_edges": len(comps[1]) if len(comps) > 1 else 0,
+        "single_edge_components": sum(1 for c in comps if len(c) == 1),
+    }
+
+
 app = typer.Typer(add_completion=False, help=__doc__)
 
 
@@ -153,6 +261,12 @@ app = typer.Typer(add_completion=False, help=__doc__)
 def stats(net: Path) -> None:
     """Print network statistics as JSON."""
     typer.echo(json.dumps(net_stats(net).as_dict(), indent=2))
+
+
+@app.command()
+def scc(net: Path, vclass: str = typer.Option("passenger")) -> None:
+    """Strong connectivity for a vehicle class (share of edges in the main component)."""
+    typer.echo(json.dumps(scc_summary(net, vclass), indent=2))
 
 
 @app.command("edges-geojson")

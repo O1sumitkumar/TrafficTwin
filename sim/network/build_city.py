@@ -120,7 +120,9 @@ def main(
     cfg = load_yaml(config)
     net = out or _p(cfg["net"])
     fixes = fixes_dir or _p(cfg["fixes_dir"])
-    log = REPO_ROOT / "logs" / f"build_city-{net.stem.split('.')[0]}.log"
+    # custom outputs (tests, experiments) log next to the output; the city build logs to logs/
+    log_dir = net.parent if out is not None else REPO_ROOT / "logs"
+    log = log_dir / f"build_city-{net.stem.split('.')[0]}.log"
     t0 = time.perf_counter()
     meta: dict[str, Any] = {
         "config": rel(config),

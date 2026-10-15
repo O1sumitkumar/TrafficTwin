@@ -44,3 +44,14 @@ def test_jeddah_poly_is_valid() -> None:
     poly = read_poly(REPO_ROOT / "data" / "osm" / "jeddah.poly")
     assert poly.is_valid
     assert poly.contains(poly.centroid)
+
+
+def test_scc_on_demo(demo_net: Path) -> None:
+    from sim.network.netinfo import scc_summary, strongly_connected
+
+    assert strongly_connected({"a": {"b"}, "b": {"a", "c"}, "c": set()}) == [["b", "a"], ["c"]]
+    summary = scc_summary(demo_net)
+    assert summary["edges"] > 900
+    # a cut window is far from strongly connected: boundary edges are entry-only or exit-only
+    assert 0.3 < summary["main_component_share"] <= 1.0
+    assert summary["components"] > 1

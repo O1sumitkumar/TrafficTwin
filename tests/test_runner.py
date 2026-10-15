@@ -41,6 +41,10 @@ def test_micro_only_options_rejected_in_tier_a(tmp_path: Path) -> None:
     cfg = runner_config()
     with pytest.raises(ValueError, match="micro-only"):
         assert_tier_options("A", ["--fcd-output", "x.xml"], [], cfg)
+    lane_level = ("--lanechange-output", "--queue-output", "--lanedata-output")
+    for opt in (*lane_level, "--device.bluelight.explicit"):
+        with pytest.raises(ValueError, match="micro-only"):
+            assert_tier_options("A", [opt, "x"], [], cfg)
     add = tmp_path / "lane.add.xml"
     add.write_text('<additional><laneData id="l" file="l.xml"/></additional>')
     with pytest.raises(ValueError, match="laneData"):

@@ -45,7 +45,7 @@ uv run python -m sim.network.fixes check --net data/jeddah/jeddah.net.xml
 ## Smoke runs
 
 ```bash
-# Tier A: whole city, mesoscopic, one hour of random trips (run it in the background; ~10-15 min,
+# Tier A: whole city, mesoscopic, one hour of random trips (run it in the background; ~9 min,
 # most of it routing): prints edges, junctions, traffic lights, lane-km, vehicles, runtime,
 # real-time factor and teleport share (must be < 0.5 %)
 mkdir -p logs && nohup uv run python -m sim.runner --smoke --tier A --seed 1 > logs/smoke-A.log 2>&1 &

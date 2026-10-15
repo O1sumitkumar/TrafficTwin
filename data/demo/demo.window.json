@@ -12,7 +12,7 @@
     "out_dir": "data/demo"
   },
   "city_net": "data/jeddah/jeddah.net.xml",
-  "city_net_hash": "d086cdce747c90d8",
+  "city_net_hash": "5b8a19d3a3fd4d59",
   "sumo_version": "Eclipse SUMO sumo 1.28.0",
   "network": {
     "edges": 939,
@@ -21,7 +21,7 @@
     "lanes": 1086,
     "lane_km": 114.36,
     "edge_km": 96.9,
-    "net_hash": "70a2acc1edc3149a"
+    "net_hash": "25c067631a1c0364"
   },
   "trips": {
     "file": "data/demo/demo.trips.xml",
