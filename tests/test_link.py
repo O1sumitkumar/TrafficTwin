@@ -20,6 +20,7 @@ from sim.link import (
     cut_routes,
     geh,
     link_config,
+    retime_tls,
 )
 from sim.network.build_window import WINDOWS_DIR, load_window
 
@@ -170,3 +171,33 @@ def _project(tr: Transformer, coords):  # noqa: ANN001, ANN202 - shapely coordin
 
     x, y = tr.transform(coords[:, 0], coords[:, 1])
     return np.column_stack([x, y])
+
+
+def test_tls_retiming_additional(
+    tmp_path: Path, demo_graft: dict, tier_a_exit_routes: Path
+) -> None:
+    """Webster retiming of the demo window's signal from its cut routes (Tier B additional)."""
+    import json
+
+    out_dir = demo_graft["dir"]
+    net = out_dir / "demo.net.xml"
+    edgemap = json.loads((out_dir / "demo.edgemap.json").read_text())
+    routes = tmp_path / "demo.rou.xml"
+    cut_routes(out_dir / "demo.cut.net.xml", tier_a_exit_routes, edgemap, routes, 0.0)
+    add = tmp_path / "demo.tls.add.xml"
+    meta = retime_tls(net, routes, add, link_config())
+    original = {t.get("id"): t for t in ET.parse(net).getroot().iter("tlLogic")}
+    new = list(ET.parse(add).getroot().iter("tlLogic"))
+    assert len(new) == len(original) == len(meta["programs"]) >= 1
+    for t in new:
+        assert t.get("programID") == link_config()["tls"]["program_id"]
+        old = [p.get("state") for p in original[t.get("id")].iter("phase")]
+        assert [p.get("state") for p in t.iter("phase")] == old  # same phases, new durations
+    log = tmp_path / "load.log"
+    proc = subprocess.run(
+        [sumo_bin("sumo"), "-n", str(net), "-r", str(routes), "-a", str(add), "--end", "60",
+         "--no-step-log", "--log", str(log)],
+        env=sumo_env(), capture_output=True, text=True,
+    )  # fmt: skip
+    assert proc.returncode == 0, proc.stderr
+    assert not [ln for ln in log.read_text().splitlines() if ln.startswith("Error")]

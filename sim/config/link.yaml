@@ -69,6 +69,24 @@ cut:
   min_length: 0
   time_shift_s: 0
 
+# --- Tier B signal retiming (A-link-009) --------------------------------------------------------
+# The city's signal programs are netconvert defaults (no Jeddah timing data). Tier A meso only
+# applies a red-time penalty (A-sim-001), Tier B micro enforces green splits, so a default program
+# can cap a movement far below the flow Tier A delivers. Each window's guessed programs are retimed
+# with SUMO's tools/tlsCycleAdaptation.py (Webster's method) from the window's own cut routes over
+# the demand hour [begin, begin + 3600), written as a Tier B additional data/windows/<w>/<w>.tls.add.xml
+# (the city net is untouched). Values below are the tool defaults (SUMO 1.28), stated explicitly.
+tls:
+  begin: 0                    # start of the hour whose route flows set the splits
+  program_id: webster         # new program id; the last loaded program is the active one
+  yellow_time_s: 4
+  all_red_s: 0
+  lost_time_s: 4              # start-up + clearance lost time per phase
+  min_green_s: 4
+  min_cycle_s: 20
+  max_cycle_s: 120
+  saturation_headway_s: 2.0   # 1800 veh/h/lane saturation flow
+
 # --- flow check (PROJECT.md 9.3 acceptance) -----------------------------------------------------
 check:
   interval: [0, 3600]

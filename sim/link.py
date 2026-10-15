@@ -878,6 +878,53 @@ def cut_routes(
     return {**counts, "time_shift_s": time_shift}
 
 
+def retime_tls(
+    net: Path,
+    routes: Path,
+    out: Path,
+    link_cfg: dict[str, Any] | None = None,
+    log: Path | None = None,
+) -> dict[str, Any]:
+    """Webster retiming of a window's signal programs (tools/tlsCycleAdaptation.py, A-link-009).
+
+    Writes a Tier B additional with one new program per signal; the city net is not touched."""
+    t = (link_cfg or link_config())["tls"]
+    run_cmd(
+        python_tool_cmd(
+            "tlsCycleAdaptation.py",
+            "-n", str(net), "-r", str(routes), "-o", str(out), "-b", str(t["begin"]),
+            "-p", str(t["program_id"]), "-y", str(t["yellow_time_s"]), "-a", str(t["all_red_s"]),
+            "-l", str(t["lost_time_s"]), "-g", str(t["min_green_s"]),
+            "--min-cycle", str(t["min_cycle_s"]), "--max-cycle", str(t["max_cycle_s"]),
+            "-H", str(t["saturation_headway_s"]), "--sorted",
+        ),
+        log=log,
+    )  # fmt: skip
+    programs = []
+    for _, elem in ET.iterparse(out, events=("end",)):
+        if elem.tag == "tlLogic":
+            programs.append(
+                {
+                    "id": elem.get("id"),
+                    "cycle_s": sum(float(ph.get("duration", 0)) for ph in elem.iter("phase")),
+                }
+            )
+    return {"file": rel(out), "programs": programs, "config": t}
+
+
+def window_tls(name: str) -> dict[str, Any]:
+    """Retime the window's signals from its cut routes -> data/windows/<w>/<w>.tls.add.xml."""
+    link_cfg = link_config()
+    wdir = window_dir(load_window(name))
+    out = wdir / f"{name}.tls.add.xml"
+    log = LOGS_DIR / f"link-tls-{name}.log"
+    log.unlink(missing_ok=True)
+    meta = retime_tls(wdir / f"{name}.net.xml", wdir / f"{name}.rou.xml", out, link_cfg, log)
+    meta["hash"] = content_hash(out)
+    (wdir / f"{name}.tls.json").write_text(json.dumps(meta, indent=2))
+    return meta
+
+
 def cut_window_routes(name: str, tier_a: Path, time_shift: float | None = None) -> dict[str, Any]:
     link_cfg = link_config()
     cfg = load_window(name)
@@ -905,6 +952,7 @@ def cut_window_routes(name: str, tier_a: Path, time_shift: float | None = None) 
         **counts,
     }
     (wdir / f"{name}.cut.json").write_text(json.dumps(meta, indent=2))
+    meta["tls"] = window_tls(name)
     return meta
 
 
@@ -1003,7 +1051,7 @@ def compare_flows(
     }
 
 
-def run_check(name: str, tier_a: Path, seed: int) -> dict[str, Any]:
+def run_check(name: str, tier_a: Path, seed: int, use_tls: bool = True) -> dict[str, Any]:
     from sim.runner import (
         assert_tier_options,
         parse_statistics,
@@ -1017,7 +1065,7 @@ def run_check(name: str, tier_a: Path, seed: int) -> dict[str, Any]:
     cfg = load_window(name)
     wdir = window_dir(cfg)
     net, routes = wdir / f"{name}.net.xml", wdir / f"{name}.rou.xml"
-    out = RUNS_DIR / f"link-{name}"
+    out = RUNS_DIR / (f"link-{name}" if use_tls else f"link-{name}-defaulttls")
     out.mkdir(parents=True, exist_ok=True)
     log = out / "build.log"
     log.unlink(missing_ok=True)
@@ -1041,14 +1089,17 @@ def run_check(name: str, tier_a: Path, seed: int) -> dict[str, Any]:
             },
         ],
     )
+    tls_add = wdir / f"{name}.tls.add.xml"
+    adds = [additional] + ([tls_add] if tls_add.exists() and use_tls else [])
+    add_files = ",".join(str(x) for x in adds)
     args = [
-        "-n", str(net), "-r", str(routes), "--additional-files", str(additional),
+        "-n", str(net), "-r", str(routes), "--additional-files", add_files,
         "--begin", str(b), "--end", str(chk["sim_end"]), "--seed", str(seed),
         "--tripinfo-output", str(out / "tripinfo.xml"),
         "--statistic-output", str(out / "stats.xml"), "--log", str(out / "sumo.log"),
         *flat(rcfg["sumo_common"]), *flat(rcfg["tier_B"]["options"]),
     ]  # fmt: skip
-    assert_tier_options("B", args, [additional], rcfg)
+    assert_tier_options("B", args, adds, rcfg)
     t0 = time.perf_counter()
     run_cmd([sumo_bin("sumo"), *args], log=log)
     wall = time.perf_counter() - t0
@@ -1101,11 +1152,14 @@ def run_check(name: str, tier_a: Path, seed: int) -> dict[str, Any]:
         "flow_definition": "edgeData entered + departed over the interval, veh/h",
         "network_hash": content_hash(net),
         "routes_hash": content_hash(routes),
+        "tls_additional": rel(adds[1]) if len(adds) > 1 else None,
+        "tls_additional_hash": content_hash(adds[1]) if len(adds) > 1 else None,
         "config_hash": config_hash(
             {
                 "check": chk,
                 "sumo_common": rcfg["sumo_common"],
                 "tier_options": rcfg["tier_B"]["options"],
+                "tls": link_cfg["tls"] if len(adds) > 1 else None,
             }
         ),
         "sumo_version": sumo_version(),
@@ -1143,6 +1197,7 @@ def flow_markdown(r: dict[str, Any]) -> str:
         "",
         "| measure | value |",
         "|---|---|",
+        f"| signal programs | {r['tls_additional'] or 'netconvert defaults (city net)'} |",
         f"| edges compared | {r['edges_compared']} |",
         f"| GEH < {t['geh_max']} | {r['edges_geh_ok']} ({100 * r['geh_ok_share']:.1f} %) |",
         f"| GEH p50 / p85 / p95 / max | {r['geh_quantiles']['p50']} / {r['geh_quantiles']['p85']} "
@@ -1229,13 +1284,22 @@ def cut(
 
 
 @app.command()
+def tls(window_name: str = typer.Option(..., "--window", help="window name")) -> None:
+    """Webster retiming of the window's signals from its cut routes (also run by `cut`)."""
+    typer.echo(json.dumps(window_tls(window_name), indent=1))
+
+
+@app.command()
 def check(
     window_name: str = typer.Option(..., "--window", help="window name"),
     tier_a: Path = typer.Option(..., help="Tier A exit-time run dir"),
     seed: int = typer.Option(1),
+    default_tls: bool = typer.Option(
+        False, help="ignore <w>.tls.add.xml (netconvert default programs; for before/after)"
+    ),
 ) -> None:
     """Run the window micro and compare its edge flows with Tier A."""
-    report = run_check(window_name, tier_a, seed)
+    report = run_check(window_name, tier_a, seed, use_tls=not default_tls)
     typer.echo(flow_markdown(report))
     if not report["pass"]:
         raise typer.Exit(code=2)
