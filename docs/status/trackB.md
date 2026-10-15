@@ -22,3 +22,12 @@ Decisions (taken without questions, per prompts/_common.md):
   force-added (`git add -f`), it is public literature only.
 - B-D-006 PROJECT.md section 11: event files ship only with fictional parameters (times, durations,
   motorcade route) on the Tahlia window and are labelled so.
+- B-D-007 Flood sites: `data/jeddah_flood_sites.yaml` has 25 sites (13 underpasses, 5 wadi
+  crossings, 7 road segments; 11 high, 6 medium, 8 low confidence) from public press and papers on
+  the 2009, 2011, 2015 and 2017 floods; locations checked against OSM. Only FS-001 (King Abdullah
+  Rd / Madinah Rd tunnel) is pinned exactly for the reference events. These are publicly reported
+  locations, not a critical-site inventory, so the file is committed (PROJECT.md section 11 read
+  as covering response plans and non-public sites). Its `radius_m` defaults are assumption
+  A-event-flood-radius (registered in docs/assumptions-trackB.md).
+- B-D-008 Tahlia bbox east edge moved to lon 39.190 (about 23.9 km2) to contain FS-009, the King Fahd
+  Rd / Tahlia St underpass (flooded 2017), so the flood demo closes a high-confidence site.
