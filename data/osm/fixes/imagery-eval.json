@@ -1,0 +1,1555 @@
+{
+  "generated": "2026-10-16",
+  "imagery": "Esri World Imagery, zoom 19, 512 px crops upscaled 2x",
+  "method": "imagery-analyst subagent, blind (caption has no lane tag)",
+  "truth": "OSM lanes tags (oneway: lanes; two-way: lanes:forward or lanes/2)",
+  "n": 40,
+  "agreement_all": 0.7,
+  "within_one_all": 0.95,
+  "target_precision": 0.8,
+  "min_kept": 15,
+  "threshold": 0.5,
+  "agreement_at_threshold": 0.8333,
+  "kept_at_threshold": 18,
+  "coverage_at_threshold": 0.45,
+  "passed": false,
+  "error_pred_minus_truth": {
+    "-1": 6,
+    "1": 4,
+    "2": 2
+  },
+  "by_class": {
+    "motorway": {
+      "n": 10,
+      "agreement_all": 0.7,
+      "kept_at_threshold": 7,
+      "agreement_at_threshold": 0.7143,
+      "confusion_truth_to_pred": {
+        "3": {
+          "3": 3
+        },
+        "4": {
+          "3": 3,
+          "4": 4
+        }
+      }
+    },
+    "trunk": {
+      "n": 10,
+      "agreement_all": 0.7,
+      "kept_at_threshold": 2,
+      "agreement_at_threshold": 1.0,
+      "confusion_truth_to_pred": {
+        "2": {
+          "3": 1
+        },
+        "3": {
+          "5": 2,
+          "3": 7
+        }
+      }
+    },
+    "primary": {
+      "n": 10,
+      "agreement_all": 0.8,
+      "kept_at_threshold": 5,
+      "agreement_at_threshold": 1.0,
+      "confusion_truth_to_pred": {
+        "1": {
+          "2": 1
+        },
+        "2": {
+          "2": 1
+        },
+        "3": {
+          "3": 4,
+          "4": 1
+        },
+        "4": {
+          "4": 2
+        },
+        "5": {
+          "5": 1
+        }
+      }
+    },
+    "secondary": {
+      "n": 10,
+      "agreement_all": 0.6,
+      "kept_at_threshold": 4,
+      "agreement_at_threshold": 0.75,
+      "confusion_truth_to_pred": {
+        "2": {
+          "2": 2,
+          "3": 1
+        },
+        "3": {
+          "3": 4,
+          "2": 2
+        },
+        "4": {
+          "3": 1
+        }
+      }
+    }
+  },
+  "curve": [
+    {
+      "threshold": 0.1,
+      "kept": 40,
+      "correct": 28,
+      "precision": 0.7,
+      "coverage": 1.0
+    },
+    {
+      "threshold": 0.15,
+      "kept": 39,
+      "correct": 27,
+      "precision": 0.6923,
+      "coverage": 0.975
+    },
+    {
+      "threshold": 0.2,
+      "kept": 36,
+      "correct": 24,
+      "precision": 0.6667,
+      "coverage": 0.9
+    },
+    {
+      "threshold": 0.25,
+      "kept": 34,
+      "correct": 23,
+      "precision": 0.6765,
+      "coverage": 0.85
+    },
+    {
+      "threshold": 0.3,
+      "kept": 30,
+      "correct": 22,
+      "precision": 0.7333,
+      "coverage": 0.75
+    },
+    {
+      "threshold": 0.4,
+      "kept": 23,
+      "correct": 17,
+      "precision": 0.7391,
+      "coverage": 0.575
+    },
+    {
+      "threshold": 0.45,
+      "kept": 19,
+      "correct": 15,
+      "precision": 0.7895,
+      "coverage": 0.475
+    },
+    {
+      "threshold": 0.5,
+      "kept": 18,
+      "correct": 15,
+      "precision": 0.8333,
+      "coverage": 0.45
+    },
+    {
+      "threshold": 0.6,
+      "kept": 15,
+      "correct": 12,
+      "precision": 0.8,
+      "coverage": 0.375
+    },
+    {
+      "threshold": 0.7,
+      "kept": 14,
+      "correct": 11,
+      "precision": 0.7857,
+      "coverage": 0.35
+    },
+    {
+      "threshold": 0.75,
+      "kept": 13,
+      "correct": 10,
+      "precision": 0.7692,
+      "coverage": 0.325
+    },
+    {
+      "threshold": 0.8,
+      "kept": 10,
+      "correct": 8,
+      "precision": 0.8,
+      "coverage": 0.25
+    },
+    {
+      "threshold": 0.85,
+      "kept": 4,
+      "correct": 4,
+      "precision": 1.0,
+      "coverage": 0.1
+    }
+  ],
+  "rows": [
+    {
+      "way_id": 43172615,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 3,
+      "confidence": 0.3,
+      "correct": false,
+      "within_one": true,
+      "note": "Lane markings very faded, so the count is estimated from carriageway width; shoulder width is unclear"
+    },
+    {
+      "way_id": 1132416434,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 4,
+      "confidence": 0.85,
+      "correct": true,
+      "within_one": true,
+      "note": "3 clear dashed lines along the whole crop"
+    },
+    {
+      "way_id": 43172281,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.25,
+      "correct": true,
+      "within_one": true,
+      "note": "Ticks are on a bridge deck over a cross street; no lane markings visible, so the count is from width only"
+    },
+    {
+      "way_id": 133875683,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.5,
+      "correct": true,
+      "within_one": true,
+      "note": "Building and palm shadows hide most markings; count inferred from faint dashes and from the 3-lane opposite carriageway of similar width"
+    },
+    {
+      "way_id": 43172347,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 3,
+      "confidence": 0.8,
+      "correct": false,
+      "within_one": true,
+      "note": "2 clear dashed lines; an on-ramp merges at the lower right gore and was excluded"
+    },
+    {
+      "way_id": 858658818,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 4,
+      "confidence": 0.8,
+      "correct": true,
+      "within_one": true,
+      "note": "3 clear dashed lines; the parallel carriageway beyond the barrier was excluded"
+    },
+    {
+      "way_id": 659909045,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 4,
+      "confidence": 0.3,
+      "correct": true,
+      "within_one": true,
+      "note": "Ticks are on a flyover deck over an at-grade junction (capped at 0.3); 3 dashed lines are clearly visible"
+    },
+    {
+      "way_id": 660145615,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.85,
+      "correct": true,
+      "within_one": true,
+      "note": "2 clear dashed lines; the frontage road to the right beyond the separator was excluded"
+    },
+    {
+      "way_id": 1486013090,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 4,
+      "confidence": 0.85,
+      "correct": true,
+      "within_one": true,
+      "note": "3 clear dashed lines along the whole crop"
+    },
+    {
+      "way_id": 302761815,
+      "highway": "motorway",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 3,
+      "confidence": 0.75,
+      "correct": false,
+      "within_one": true,
+      "note": "2 dashed lines, partly shaded by palms; a flyover ramp crosses the bottom of the crop"
+    },
+    {
+      "way_id": 303943800,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 5,
+      "confidence": 0.4,
+      "correct": false,
+      "within_one": false,
+      "note": "Wide carriageway with transverse rumble-strip markings; the number of dashed lines is ambiguous (4 or 5), so the count could be 5 or 6"
+    },
+    {
+      "way_id": 134839727,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 2,
+      "pred": 3,
+      "confidence": 0.3,
+      "correct": false,
+      "within_one": true,
+      "note": "Top tick is on a lane right of a chevron gore (a merging ramp or auxiliary lane); the main carriageway seems to widen from 3 to 4 lanes downstream"
+    },
+    {
+      "way_id": 646825068,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.4,
+      "correct": true,
+      "within_one": true,
+      "note": "Markings very faint in shadow; count inferred from width and the 3-lane opposite carriageway; service road to the right was excluded"
+    },
+    {
+      "way_id": 41410233,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.5,
+      "correct": true,
+      "within_one": true,
+      "note": "Depressed underpass in heavy shadow, with a pedestrian bridge over mid-crop; 2 dashed lines visible in the upper part"
+    },
+    {
+      "way_id": 646811765,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.3,
+      "correct": true,
+      "within_one": true,
+      "note": "Ticks are on an elevated flyover deck and markings are faint; ramps lead off to the right"
+    },
+    {
+      "way_id": 646811886,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 5,
+      "confidence": 0.4,
+      "correct": false,
+      "within_one": false,
+      "note": "Carriageway mostly in deep building shadow; dashes visible only at the top edge, and the opposite carriageway shows 5 lanes"
+    },
+    {
+      "way_id": 31694126,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.15,
+      "correct": true,
+      "within_one": true,
+      "note": "Ticks are at a tunnel portal under an interchange overpass, with a loop ramp at the top; no visible markings on the marked bore"
+    },
+    {
+      "way_id": 646825037,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.75,
+      "correct": true,
+      "within_one": true,
+      "note": "2 dashed lines clear in the lower half; the upper half is in shadow"
+    },
+    {
+      "way_id": 444241344,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.3,
+      "correct": true,
+      "within_one": true,
+      "note": "No lane markings visible on the dark carriageway (possibly sunken), so the count is from width only; service roads on both sides were excluded"
+    },
+    {
+      "way_id": 444205771,
+      "highway": "trunk",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.1,
+      "correct": true,
+      "within_one": true,
+      "note": "Both ticks are on tunnel portal structures under a cross-street overpass; no road surface is visible under the ticks, so the count is a guess"
+    },
+    {
+      "way_id": 1487950735,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 4,
+      "confidence": 0.75,
+      "correct": true,
+      "within_one": true,
+      "note": "three clear dashed lines; barrier median on the left, separated frontage road on the right excluded"
+    },
+    {
+      "way_id": 42355281,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.6,
+      "correct": true,
+      "within_one": true,
+      "note": "two faint dashed lines; parking on the right excluded; some shadow"
+    },
+    {
+      "way_id": 683372462,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 1,
+      "pred": 2,
+      "confidence": 0.25,
+      "correct": false,
+      "within_one": true,
+      "note": "flyover ramp splits from the at-grade road under the ticks; the bottom tick is on the at-grade road beside the bridge, so it is unclear which carriageway is meant"
+    },
+    {
+      "way_id": 31134732,
+      "highway": "primary",
+      "oneway": "no",
+      "truth": 2,
+      "pred": 2,
+      "confidence": 0.15,
+      "correct": true,
+      "within_one": true,
+      "note": "ticks are on a roundabout and its curved approach; the bottom tick is on the kerb; no straight carriageway to count"
+    },
+    {
+      "way_id": 31134654,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.7,
+      "correct": true,
+      "within_one": true,
+      "note": "two dashed lines; tree median on the left; separated service road on the right excluded"
+    },
+    {
+      "way_id": 31134679,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.8,
+      "correct": true,
+      "within_one": true,
+      "note": "two clear dashed lines and three arrows side by side; the road beyond the red strip is excluded"
+    },
+    {
+      "way_id": 1441864099,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 5,
+      "pred": 5,
+      "confidence": 0.4,
+      "correct": true,
+      "within_one": true,
+      "note": "markings faint under heavy traffic and shadow; junction at the top edge; count partly from width"
+    },
+    {
+      "way_id": 26397678,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 4,
+      "confidence": 0.8,
+      "correct": true,
+      "within_one": true,
+      "note": "three clear dashed lines; service road beyond the tree strip excluded"
+    },
+    {
+      "way_id": 1071471654,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.15,
+      "correct": true,
+      "within_one": true,
+      "note": "the top tick is in a junction box and the bottom tick is on a pedestrian island over a likely underpass; no road under the ticks; guess based on the adjacent 3-lane road"
+    },
+    {
+      "way_id": 276017751,
+      "highway": "primary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 4,
+      "confidence": 0.45,
+      "correct": false,
+      "within_one": true,
+      "note": "dashed lines partly faint; right edge looks like parking with parked cars, so the boundary is uncertain"
+    },
+    {
+      "way_id": 1154713615,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.85,
+      "correct": true,
+      "within_one": true,
+      "note": "two clear dashed lines; tree median on the left"
+    },
+    {
+      "way_id": 40955507,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 2,
+      "confidence": 0.25,
+      "correct": false,
+      "within_one": true,
+      "note": "no visible markings; trees and shadow cover the carriageway under the ticks; estimate from width only"
+    },
+    {
+      "way_id": 1497054175,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.5,
+      "correct": true,
+      "within_one": true,
+      "note": "only one dashed line clearly visible; width matches the 3-lane opposite carriageway"
+    },
+    {
+      "way_id": 174860445,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 2,
+      "pred": 2,
+      "confidence": 0.3,
+      "correct": true,
+      "within_one": true,
+      "note": "bridge deck in an interchange; one dashed line visible, with several parallel ramps nearby"
+    },
+    {
+      "way_id": 1310058021,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 2,
+      "pred": 2,
+      "confidence": 0.3,
+      "correct": true,
+      "within_one": true,
+      "note": "no visible markings; parked cars on the right and shadows; estimate from width"
+    },
+    {
+      "way_id": 1470411039,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 2,
+      "confidence": 0.2,
+      "correct": false,
+      "within_one": true,
+      "note": "carriageway under the ticks mostly hidden by tree canopy; no markings visible"
+    },
+    {
+      "way_id": 1535032939,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.2,
+      "correct": true,
+      "within_one": true,
+      "note": "deep building shadow, no visible markings; the bottom tick is near a junction"
+    },
+    {
+      "way_id": 208082834,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 2,
+      "pred": 3,
+      "confidence": 0.8,
+      "correct": false,
+      "within_one": true,
+      "note": "two dashed lines and three arrows side by side"
+    },
+    {
+      "way_id": 667028638,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 3,
+      "pred": 3,
+      "confidence": 0.8,
+      "correct": true,
+      "within_one": true,
+      "note": "two clear dashed lines; right edge line excluded"
+    },
+    {
+      "way_id": 1374452156,
+      "highway": "secondary",
+      "oneway": "yes",
+      "truth": 4,
+      "pred": 3,
+      "confidence": 0.25,
+      "correct": false,
+      "within_one": true,
+      "note": "no visible lane markings; estimate from width only"
+    }
+  ],
+  "holdout": {
+    "n": 60,
+    "threshold": 0.5,
+    "kept": 20,
+    "correct": 12,
+    "precision": 0.6,
+    "coverage": 0.3333,
+    "agreement_all": 0.5833,
+    "within_one_all": 0.8833,
+    "by_class_kept": {
+      "motorway": {
+        "kept": 6,
+        "correct": 6
+      },
+      "trunk": {
+        "kept": 8,
+        "correct": 1
+      },
+      "primary": {
+        "kept": 3,
+        "correct": 2
+      },
+      "secondary": {
+        "kept": 3,
+        "correct": 3
+      }
+    },
+    "error_pred_minus_truth": {
+      "-1": 6,
+      "1": 12,
+      "2": 3,
+      "3": 3,
+      "4": 1
+    },
+    "curve": [
+      {
+        "threshold": 0.1,
+        "kept": 60,
+        "correct": 35,
+        "precision": 0.5833,
+        "coverage": 1.0
+      },
+      {
+        "threshold": 0.15,
+        "kept": 59,
+        "correct": 34,
+        "precision": 0.5763,
+        "coverage": 0.9833
+      },
+      {
+        "threshold": 0.2,
+        "kept": 58,
+        "correct": 34,
+        "precision": 0.5862,
+        "coverage": 0.9667
+      },
+      {
+        "threshold": 0.25,
+        "kept": 55,
+        "correct": 31,
+        "precision": 0.5636,
+        "coverage": 0.9167
+      },
+      {
+        "threshold": 0.3,
+        "kept": 41,
+        "correct": 23,
+        "precision": 0.561,
+        "coverage": 0.6833
+      },
+      {
+        "threshold": 0.35,
+        "kept": 27,
+        "correct": 14,
+        "precision": 0.5185,
+        "coverage": 0.45
+      },
+      {
+        "threshold": 0.4,
+        "kept": 26,
+        "correct": 14,
+        "precision": 0.5385,
+        "coverage": 0.4333
+      },
+      {
+        "threshold": 0.45,
+        "kept": 23,
+        "correct": 13,
+        "precision": 0.5652,
+        "coverage": 0.3833
+      },
+      {
+        "threshold": 0.5,
+        "kept": 20,
+        "correct": 12,
+        "precision": 0.6,
+        "coverage": 0.3333
+      },
+      {
+        "threshold": 0.55,
+        "kept": 17,
+        "correct": 10,
+        "precision": 0.5882,
+        "coverage": 0.2833
+      },
+      {
+        "threshold": 0.7,
+        "kept": 16,
+        "correct": 9,
+        "precision": 0.5625,
+        "coverage": 0.2667
+      },
+      {
+        "threshold": 0.75,
+        "kept": 14,
+        "correct": 8,
+        "precision": 0.5714,
+        "coverage": 0.2333
+      },
+      {
+        "threshold": 0.8,
+        "kept": 13,
+        "correct": 8,
+        "precision": 0.6154,
+        "coverage": 0.2167
+      },
+      {
+        "threshold": 0.85,
+        "kept": 8,
+        "correct": 7,
+        "precision": 0.875,
+        "coverage": 0.1333
+      },
+      {
+        "threshold": 0.9,
+        "kept": 2,
+        "correct": 2,
+        "precision": 1.0,
+        "coverage": 0.0333
+      }
+    ],
+    "rows": [
+      {
+        "way_id": 43172269,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.7,
+        "correct": true,
+        "within_one": true,
+        "note": "Two dashed lines clear along the carriageway. An on-ramp merges near the top, so the upper section is wider."
+      },
+      {
+        "way_id": 43172320,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 4,
+        "confidence": 0.25,
+        "correct": true,
+        "within_one": true,
+        "note": "Ticks on a bridge deck. Only two dashed lines are clearly visible, but the deck is as wide as the 4-lane twin deck, so the count is from width."
+      },
+      {
+        "way_id": 43172318,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.8,
+        "correct": true,
+        "within_one": true,
+        "note": "Two clear dashed lines. Separated outer carriageways are excluded."
+      },
+      {
+        "way_id": 449440265,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "Two dashed lines visible, but the ticks are on an elevated viaduct between service roads (bridge-deck cap)."
+      },
+      {
+        "way_id": 46874460,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 4,
+        "confidence": 0.2,
+        "correct": true,
+        "within_one": true,
+        "note": "No lane markings visible on a bridge over water. Count estimated from width compared with the adjacent 4-lane carriageway."
+      },
+      {
+        "way_id": 219626060,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.85,
+        "correct": true,
+        "within_one": true,
+        "note": "Two clear dashed lines along the whole crop."
+      },
+      {
+        "way_id": 161923576,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 4,
+        "confidence": 0.2,
+        "correct": true,
+        "within_one": true,
+        "note": "No markings visible (fresh dark asphalt). Count estimated from width only, so it could be 3."
+      },
+      {
+        "way_id": 133038710,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 4,
+        "confidence": 0.25,
+        "correct": true,
+        "within_one": true,
+        "note": "Ticks on a bridge deck over an interchange. Lane lines are very faint, so the count is estimated from width and vehicle positions."
+      },
+      {
+        "way_id": 43097494,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.85,
+        "correct": true,
+        "within_one": true,
+        "note": "Two clear dashed lines. The frontage road beyond the separator is excluded."
+      },
+      {
+        "way_id": 46874457,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 5,
+        "confidence": 0.3,
+        "correct": false,
+        "within_one": true,
+        "note": "Markings faint or not visible. Count estimated from width and vehicles side by side. A gantry crosses the road."
+      },
+      {
+        "way_id": 858658181,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.25,
+        "correct": true,
+        "within_one": true,
+        "note": "No lane markings visible. Count estimated from width only."
+      },
+      {
+        "way_id": 659909042,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 4,
+        "confidence": 0.85,
+        "correct": true,
+        "within_one": true,
+        "note": "Three clear dashed lines."
+      },
+      {
+        "way_id": 1344442046,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 4,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "Three clear dashed lines, but the ticks are on an overpass deck (bridge cap)."
+      },
+      {
+        "way_id": 449440266,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "Faint dashes, and the ticks are on an elevated viaduct (bridge cap). Vehicles side by side support 3."
+      },
+      {
+        "way_id": 865489283,
+        "highway": "motorway",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 4,
+        "confidence": 0.9,
+        "correct": true,
+        "within_one": true,
+        "note": "Three very clear dashed lines."
+      },
+      {
+        "way_id": 1432320656,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 4,
+        "confidence": 0.75,
+        "correct": false,
+        "within_one": true,
+        "note": "Three dashed lines visible. Median trees partly shade the left edge."
+      },
+      {
+        "way_id": 444383287,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 4,
+        "confidence": 0.7,
+        "correct": false,
+        "within_one": true,
+        "note": "Three dashed lines, with building shadow on the right edge. The width matches the 4-lane twin carriageway."
+      },
+      {
+        "way_id": 41519535,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 6,
+        "confidence": 0.8,
+        "correct": false,
+        "within_one": false,
+        "note": "Five clear dashed lines."
+      },
+      {
+        "way_id": 41518831,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.25,
+        "correct": true,
+        "within_one": true,
+        "note": "Ticks on an underpass trench at the tunnel portal. Lines are faint, so the count is estimated."
+      },
+      {
+        "way_id": 646811879,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "Two dashed lines visible, but the ticks are on an overpass over a signalised junction (bridge cap)."
+      },
+      {
+        "way_id": 1076102293,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 1,
+        "pred": 4,
+        "confidence": 0.5,
+        "correct": false,
+        "within_one": false,
+        "note": "lane dashes visible but faint; hard to tell the right edge line from a lane line; possible shoulder"
+      },
+      {
+        "way_id": 1432320655,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 4,
+        "confidence": 0.8,
+        "correct": false,
+        "within_one": true,
+        "note": "3 clear dashed lines; separate unmarked carriageway to the left beyond a separator excluded"
+      },
+      {
+        "way_id": 166905358,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.45,
+        "correct": true,
+        "within_one": true,
+        "note": "lane dashes very faint; frontage road beyond barrier on right excluded"
+      },
+      {
+        "way_id": 1074526712,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 1,
+        "pred": 4,
+        "confidence": 0.8,
+        "correct": false,
+        "within_one": false,
+        "note": "3 clear dashed lines; collector road beyond separator on right excluded"
+      },
+      {
+        "way_id": 444205770,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 2,
+        "confidence": 0.15,
+        "correct": false,
+        "within_one": true,
+        "note": "ticks on interchange/underpass portal and structures; no countable road under ticks"
+      },
+      {
+        "way_id": 444231394,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "no visible markings in shadow; estimated from width"
+      },
+      {
+        "way_id": 1040863676,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 2,
+        "confidence": 0.25,
+        "correct": false,
+        "within_one": true,
+        "note": "no lane markings visible; narrow ramp-like carriageway at interchange; width estimate only"
+      },
+      {
+        "way_id": 1024884983,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 4,
+        "confidence": 0.8,
+        "correct": false,
+        "within_one": true,
+        "note": "3 clear dashed lines between solid edge lines; shoulders excluded"
+      },
+      {
+        "way_id": 444383284,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.55,
+        "correct": true,
+        "within_one": true,
+        "note": "2 dashed lines visible but partly shadowed; adjacent carriageways separated by thin barriers"
+      },
+      {
+        "way_id": 134839739,
+        "highway": "trunk",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 3,
+        "confidence": 0.45,
+        "correct": false,
+        "within_one": true,
+        "note": "2 dashed lines clear but width suggests possible 4th lane or wide shoulder"
+      },
+      {
+        "way_id": 1487950737,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 4,
+        "confidence": 0.9,
+        "correct": true,
+        "within_one": true,
+        "note": "3 dashed lines and 4 yield triangles across carriageway"
+      },
+      {
+        "way_id": 194728659,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "markings barely visible in shadow; parking lane on left excluded; width estimate"
+      },
+      {
+        "way_id": 444233173,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 4,
+        "confidence": 0.4,
+        "correct": false,
+        "within_one": true,
+        "note": "building shadow hides most dashes; bus bay on right excluded"
+      },
+      {
+        "way_id": 444231400,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 2,
+        "confidence": 0.25,
+        "correct": true,
+        "within_one": true,
+        "note": "ticks on narrow strip beyond separator, possibly frontage road; no markings visible"
+      },
+      {
+        "way_id": 31134837,
+        "highway": "primary",
+        "oneway": "no",
+        "truth": 2,
+        "pred": 2,
+        "confidence": 0.1,
+        "correct": true,
+        "within_one": true,
+        "note": "ticks on building and planter at roundabout; no road under ticks"
+      },
+      {
+        "way_id": 1024884980,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 6,
+        "pred": 5,
+        "confidence": 0.35,
+        "correct": false,
+        "within_one": true,
+        "note": "curved road with mixed solid and dashed lines; unclear which lanes are through vs collector"
+      },
+      {
+        "way_id": 166905552,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 1,
+        "pred": 3,
+        "confidence": 0.25,
+        "correct": false,
+        "within_one": false,
+        "note": "ticks near separator/service road; heavy shadows and trees obscure markings"
+      },
+      {
+        "way_id": 46958601,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 3,
+        "confidence": 0.85,
+        "correct": false,
+        "within_one": true,
+        "note": "2 clear dashed lines"
+      },
+      {
+        "way_id": 1441864100,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": false,
+        "within_one": true,
+        "note": "diverge area; bottom tick on separator between branches"
+      },
+      {
+        "way_id": 1072015280,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 1,
+        "pred": 3,
+        "confidence": 0.45,
+        "correct": false,
+        "within_one": false,
+        "note": "3 lane arrows but chevron gore suggests diverge; tick on possible splitting lane"
+      },
+      {
+        "way_id": 1469987089,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.5,
+        "correct": true,
+        "within_one": true,
+        "note": "Carriageway right of the tree median is in deep shadow, so the dashed lines are only faintly visible. Width matches the 3-lane carriageway on the left. The parking strip on the right is excluded."
+      },
+      {
+        "way_id": 217802037,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 3,
+        "confidence": 0.25,
+        "correct": false,
+        "within_one": true,
+        "note": "Road runs diagonally, not vertically, so the tick column crosses from the central carriageway into the parallel carriageway beyond the solid line. Counted the central carriageway (2 dashed lines). Unsure which carriageway is the way."
+      },
+      {
+        "way_id": 1174959915,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 6,
+        "confidence": 0.25,
+        "correct": false,
+        "within_one": false,
+        "note": "Top tick falls in the gore where a U-turn ramp merges in. Below the merge there seem to be about 5 staggered dashed lines on a diagonal road, so the count is uncertain."
+      },
+      {
+        "way_id": 1105807627,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 1,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": false,
+        "within_one": false,
+        "note": "Ticks fall on a red-painted strip between the 3-lane main carriageway and a parallel 2-lane road. Assumed the way is the main carriageway. If it is the right-hand road, the count is 2."
+      },
+      {
+        "way_id": 1471829716,
+        "highway": "primary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.25,
+        "correct": true,
+        "within_one": true,
+        "note": "Ticks are on a junction where the roadway splits and curves. The count comes from the dashed lines at the bottom of the crop, before the split."
+      },
+      {
+        "way_id": 1065030300,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.25,
+        "correct": true,
+        "within_one": true,
+        "note": "No lane lines are visible, only zigzag hump markings, so the count is from width only. The right edge may include a gutter or shoulder."
+      },
+      {
+        "way_id": 865497313,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.85,
+        "correct": true,
+        "within_one": true,
+        "note": "Clear 2 dashed lines and 3 lane arrows. The separate road beyond the right shoulder is excluded."
+      },
+      {
+        "way_id": 1014066221,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": false,
+        "within_one": true,
+        "note": "Tree canopy and shadow cover the carriageway and no markings are visible, so the count is from width only. It could be 2."
+      },
+      {
+        "way_id": 1420832423,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 4,
+        "pred": 3,
+        "confidence": 0.25,
+        "correct": false,
+        "within_one": true,
+        "note": "Junction approach with a queue that flares to about 4 columns at the stop line. A building shadow hides the markings, so the through-lane count is estimated."
+      },
+      {
+        "way_id": 44445009,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 3,
+        "confidence": 0.4,
+        "correct": false,
+        "within_one": true,
+        "note": "Dashed lines are faint and partly shadowed by trees, with possibly 2 visible. Carriageway is wide, so a 4th lane is possible."
+      },
+      {
+        "way_id": 1132416433,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "Clear 2 dashed lines and 3 arrows; the honest read is about 0.85. Capped at 0.3 by your rule because the bottom tick is on a bridge deck and the top tick is near a junction."
+      },
+      {
+        "way_id": 1470057235,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.5,
+        "correct": true,
+        "within_one": true,
+        "note": "Dashed lines are faint in the shadow. Cars drive side by side, and the width matches the 3-lane carriageway on the left. The service road beyond the right separator is excluded."
+      },
+      {
+        "way_id": 294798756,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 2,
+        "confidence": 0.3,
+        "correct": false,
+        "within_one": true,
+        "note": "One clear dashed centre line, so the honest read is high. Capped at 0.3 by your rule because the carriageway is a bridge deck over water."
+      },
+      {
+        "way_id": 1492421515,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 2,
+        "confidence": 0.4,
+        "correct": true,
+        "within_one": true,
+        "note": "Ticks are on the right-hand carriageway past a thin separator. Heavy traffic and cars parked along the right edge hide the markings. 2 moving columns plus a parking edge."
+      },
+      {
+        "way_id": 338704468,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.85,
+        "correct": true,
+        "within_one": true,
+        "note": "Clear 2 dashed lines. The 3-lane service road beyond the right separator is excluded."
+      },
+      {
+        "way_id": 1515590817,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "Building shadows hide all markings, so the count is from width only (about 80 px). It could be 2. The edge strip on the right is excluded."
+      },
+      {
+        "way_id": 1526536541,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.2,
+        "correct": true,
+        "within_one": true,
+        "note": "Most of the tick column runs under a flyover, and the top is a junction with a crosswalk. Estimated from the 3-lane width of the matching road on the left."
+      },
+      {
+        "way_id": 1535032937,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 2,
+        "pred": 2,
+        "confidence": 0.25,
+        "correct": true,
+        "within_one": true,
+        "note": "Ticks are on a narrow road right of the median with angled parking on its right. There are no visible markings and the road is in shadow. It could be 1 lane."
+      },
+      {
+        "way_id": 1469996005,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 1,
+        "pred": 2,
+        "confidence": 0.25,
+        "correct": false,
+        "within_one": true,
+        "note": "Ticks are on a U-turn loop or ramp beside a flyover, and the top tick is on a paved gore. The road is shadowed with no clear markings, so the count is from width."
+      },
+      {
+        "way_id": 865497312,
+        "highway": "secondary",
+        "oneway": "yes",
+        "truth": 3,
+        "pred": 3,
+        "confidence": 0.3,
+        "correct": true,
+        "within_one": true,
+        "note": "Clear 2 dashed lines. Capped at 0.3 by your rule because this is an elevated deck and the ticks sit on its right edge barrier. It matches way 865497313."
+      }
+    ]
+  },
+  "pooled": {
+    "n": 100,
+    "agreement_all": 0.63,
+    "within_one_all": 0.91,
+    "threshold_if_chosen_on_pooled": null,
+    "curve": [
+      {
+        "threshold": 0.1,
+        "kept": 100,
+        "correct": 63,
+        "precision": 0.63,
+        "coverage": 1.0
+      },
+      {
+        "threshold": 0.15,
+        "kept": 98,
+        "correct": 61,
+        "precision": 0.6224,
+        "coverage": 0.98
+      },
+      {
+        "threshold": 0.2,
+        "kept": 94,
+        "correct": 58,
+        "precision": 0.617,
+        "coverage": 0.94
+      },
+      {
+        "threshold": 0.25,
+        "kept": 89,
+        "correct": 54,
+        "precision": 0.6067,
+        "coverage": 0.89
+      },
+      {
+        "threshold": 0.3,
+        "kept": 71,
+        "correct": 45,
+        "precision": 0.6338,
+        "coverage": 0.71
+      },
+      {
+        "threshold": 0.35,
+        "kept": 50,
+        "correct": 31,
+        "precision": 0.62,
+        "coverage": 0.5
+      },
+      {
+        "threshold": 0.4,
+        "kept": 49,
+        "correct": 31,
+        "precision": 0.6327,
+        "coverage": 0.49
+      },
+      {
+        "threshold": 0.45,
+        "kept": 42,
+        "correct": 28,
+        "precision": 0.6667,
+        "coverage": 0.42
+      },
+      {
+        "threshold": 0.5,
+        "kept": 38,
+        "correct": 27,
+        "precision": 0.7105,
+        "coverage": 0.38
+      },
+      {
+        "threshold": 0.55,
+        "kept": 32,
+        "correct": 22,
+        "precision": 0.6875,
+        "coverage": 0.32
+      },
+      {
+        "threshold": 0.6,
+        "kept": 31,
+        "correct": 21,
+        "precision": 0.6774,
+        "coverage": 0.31
+      },
+      {
+        "threshold": 0.7,
+        "kept": 30,
+        "correct": 20,
+        "precision": 0.6667,
+        "coverage": 0.3
+      },
+      {
+        "threshold": 0.75,
+        "kept": 27,
+        "correct": 18,
+        "precision": 0.6667,
+        "coverage": 0.27
+      },
+      {
+        "threshold": 0.8,
+        "kept": 23,
+        "correct": 16,
+        "precision": 0.6957,
+        "coverage": 0.23
+      },
+      {
+        "threshold": 0.85,
+        "kept": 12,
+        "correct": 11,
+        "precision": 0.9167,
+        "coverage": 0.12
+      },
+      {
+        "threshold": 0.9,
+        "kept": 2,
+        "correct": 2,
+        "precision": 1.0,
+        "coverage": 0.02
+      }
+    ]
+  }
+}

@@ -784,6 +784,19 @@ def evaluate_cmd(out: Path = typer.Option(EVAL_JSON)) -> None:
         )
         report["holdout"] = hold
         report["passed"] = bool(report["passed"] and hold["precision"] >= TARGET_PRECISION)
+        pooled = [(r["confidence"], r["correct"]) for r in report["rows"] + hold["rows"]]
+        n_pooled = len(pooled)
+        report["pooled"] = {
+            "n": n_pooled,
+            "agreement_all": round(sum(ok for _, ok in pooled) / n_pooled, 4),
+            "within_one_all": round(
+                sum(r["within_one"] for r in report["rows"] + hold["rows"]) / n_pooled, 4
+            ),
+            "threshold_if_chosen_on_pooled": (choose_threshold(precision_curve(pooled)) or {}).get(
+                "threshold"
+            ),
+            "curve": precision_curve(pooled),
+        }
     report = {
         "generated": dt.date.today().isoformat(),
         "imagery": f"{TILE_SOURCE}, zoom {ZOOM}, {CROP_PX} px crops upscaled {OUT_SCALE}x",
