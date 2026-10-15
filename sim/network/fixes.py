@@ -42,6 +42,10 @@ class Fix(BaseModel):
     date: dt.date
     author: str
     osm_note: str | None = Field(default=None, description="upstream OSM status / changeset")
+    # provenance of machine-derived fixes (e.g. the imagery lane audit); None for reviewed fixes
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    method: str | None = None
+    source: str | None = None
 
     @model_validator(mode="after")
     def _check(self) -> Fix:
