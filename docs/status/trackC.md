@@ -43,13 +43,16 @@ Holdout (60 tagged, disjoint): 58.3 % exact, 88.3 % within one; at 0.5 -> **60.0
 separates: crops rated <= 0.3 were 64 % correct. Before-smoke on `jeddah.net.xml` reproduced M1:
 26 teleports = 0.144 %, SUMO 22.4 s, demand generation 542 s.
 
-Not done because of the block: audit reading (115 of 1,500 crops prepared, none read),
+Not done because of the block: audit reading (115 of 1,500 crops on disk, 100 in the stopped
+run's manifest, none read),
 `imagery-lanes.yaml`, `jeddah.lanes.net.xml`, after-smoke. `jeddah.net.xml` untouched.
 
 Could not verify: whether the disagreements are tag errors or reading errors (a few look like tag
 errors, e.g. way 208082834; Prince Majid Road reads 4 vs tag 3); the capture date of the Esri tiles.
 
-Next (see docs/lane-audit.md): human adjudication of the 37 disagreements; or a motorway-only audit
+Next (see docs/lane-audit.md): human adjudication of the 37 disagreements, starting with Prince
+Majid Road (19 of 25 trunk samples, 5 of the 8 confident holdout errors; holdout without it is
+still 78.6 %); or a motorway-only audit
 after a fresh motorway holdout (motorways 21/25 = 84 % so far, found after the fact); or two
 independent reads per crop, validated on a fresh holdout. Integration: add `pillow` to pyproject.
 

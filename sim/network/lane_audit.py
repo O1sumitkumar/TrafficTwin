@@ -96,8 +96,8 @@ class Way:
     def expected_lanes(self) -> int | None:
         """Lanes in the direction shown "up" in the crop, derived from the OSM tags.
 
-        oneway: ``lanes``; two-way: ``lanes:forward`` (or ``lanes:backward`` for oneway=-1),
-        else half of an even ``lanes``. Anything else is not comparable (None).
+        one-way (including oneway=-1): ``lanes``; two-way: ``lanes:forward``, else half of an
+        even ``lanes``. Anything else is not comparable (None).
         """
 
         def as_int(v: str | None) -> int | None:

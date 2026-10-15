@@ -74,10 +74,14 @@ Analyst instruction (verbatim, after the folder path):
 
 | set | ways | exact agreement, all crops | within +/-1 | threshold | kept | precision at threshold |
 |---|---|---|---|---|---|---|
-| calibration v1 (whole-way midpoint, earlier prompt) | 40 | 70.0 % | n/a | 0.6 (same rule) | 15 | 80.0 % |
+| calibration v1 (whole-way midpoint, earlier prompt) | 40 | 70.0 % | 95.0 % | 0.6 (same rule) | 15 | 80.0 % |
 | calibration v2 (longest segment) | 40 | 70.0 % | 95.0 % | **0.5** | 18 | **83.3 %** |
 | holdout (disjoint, seed 2) | 60 | 58.3 % | 88.3 % | 0.5 (from calibration) | 20 | **60.0 %** |
 | pooled v2 + holdout | 100 | 63.0 % | 91.0 % | none reaches 80 % with >= 15 kept | - | - |
+
+v1 figures come from the gitignored archive `data/imagery/archive/calibration-v1-midpoint/`; the
+committed `imagery-eval.json` holds v2, the holdout and the pooled set. The calibration pass was
+itself marginal: 15 of 18 correct at 0.5, so one more error would have meant 77.8 %.
 
 Exact agreement by class over all crops (calibration n=10 per class / holdout n=15 per class):
 motorway 70 % / 93 %, trunk 70 % / 33 %, primary 80 % / 40 %, secondary 60 % / 67 %. At the 0.5
@@ -98,10 +102,14 @@ was not built, and the audit stopped after 115 of 1,500 crops; none of them was 
    correct, about the same as the crops rated 0.5 and above (pooled 71 % at 0.5). With this signal,
    no threshold can buy precision.
 2. **Overcounting on wide urban trunk roads.** 19 of the 25 holdout errors are overcounts (+1: 12,
-   +2 or more: 7). Prince Majid Road (ref 70) is tagged `lanes=3` (edited 2026-05-17) on three
-   holdout ways, but the imagery read 4 with 0.75-0.8 confidence each time
-   (`1432320656.jpg` below shows three dashed lines). Either the tag or the imagery is out of date.
-   A tag-based metric cannot tell which.
+   +2 or more: 7). Prince Majid Road (ref 70, tagged `lanes=3`, edited 2026-05-17) dominates the
+   trunk sample: it is 58 of the 79 comparable tagged trunk ways, so it supplied 19 of the 25
+   sampled trunk ways (9 calibration, 10 holdout). In the holdout, four of its ways were read as 4
+   at 0.70-0.80 (1432320656, 444383287, 1432320655, 1024884983) and one as 6 at 0.80 (41519535).
+   That is 5 of the 8 errors among the 20 crops kept at the threshold (`1432320656.jpg` shows three
+   dashed lines, i.e. 4 lanes). Either the tag or the imagery is out of date, and a tag-based
+   metric cannot tell which. Without Prince Majid Road the holdout is 11/14 = 78.6 % at the
+   threshold, still under 80 %, so the block does not rest on this one road.
 3. **Geometry vs carriageway.** Two trunk ways tagged `lanes=1` (1074526712, 715 m; 1076102293,
    132 m) were both read as 4. On 1074526712 (`1074526712.jpg`) the ticks fall on a hatched strip
    beside a 4-lane carriageway, and the analyst counted that carriageway. The way looks like a
@@ -145,7 +153,8 @@ demand generation 542 s. This reproduces M1 exactly (same network hash, config h
 
 ## What would unblock it
 
-- **Human adjudication.** A person reviews the 37 disagreements among the 100 calibration and
+- **Human adjudication.** Start with Prince Majid Road (5 of the 8 confident holdout errors). A
+  person reviews the 37 disagreements among the 100 calibration and
   holdout crops against current imagery or a site visit, and decides tag-wrong vs read-wrong. If
   the tags are the main error source, re-score against adjudicated truth with the same rule.
 - **Motorway-only audit.** Motorways read 21/25 correct overall (84 %; holdout 14/15). This
@@ -156,6 +165,9 @@ demand generation 542 s. This reproduces M1 exactly (same network hash, config h
   and possibly two sample points per way. This must be re-validated on a fresh holdout. Drop the
   bridge-deck cap.
 - **Geometry check.** Skip samples whose ticks do not fall on asphalt (connector ways, gores).
+- **Enforced blindness.** The analyst was blind by instruction only: `ways.json` (with the tags)
+  sits beside the `crops/` folder and the analyst can read files. No sign that it did, but a re-run
+  should give the analyst a folder with crops only.
 
 ## Reproduce
 
