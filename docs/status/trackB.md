@@ -31,3 +31,18 @@ Decisions (taken without questions, per prompts/_common.md):
   A-event-flood-radius (registered in docs/assumptions-trackB.md).
 - B-D-008 Tahlia bbox east edge moved to lon 39.190 (about 23.9 km2) to contain FS-009, the King Fahd
   Rd / Tahlia St underpass (flooded 2017), so the flood demo closes a high-confidence site.
+- B-D-009 Windows (`python -m sim.link window|cut|tls|check`): tahlia 23.8 km2, kaia_corridor 21.9
+  (polygon), al_balad 17.0, kau_faisaliyah 19.7 (covers KAU / Al Jamiah only: OSM puts Al
+  Faisaliyyah about 9 km from KAU, beyond one 3-25 km2 window; a separate window can be added).
+- B-D-010 Tahlia first failed the 9.3 flow check (GEH<5 on 79.3 % of 420 edges, total ratio 0.637)
+  because the netconvert-default program at the signalled at-grade level of the Madinah Rd / Tahlia
+  interchange (OSM: Madinah Rd on a bridge, Tahlia in a tunnel, links signalled) gives the main right
+  turn 6 s of a 90 s cycle, while Tier A meso only adds a red-time penalty. Decision: Tier B windows
+  load Webster-retimed programs (`tlsCycleAdaptation.py`, A-link-009) from `<w>.tls.add.xml`; the
+  city net is untouched. Result: all four windows pass (tahlia 90.2 % / 0.910, narrow margin;
+  kaia_corridor 100 % / 0.992; al_balad 100 % / 0.995; kau_faisaliyah 100 % / 0.997). A reviewed
+  program for that cluster (separate right-turn phases) is the real fix; left open.
+- B-D-011 Tier A exit-time run (meso, seed 1, run to 14,400 s so every vehicle finishes): 18,001
+  vehicles, 35.9 s wall, 26 teleports in the demand hour (0.14 %) but 202 over the whole run
+  (1.12 %, mostly hour 2); hot spots `:cluster_2191210167_...`, `:6178528486`, `:9556669830` are
+  fix-list candidates for the network owner.
