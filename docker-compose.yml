@@ -1,0 +1,23 @@
+# One command to run the stack: docker compose up --build
+# api: FastAPI stub (M3 adds runs, policies, streaming). web: Vite dev server for the network viewer.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data:ro
+      - ./runs:/app/runs
+  web:
+    image: node:22-alpine
+    working_dir: /web
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/web
+      - /web/node_modules
+    depends_on:
+      - api

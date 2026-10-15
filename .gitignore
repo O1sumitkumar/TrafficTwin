@@ -1,0 +1,24 @@
+# data: keep only demo, OSM fixes and public census tables
+data/*
+!data/demo/
+!data/osm/
+data/osm/*
+!data/osm/fixes/
+!data/osm/jeddah.poly
+!data/census/
+runs/
+logs/
+.env
+.env.*
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+web/dist/
+.DS_Store
+PROMPT*.md.bak
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+web/public/data/
+run_claude.sh

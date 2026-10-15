@@ -1,0 +1,30 @@
+TrafficTwin Jeddah
+Copyright 2026 The TrafficTwin Jeddah contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party data and software
+-----------------------------
+
+OpenStreetMap
+  Road network, buildings, districts and points of interest are derived from
+  OpenStreetMap data, (c) OpenStreetMap contributors, available under the
+  Open Database License (ODbL) 1.0: https://www.openstreetmap.org/copyright
+  Extracts are obtained from Geofabrik GmbH (https://download.geofabrik.de/).
+  Derived databases (for example data/demo/*.net.xml and data/jeddah/*) remain
+  subject to the ODbL; attribution "(c) OpenStreetMap contributors" must be kept.
+
+Eclipse SUMO
+  This project uses Eclipse SUMO (Simulation of Urban MObility), (c) German
+  Aerospace Center (DLR) and others, under the Eclipse Public License 2.0
+  (EPL-2.0): https://eclipse.dev/sumo/ . SUMO is installed as a dependency
+  (PyPI wheel "eclipse-sumo"), not vendored.
+
+GASTAT open data
+  Population and labour statistics come from the General Authority for
+  Statistics of the Kingdom of Saudi Arabia (GASTAT), https://www.stats.gov.sa/ ,
+  used under its open-data terms of use, with attribution to GASTAT.
+
+Synthetic demand
+  All simulation results are produced from synthetic demand and are
+  uncalibrated unless explicitly stated otherwise.
