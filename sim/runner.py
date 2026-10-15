@@ -288,9 +288,18 @@ def main(
     end: int | None = typer.Option(None, help="override the end time (s)"),
     period: float | None = typer.Option(None, help="override the random-trips period (s)"),
     runs_dir: Path = typer.Option(RUNS_DIR),
+    baseline: bool = typer.Option(False, "--baseline", help="24 h Tier A baseline (M2)"),
+    daytype: str = typer.Option("weekday", help="day type for --baseline"),
+    sample: float = typer.Option(0.10, help="population sample for --baseline"),
+    iterations: int | None = typer.Option(None, help="override duaIterate steps (--baseline)"),
 ) -> None:
     if tier not in ("A", "B"):
         raise typer.BadParameter("tier must be A or B")
+    if baseline:
+        from sim.population.baseline import run_baseline
+
+        run_baseline(daytype, seed, sample, net, runs_dir, iterations, end)
+        return
     if not smoke:
         raise typer.BadParameter("only --smoke is implemented in M1 (baselines arrive in M2)")
     meta = run_smoke(tier, seed, net, end, runs_dir, period=period)

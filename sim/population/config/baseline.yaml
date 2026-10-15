@@ -1,0 +1,26 @@
+# Tier A baseline (python -m sim.runner --baseline ...). Model settings; behavioural ones are registered.
+label: "synthetic demand, uncalibrated"
+net: data/jeddah/jeddah.net.xml
+begin: 0
+end: 86400
+# Simulation continues past midnight so late trips can finish; KPIs count trips departing in [begin, end).
+drain_s: 7200
+
+assignment:            # duaIterate.py (SUMO tools/assign)
+  iterations: 3        # steps 0..iterations-1; few iterations by design (Tier A budget), see STATUS
+  aggregation_s: 900
+  routing_algorithm: astar
+  routing_threads: 8
+  max_alternatives: 3
+  extra: [--clean-alt, --disable-summary, --disable-tripinfos]
+
+edgedata_freq_s: 300
+emissions_freq_s: 3600
+
+# Capacity scaling for population samples (MATSim-style): a sample f runs with vehicles 1/f times
+# longer (length + minGap) and meso headways 1/f times larger, so each sampled vehicle occupies the
+# road like 1/f real ones. Flows and totals are divided by f in the metrics. A-sim-101.
+capacity_scaling:
+  enabled: true
+  meso_tau_defaults: {tauff: 1.13, taufj: 1.13, taujf: 1.73, taujj: 1.4}
+  assumption: "Standard sampled-population practice (MATSim flowCapacityFactor/storageCapacityFactor). In SUMO meso the headways (tau*) set flow capacity and vehicle length sets storage. Validity checked by comparing 10 % and 25 % KPIs (docs/status/trackA.md)."
