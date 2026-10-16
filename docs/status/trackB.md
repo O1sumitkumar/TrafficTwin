@@ -220,7 +220,7 @@ contraflow corridor detection + netconvert edit + Webster retime, run-time contr
 plan, clearance T50/T90/T100, bottleneck edges, background delay; `run`, `validate`, `net`,
 `register` CLIs); `strategist/evacuation.py` (screening candidates, parallel what-ifs + noise
 replicate, score, classification, explanations, explicit recommendation, decision log, `approve`);
-`sim/scenarios/evac_settings.yaml` (A-evac-001..035), `evac_demo.yaml`, `evac_corniche_hamra.yaml`,
+`sim/scenarios/evac_settings.yaml` (A-evac-001..038), `evac_demo.yaml`, `evac_corniche_hamra.yaml`,
 `evac_flood_balad.yaml`; `docs/evacuation.md` (method, contraflow mechanics, results tables,
 register block); 42 tests in `tests/test_evacuation.py` and `tests/test_evacuation_run.py`.
 Commands:
@@ -268,3 +268,12 @@ records 17 (Al Hamra, rec-20261016T053046Z-750c78f4) and 18 (Al Balad, rec-20261
 record 16 approves record 15, record 19 approves record 18.
 Next: M8 Calibration (Track A) — Track B's next work is integration: registry/runner wiring for
 evacuation, register merge, README commands.
+Disk: the shared volume was at 99 % (about 1-6 GB free) during M7 and the verifier's first test
+run failed on a full disk; M7 outputs under runs/ are about 0.7 GB (superseded strategist run dirs
+are kept because decision-log records point at them). Long city runs by any track can hit this.
+Tests: 146 pass (full suite, about 1.5 min under load); 42 of them M7; ruff clean.
+Verifier: first pass FAIL on documentation accuracy (stale status numbers), an unregistered
+threshold and a missing assumption id in outputs; all fixed (B-D-038), city demos and strategists
+rerun with unchanged fingerprints; second pass PASS on all items except one stale register range
+in this block, fixed in the same commit as this line.
+M7: done
