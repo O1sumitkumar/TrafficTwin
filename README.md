@@ -20,7 +20,7 @@ make demo            # opens http://localhost:5173 when ready; Ctrl-C stops the 
 
 `make demo` does, in order:
 1. `make setup`: `uv python install 3.12`, `uv sync --frozen` (SUMO 1.28 from the `eclipse-sumo`
-   wheel), `npm ci --include=dev` in `web/`.
+   wheel), `npm ci --include=dev` in `web/` (only when `package-lock.json` changed).
 2. `make city-net`: downloads the Geofabrik GCC extract (243 MB, first run only), clips it to
    Jeddah and builds `data/jeddah/jeddah.net.xml` (about 2 min after the download). Skip with
    `make demo CITY=0` (no city view, no Tier A run).

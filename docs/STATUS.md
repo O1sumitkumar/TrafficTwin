@@ -130,6 +130,21 @@ strategist and evacuation run ids as macOS and the same Tier A run id (smoke-A-s
 `TT_WEB_PORT`); a headless screenshot of the containerised viewer matched final-city.png. The
 download path ran in the failed attempt; the second attempt reused the downloaded extract.
 
+Gates: ruff and format clean; pytest on main 272 passed / 1 skipped (about 3 min); in a fresh
+clone 273 tests, 271 passed / 2 skipped (the Tahlia window data is gitignored, so its test skips);
+web typecheck clean.
+
+Verifier (2026-10-16, its own fresh clone /tmp/tt-verify-20261016-155907 of 53c1746, ports
+8030/5190): clean-clone `make demo` PASS in 413 s with the same run ids and KPIs as above; a second
+`make demo` skips every step (4 s); determinism PASS (`--force` rerun of `events`:
+`scenario_report.json` identical); screenshots, `make test`, docs, hygiene and docker config PASS.
+Its one FAIL (STATUS honesty: `docs/status/final.md` uncommitted with placeholders, no word about
+the demo video, no M9 test gate) is fixed by this block and the committed final.md.
+
+Not delivered from PROJECT.md M9: a **demo video**. None was recorded (headless session); the
+screenshot set `docs/img/final-*.png` and the 5-minute script `docs/demo-script.md` stand in for it.
+The list of what is still missing against G1-G6 is in `docs/status/final.md`.
+
 Decisions:
 - F-001 `make demo` builds the city network by default (the brief asks for the city view);
   `CITY=0` skips the download and the Tier A step.
@@ -139,7 +154,8 @@ Decisions:
 - F-003 The Tier A demo is a one-hour random-trip smoke at 12:00 (`--begin`, additive) so the
   slider opens at mid-day; behavioural 24 h demand is `make city`.
 - F-004 Demo runs are skipped when their outputs exist (manifest), so `make demo` restarts in
-  seconds.
+  seconds; `make setup` runs `npm ci` only when `web/package-lock.json` changed (verifier note: it
+  wiped `node_modules` under a running Vite server).
 
 Open (M9): demo population hash differs between macOS and the Linux container
 (`baseline-...-32b0cbf8-...` vs `-0d65c7fc-`): PROJ/shapely zone areas differ in the last float

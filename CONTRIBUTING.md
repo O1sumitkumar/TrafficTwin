@@ -8,7 +8,7 @@ real counts (M8). Please keep it that way in code, docs and screenshots.
 
 ```bash
 git clone <this repo> && cd TrafficTwin
-make demo CITY=0      # about 2 min: setup, demo-window runs, API on :8000, viewer on :5173
+make demo CITY=0      # setup, demo-window runs (about 30 s), API on :8000, viewer on :5173
 make test             # ruff, ruff format --check, pytest (demo window, about 3 min), web typecheck
 ```
 `make demo` without `CITY=0` also downloads the 243 MB Geofabrik extract and builds the Jeddah

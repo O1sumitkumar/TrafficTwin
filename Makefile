@@ -26,6 +26,10 @@ setup:
 	@command -v npm >/dev/null || { echo "node/npm is required (brew install node)"; exit 1; }
 	$(UV) python install 3.12
 	$(UV) sync --frozen
+	@$(MAKE) --no-print-directory web/node_modules/.package-lock.json
+
+# npm ci only when the lockfile changed (it wipes node_modules, even under a running Vite server)
+web/node_modules/.package-lock.json: web/package-lock.json
 	cd web && npm ci --include=dev --no-audit --no-fund
 
 # Jeddah network (M1): downloads the Geofabrik GCC extract on first run, clips, netconvert, fixes.

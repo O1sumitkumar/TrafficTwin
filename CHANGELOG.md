@@ -21,6 +21,15 @@ of `PROJECT.md` section 12.
 - Docs: `docs/architecture.md` (Mermaid), `docs/demo-script.md` (5-minute walkthrough),
   `CONTRIBUTING.md`, this changelog, README quickstart, release screenshots `docs/img/final-*.png`.
 
+### Fixed
+- Docker image: the eclipse-sumo Linux binaries need `libatomic1`, `libx11-6`, `libxext6`,
+  `libxrender1` and `libgl1` (compose had never been run before M9); `demo` and `api` share one image.
+- `make setup` runs `npm ci` only when `web/package-lock.json` changed.
+
+### Known issues
+- No demo video (screenshots and `docs/demo-script.md` instead); Loop tunnels (Track D) not merged;
+  open items per goal in `docs/status/final.md`.
+
 ## [0.0.8] - 2026-10-16: integration of tracks A, B and C
 - Merged M2-M8 into `main`; `sim.runner --scenario evac_*` dispatches to the evacuation runner;
   `--baseline --routing-threads --gzip`.
