@@ -184,3 +184,65 @@ def test_station_placement_respects_spacing() -> None:
     assert 3 not in ids  # 2.5 km off the line: beyond the snap distance
     too_long = pd.DataFrame({"x": [0.0, 40000.0], "y": [0.0, 0.0], "score_h": 1.0, "anchor": ""})
     assert place_stations(too_long.iloc[0], too_long.iloc[1], too_long, cfg) is None
+
+
+def fake_eval(cid: str, km: float, saved: int, exceed: float = 0.0) -> dict:
+    cx = {"low": km * 15, "central": km * 25, "high": km * 40}
+    return {
+        "candidate": cid, "run_id": f"loop_{cid.lower()}", "tunnel_km": km, "stations": 5,
+        "passengers_per_day": 1000, "vht_saved_per_day": saved, "vht_saved_pct": 1.0,
+        "road_vht_saved_per_day": saved, "am_peak_delay_change_pct": -1.0,
+        "vht_saved_per_km": saved / km, "capex_usd_m": cx,
+        "vht_saved_per_usd_m": {k: saved / v for k, v in cx.items()},
+        "flags": {"pair_exceedance_share": exceed, "teleport_share": 0.40,
+                  "teleport_share_compare": 0.41, "share_slower_than_car": 0.5},
+    }  # fmt: skip
+
+
+def line(cid: str, lon0: float) -> dict:
+    st = [{"name": f"s{k}", "lon": lon0, "lat": 21.45 + 0.02 * k} for k in range(5)]
+    return {"id": cid, "name": cid, "origin": "data", "tunnel_km": 10.0, "stations": st,
+            "captured_delay_h": 1.0, "captured_trips": 1}  # fmt: skip
+
+
+def test_greedy_budget_overlap_and_noise() -> None:
+    from sim.loop.optimise import greedy
+
+    cfg = loop_config()
+    cands = {"A": line("A", 39.15), "B": line("B", 39.15005), "C": line("C", 39.25),
+             "D": line("D", 39.35), "E": line("E", 39.45)}  # fmt: skip
+    ev = {"A": fake_eval("A", 10, 50_000), "B": fake_eval("B", 10, 49_000),  # B overlaps A
+          "C": fake_eval("C", 10, 30_000), "D": fake_eval("D", 10, 20_000),  # D over budget
+          "E": fake_eval("E", 4, 500)}  # E inside noise  # fmt: skip
+    chosen, log = greedy(cands, ev, 25.0, 1000.0, cfg)
+    assert chosen == ["A", "C"]
+    why = {r["candidate"]: r["decision"] for r in log}
+    assert why["B"].startswith("overlaps A") and "budget" in why["D"] and "noise" in why["E"]
+
+
+def test_quality_gate_and_render(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import sim.loop.optimise as O
+
+    cfg = loop_config()
+    ok, _ = O.passes(fake_eval("A", 10, 1000), cfg, 0.01)
+    bad, why = O.passes(fake_eval("A", 10, 1000, exceed=0.3), cfg, 0.01)
+    assert ok and not bad and "capacity" in why
+    doc = tmp_path / "loop.md"
+    names = ("candidates", "ranking", "greedy", "sweep", "recommendation", "noise")
+    doc.write_text("\n".join(f"<!-- LOOP:{n} -->\nold\n<!-- /LOOP:{n} -->" for n in names))
+    monkeypatch.setattr(O, "DOC", doc)
+    cands = {"A": line("A", 39.15)}
+    ev = {"A": fake_eval("A", 10, 5000)}
+    row = O.sweep_row("shuttle central", "lever", {**ev["A"], "run_id": "loop_opt_a"}, "ok")
+    res = {"greedy": [{"candidate": "A", "km": 10, "vht_saved_per_km": 500, "decision": "selected",
+                       "cumulative_km": 10}], "sweep": [row], "selected": ["A"],
+           "selected_km": 10, "budget_km": 25,
+           "noise": {"run": "n", "vht_delta": 100, "noise_vht": 100, "teleport_share": 0.5},
+           "recommended": row,
+           "band": {"vht_saved_per_day": 5000, "vht_saved_range": [4000, 6000],
+                    "per_usd_m_central": 20.0, "per_usd_m_range": [10.0, 40.0],
+                    "capex_usd_m": ev["A"]["capex_usd_m"]}}  # fmt: skip
+    O.render(res, cands, ev, cfg)
+    text = doc.read_text()
+    assert "old" not in text and "shuttle central" in text and "| 1 | A |" in text
+    assert "band 4,000 to 6,000" in text
