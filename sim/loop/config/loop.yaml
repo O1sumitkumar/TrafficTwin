@@ -112,7 +112,8 @@ budget_source: "A-loop-018: brief: greedy corridor selection under a 25 km budge
 # Quality thresholds used by the recommendation (reported, not hidden).
 quality:
   max_capacity_exceedance: 0.10
-  assumption: "A-loop-014: a configuration is recommendable only if at most 10 % of shifted trips exceed the station-pair capacity (else the road relief assumes riders the Loop cannot carry); judgement, 5-20 %."
+  min_daily_trips: 5000
+  assumption: "A-loop-014: a configuration is recommendable only if at most 10 % of shifted trips exceed the station-pair capacity (else the road relief assumes riders the Loop cannot carry); judgement, 5-20 %. A-loop-020: an option whose Loop carries fewer than 5,000 trips/day is not credited with city-scale relief (its measured relief is simulation noise); for scale, the Dubai Loop pilot plans about 13,000 passengers/day (Dubai Media Office, 3 Feb 2026)."
 
 # Days per year used to annualise daily VHT savings (weekday model).
 annual_days: 250

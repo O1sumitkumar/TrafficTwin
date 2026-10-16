@@ -496,7 +496,7 @@ def optimise(run: bool = True, budget: float | None = None, quiet: bool = False)
         pol = sweep_policy("_placebo_a0", "shuttle", {"alpha": 0.0}, chosen, tag)
         if run or (runs_dir / pol.id / "loop_report.json").exists():
             result["placebo"] = run_one(pol, SAMPLE, SEED, runs_dir, prune=True, quiet=quiet)
-    best = recommend(result["sweep"])
+    best = recommend(result["sweep"], cfg)
     result["recommended"] = best
     if best is not None:
         result["band"] = band(best, reports, noise)
@@ -525,48 +525,77 @@ def write_policy_yaml(pol: Any, path: Path, best: dict[str, Any]) -> None:
     path.write_text(head + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=100))
 
 
-def recommend(sweep: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """Pick the mode/toll with the most relief (same corridors, so also the most per USD M).
+def usage(r: dict[str, Any]) -> float:
+    """Daily Loop trips of a sweep row: tunnel entries (private) or passengers (shuttle)."""
+    if r["suffix"].startswith("_private"):
+        return float(r.get("tunnel_entries") or 0.0)
+    return float(r.get("pax") or 0.0)
 
-    Shuttle runs at different tunnel speeds have identical road demand and shuttles never use
-    surface roads, so their relief differs only by simulation noise: they are pooled (mean) as
-    replicates of one option, reported at the central speed. Each private-EV toll is its own
-    option (cars re-route through the tunnel). The quality gate of the chosen option is reported;
-    if it fails, the option is still recommended with the failure named, together with the
-    uncertainty runs that pass (e.g. engineering capacity)."""
+
+def recommend(sweep: list[dict[str, Any]], cfg: dict[str, Any] | None = None) -> dict | None:
+    """Pick the option with the most relief (same corridors, so also the most per USD M) among
+    those that pass the quality gate and whose Loop carries a meaningful number of trips.
+
+    Options: shuttle (runs at different tunnel speeds pooled as replicates: shuttles never use
+    surface roads, so speed cannot change road relief in this model), shuttle with ridership capped
+    by the measured capacity (the alpha runs below the central alpha that pass the gate), and each
+    private-EV toll. An option whose Loop carries fewer than `min_daily_trips` trips cannot cause
+    city-scale relief; its measured relief is simulation noise. If no option qualifies, the best
+    option is returned with its failure named. Engineering-capacity (vendor) runs that qualify are
+    listed as the vendor-case alternatives."""
+    cfg = cfg or loop_config()
+    min_trips = float(cfg["quality"]["min_daily_trips"])
+    a0 = float(cfg["shift"]["alpha"])
     levers = [r for r in sweep if r["role"] == "lever"]
     shuttle = [r for r in levers if not r["suffix"].startswith("_private")]
-    # (uncertainty runs never enter the options; private engineering capacity is a variant)
     options = []
     central = next((r for r in shuttle if r["suffix"] == ""), None)
     if central is not None:
-        mean = float(np.mean([r["rel"] for r in shuttle]))
         options.append(
             central
             | {
-                "relief_used": round(mean),
+                "relief_used": round(float(np.mean([r["rel"] for r in shuttle]))),
                 "pooled_from": [r["run"] for r in shuttle],
                 "pooled_values": [r["rel"] for r in shuttle],
             }
         )
-    for r in levers:
-        if r["suffix"].startswith("_private"):
+    for r in sweep:
+        capped = r["suffix"].startswith("_a") and float(r["suffix"][2:].replace("p", ".")) < a0
+        if r["suffix"].startswith("_private") and r["role"] == "lever" or capped:
+            label = (
+                f"{r['config']} (ridership capped by the measured capacity)"
+                if capped
+                else r["config"]
+            )
             options.append(
                 r
-                | {"relief_used": r["rel"], "pooled_from": [r["run"]], "pooled_values": [r["rel"]]}
+                | {
+                    "config": label,
+                    "relief_used": r["rel"],
+                    "pooled_from": [r["run"]],
+                    "pooled_values": [r["rel"]],
+                }
             )
     if not options:
         return None
-    best = max(options, key=lambda r: r["relief_used"])
+    for o in options:
+        o["eligible"] = bool(o["pass"]) and usage(o) >= min_trips
+        if o["pass"] and not o["eligible"]:
+            o["ok"] = f"only {usage(o):,.0f} Loop trips/day (< {min_trips:,.0f}): relief is noise"
+    eligible = [o for o in options if o["eligible"]]
+    best = max(eligible or options, key=lambda o: o["relief_used"])
     best["alternatives"] = [
         {"config": o["config"], "relief": o["relief_used"], "gate": o["ok"]}
         for o in options
         if o is not best
     ]
-    if not best["pass"]:
-        best["passing_variants"] = [
-            {"config": r["config"], "relief": r["rel"], "run": r["run"]} for r in sweep if r["pass"]
-        ]
+    best["vendor_alternatives"] = [
+        {"config": r["config"], "relief": r["rel"], "run": r["run"]}
+        for r in sweep
+        if "engineering" in r["config"] and r["pass"] and usage(r) >= min_trips
+    ]
+    if not best["eligible"]:
+        best["passing_variants"] = best["vendor_alternatives"]
     return best
 
 
@@ -723,7 +752,7 @@ def render(
             f"| teleports per vehicle | {fmt(best['tele'], 3)} |\n"
             f"| quality gate | {best['ok']} |\n"
         )
-        if not best["pass"]:
+        if not best.get("eligible", best["pass"]):
             alts = "; ".join(
                 f"{v['config']} ({v['relief']:,} VHT/day, `runs/{v['run']}`)"
                 for v in best.get("passing_variants", [])
@@ -731,6 +760,15 @@ def render(
             rec_md += (
                 f"\n**Quality gate not met at central assumptions** ({best['ok']}). "
                 f"Variants that pass: {alts or 'none'}.\n"
+            )
+        if best.get("vendor_alternatives"):
+            rec_md += (
+                "\nVendor-capacity case (engineering headway 1.5 s, not demonstrated): "
+                + "; ".join(
+                    f"{v['config']}: {v['relief']:,} VHT/day (`runs/{v['run']}`)"
+                    for v in best["vendor_alternatives"]
+                )
+                + ".\n"
             )
         if best.get("alternatives"):
             rec_md += (

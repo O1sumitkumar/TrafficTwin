@@ -276,17 +276,33 @@ def test_greedy_knapsack_correction() -> None:
     assert why["A"].startswith("dropped") and why["B"].startswith("selected")
 
 
-def test_recommend_pools_shuttle_speeds_and_reports_gate() -> None:
+def test_recommend_pools_shuttle_speeds_and_filters_noise_options() -> None:
     import sim.loop.optimise as O
 
-    def row(suffix: str, rel: int, ok: bool, role: str = "lever") -> dict:
+    def row(
+        suffix: str,
+        rel: int,
+        ok: bool,
+        role: str = "lever",
+        use: int = 30_000,
+        config: str | None = None,
+    ) -> dict:
         return {"suffix": suffix, "rel": rel, "pass": ok, "ok": "ok" if ok else "segment",
-                "role": role, "config": suffix or "central", "run": f"r{suffix}"}  # fmt: skip
+                "role": role, "config": config or (suffix or "central"), "run": f"r{suffix}",
+                "pax": use, "tunnel_entries": use}  # fmt: skip
 
     sweep = [row("", 50_000, False), row("_v50", 40_000, False), row("_v160", 90_000, False),
-             row("_private_toll10", 55_000, True),
-             row("_capeng", 60_000, True, "uncertainty")]  # fmt: skip
+             row("_private_toll10", 55_000, True, use=16_000),
+             row("_private_toll25", 60_000, True, use=750),
+             row("_a0p3", 57_000, True, "uncertainty"), row("_a0p7", 80_000, False, "uncertainty"),
+             row("_capeng", 61_000, True, "uncertainty",
+                 config="engineering capacity")]  # fmt: skip
     best = O.recommend(sweep)
-    assert best["suffix"] == "" and best["relief_used"] == 60_000  # pooled mean beats 55k
-    assert best["pooled_values"] == [50_000, 40_000, 90_000]
-    assert {v["config"] for v in best["passing_variants"]} == {"_private_toll10", "_capeng"}
+    assert best["suffix"] == "_a0p3" and "capped" in best["config"] and best["eligible"]
+    alts = {a["config"]: a for a in best["alternatives"]}
+    assert alts["central"]["relief"] == 60_000  # pooled mean of the three speed runs
+    assert "noise" in alts["_private_toll25"]["gate"]  # 750 trips/day cannot cause the relief
+    assert [v["config"] for v in best["vendor_alternatives"]] == ["engineering capacity"]
+    # nothing eligible: the best option is still returned, with the failure named
+    worst = O.recommend([row("", 50_000, False)])
+    assert worst is not None and not worst["eligible"]
