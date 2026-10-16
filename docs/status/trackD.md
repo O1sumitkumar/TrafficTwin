@@ -123,9 +123,10 @@ Measured (this session, 10 % weekday, synthetic demand, uncalibrated): 8 candida
 run with matched control ~25-40 min; 8 candidates x 2 sim seeds, 15 sweep/check runs. Replicate
 noise of one comparison +/- 34,236 VHT/day relief (1.25 %). Selected C1 Al-Salamah - KAU
 (17.86 km, USD 268-714 M). Recommended: shuttle mode, ridership capped by measured capacity
-(alpha 0.3, 28,820 passengers/day): relief 57,671 VHT/day (seed 2: 69,027), AM-peak road delay
--2.85 %, 129 VHT/day per USD M (band 33-343), tunnel segment exceedance 1.7 %, 70 % of riders
-slower than by car. Vendor case: private-EV SAR 10 at 1.5 s headway 86,699 VHT/day. Network
+(alpha 0.3, 28,820 passengers/day): relief 63,349 VHT/day (mean of seed 1 57,671 and seed 2
+69,027; band 23,435-103,263 with replicate noise), AM-peak road delay -2.85 %, 142 VHT/day per
+USD M (band 33-385 with noise and capex), tunnel segment exceedance 1.7 %, 70 % of riders slower
+than by car. (Numbers updated after the TD-015 re-runs; see below.) Vendor case: private-EV SAR 10 at 1.5 s headway 86,699 VHT/day. Network
 placebo +4,036 VHT/day (inside noise). pytest 94 passed; ruff clean; demo
 `uv run python -m sim.loop.run loop_demo --demo` ~10 s.
 Could not verify: Vegas 10-15 min waits and the "30 mph" figure (uncited); LVCC USD 53 M
@@ -143,3 +144,11 @@ top four corridors; integration to add the README command and fold the Loop tran
   radius and capacity stay separate sweep rows. (F3) Private-mode "cars re-routed" is now
   city-equivalent (x 1/sample). (F5-F9) stale register ranges, pooled-option label, greedy table
   after the knapsack correction, gate tolerances registered (A-loop-014), doc wording.
+  Seed-1 re-run results (20:35, current model; seed 2 unchanged): C1 53,476 / 71,539, C2 37,693 /
+  53,160, C3 14,767 / 89,538, C4 21,984 / 90,265, C5 -49,085 / 16,946, C6 18,950 / 87,784,
+  C7 -49,218 / 52,503, C8 -15,677 / 67,700 VHT/day relief. TD-011's "C1 seeds agree" and
+  "C3, C5, C6 change sign" are superseded: C3, C4, C6 are now positive in both seeds (weakly),
+  C5, C7, C8 change sign. Selection is unchanged (C1 alone; knapsack correction over C2), so the
+  C1 sweep stands. `optimise --no-run` now never simulates (it had silently re-run the placebo
+  because the generated policies' assumption text changed their hash; a future `optimise` run
+  re-simulates the sweep for the same reason).

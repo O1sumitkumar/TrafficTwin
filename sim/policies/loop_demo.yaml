@@ -18,4 +18,4 @@ transforms:
     radius_d_m: 450
     min_trip_km: 0.6
     speed_kmh: 90
-    assumption: "A-loop-016: demo-only geometry (the window is 1.9 x 1.8 km, so station spacing is about 1 km, below the 1.5-3 km siting rule; catchment 450 m and minimum trip 0.6 km scaled down accordingly). Other parameters: sim/loop/config/loop.yaml (A-loop-001..015)."
+    assumption: "A-loop-016: demo-only geometry (the window is 1.9 x 1.8 km, so station spacing is about 1 km, below the 1.5-3 km siting rule; catchment 450 m and minimum trip 0.6 km scaled down accordingly). Other parameters: sim/loop/config/loop.yaml (A-loop-001..020)."

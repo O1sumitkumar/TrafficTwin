@@ -14,58 +14,58 @@
     {
       "candidate": "C2",
       "km": 10.69,
-      "relief_per_km": 4704.5,
+      "relief_per_km": 4249.4,
       "decision": "dropped: C1 alone relieves more",
-      "cumulative_km": 17.86
+      "cumulative_km": null
     },
     {
       "candidate": "C1",
       "km": 17.86,
-      "relief_per_km": 3991.8,
+      "relief_per_km": 3499.9,
       "decision": "selected (relieves more alone than the per-km greedy set)",
       "cumulative_km": 17.86
     },
     {
       "candidate": "C4",
       "km": 16.2,
-      "relief_per_km": 3711.9,
-      "decision": "over budget (26.9 > 25 km)",
-      "cumulative_km": 17.86
-    },
-    {
-      "candidate": "C8",
-      "km": 23.32,
-      "relief_per_km": 2674.2,
-      "decision": "over budget (34.0 > 25 km)",
-      "cumulative_km": 17.86
-    },
-    {
-      "candidate": "C7",
-      "km": 15.83,
-      "relief_per_km": 2091.1,
-      "decision": "over budget (26.5 > 25 km)",
-      "cumulative_km": 17.86
-    },
-    {
-      "candidate": "C3",
-      "km": 17.28,
-      "relief_per_km": 2019.0,
-      "decision": "sign differs between sim seeds (-19,760 / 89,538)",
-      "cumulative_km": 17.86
+      "relief_per_km": 3464.4,
+      "decision": "over budget with C1 (34.1 > 25 km)",
+      "cumulative_km": null
     },
     {
       "candidate": "C6",
       "km": 17.52,
-      "relief_per_km": 1943.2,
-      "decision": "sign differs between sim seeds (-19,697 / 87,784)",
-      "cumulative_km": 17.86
+      "relief_per_km": 3046.1,
+      "decision": "over budget with C1 (35.4 > 25 km)",
+      "cumulative_km": null
+    },
+    {
+      "candidate": "C3",
+      "km": 17.28,
+      "relief_per_km": 3018.1,
+      "decision": "over budget with C1 (35.1 > 25 km)",
+      "cumulative_km": null
+    },
+    {
+      "candidate": "C8",
+      "km": 23.32,
+      "relief_per_km": 1115.4,
+      "decision": "sign differs between sim seeds (-15,677 / 67,700)",
+      "cumulative_km": null
+    },
+    {
+      "candidate": "C7",
+      "km": 15.83,
+      "relief_per_km": 103.7,
+      "decision": "sign differs between sim seeds (-49,218 / 52,503)",
+      "cumulative_km": null
     },
     {
       "candidate": "C5",
       "km": 12.25,
-      "relief_per_km": 549.9,
-      "decision": "sign differs between sim seeds (-3,473 / 16,946)",
-      "cumulative_km": 17.86
+      "relief_per_km": -1311.8,
+      "decision": "sign differs between sim seeds (-49,085 / 16,946)",
+      "cumulative_km": null
     }
   ],
   "selected": [
@@ -150,7 +150,7 @@
       "role": "lever",
       "km": 17.86,
       "run": "loop_opt_c1_private_toll10",
-      "pax": 37877,
+      "pax": 378770,
       "rel": 98743,
       "rel_pct": 3.751,
       "per_usd": "221.1 (138.2 to 368.6)",
@@ -174,7 +174,7 @@
       "role": "lever",
       "km": 17.86,
       "run": "loop_opt_c1_private_toll0",
-      "pax": 37877,
+      "pax": 378770,
       "rel": 163662,
       "rel_pct": 6.222,
       "per_usd": "366.5 (229.1 to 610.9)",
@@ -198,7 +198,7 @@
       "role": "lever",
       "km": 17.86,
       "run": "loop_opt_c1_private_toll25",
-      "pax": 37877,
+      "pax": 378770,
       "rel": 44913,
       "rel_pct": 1.708,
       "per_usd": "100.6 (62.9 to 167.6)",
@@ -294,7 +294,7 @@
       "role": "uncertainty",
       "km": 17.86,
       "run": "loop_opt_c1_private_toll10_capeng",
-      "pax": 37877,
+      "pax": 378770,
       "rel": 86699,
       "rel_pct": 3.294,
       "per_usd": "194.2 (121.4 to 323.6)",
@@ -496,20 +496,19 @@
       "riders": 0
     },
     "headline": "loop_opt_c1_placebo_a0 (shuttle, 17.86 km): congestion relief 4,036 VHT/day (+0.15 % for remaining vehicles), 9.0 VHT/day per USD M (capex USD 268-714 M); city VHT saved 149/day; synthetic demand, uncalibrated",
-    "wall_s": 570.5,
-    "policy_hash": "4f16362dfd22ceab",
-    "free_gb_before": 73.1,
+    "wall_s": 493.2,
+    "policy_hash": "b86e63545ff9f094",
+    "free_gb_before": 70.1,
     "timings": {
-      "transforms_s": 26.2,
-      "merge_s": 20.9,
+      "transforms_s": 24.6,
+      "merge_s": 19.9,
       "simulation": {
-        "wall_s": 460.1,
-        "peak_rss_mb": 2998.8
+        "wall_s": 387.5,
+        "peak_rss_mb": 3122.5
       },
-      "report_s": 60.4,
-      "total_s": 568.3
-    },
-    "reused": true
+      "report_s": 58.2,
+      "total_s": 490.9
+    }
   },
   "recommended": {
     "config": "shift share alpha 0.3 (ridership capped by the measured capacity)",
@@ -577,25 +576,29 @@
       }
     ]
   },
+  "replicate": {
+    "run": "loop_opt_c1_a0p3-sim2",
+    "relief_vs_seed2_baseline": 69027
+  },
   "band": {
-    "relief_vht_per_day": 57671,
+    "relief_vht_per_day": 63349,
+    "relief_values": [
+      57671,
+      69027
+    ],
     "relief_range": [
       23435,
-      91907
+      103263
     ],
-    "per_usd_m_central": 129.16,
+    "per_usd_m_central": 141.88,
     "per_usd_m_range": [
       32.8,
-      343.06
+      385.45
     ],
     "capex_usd_m": {
       "low": 267.9,
       "central": 446.5,
       "high": 714.4
     }
-  },
-  "replicate": {
-    "run": "loop_opt_c1_a0p3-sim2",
-    "relief_vs_seed2_baseline": 69027
   }
 }

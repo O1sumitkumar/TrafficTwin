@@ -141,14 +141,14 @@ per-USD-M range runs from high to low capex. Flags are from the seed-1 run.
 <!-- LOOP:ranking -->
 | rank | id | alignment | origin | tunnel-km | stations | passengers/day | relief seed 1 | relief seed 2 | relief mean | relief/day per km | relief/day per USD M (range) | AM-peak road delay % (seed 1) | city VHT saved (seed 1) | net person-h (seed 1) | capex USD M | pair exceedance | segment peak util. | riders slower than car | teleports/veh |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | C2 | Ar Ruwais - Ar Rughamah | data | 10.7 | 5 | 18,790 | 47,422 | 53,160 | 50,291 | 4,704.5 | 188.3 (117.7 to 313.7) | -0.1 | 46,923 | 46,904 | 160-427 | 0.0 | 0.6 | 0.6 | 0.5 |
-| 2 | C1 | Al-Salamah - King Abdulaziz University | data | 17.9 | 8 | 47,870 | 71,047 | 71,539 | 71,293 | 3,991.8 | 159.7 (99.8 to 266.1) | -3.5 | 85,496 | 65,689 | 268-714 | 0.0 | 1.0 | 0.7 | 0.5 |
-| 3 | C4 | Al Bawadi - Al-Balad | data | 16.2 | 7 | 30,810 | 29,999 | 90,265 | 60,132 | 3,711.9 | 148.4 (92.8 to 247.4) | -1.0 | 33,196 | 16,931 | 243-648 | 0.0 | 0.8 | 0.9 | 0.5 |
-| 4 | C8 | KAIA airport (Terminal 1) - King Abdulaziz University | anchor test: KAIA airport (Terminal 1) | 23.3 | 8 | 29,240 | 57,024 | 67,700 | 62,362 | 2,674.2 | 106.9 (66.8 to 178.2) | -1.5 | 66,486 | 51,167 | 350-933 | 0.0 | 0.8 | 0.7 | 0.5 |
-| 5 | C7 | Al Baghdadiyah Al Gharbiyah - Al-Nahdah | data | 15.8 | 7 | 23,320 | 13,700 | 52,503 | 33,102 | 2,091.1 | 83.6 (52.3 to 139.4) | -0.2 | 25,659 | 1,988 | 238-633 | 0.0 | 0.6 | 0.9 | 0.5 |
-| 6 | C3 | Al Marwah - Ath Thaghr | data | 17.3 | 8 | 35,320 | -19,760 | 89,538 | 34,889 | 2,019.0 | 80.8 (50.5 to 134.6) | -0.1 | -9,793 | -26,715 | 259-691 | 0.0 | 0.8 | 0.7 | 0.5 |
-| 7 | C6 | Al Jamiah - Tahlia / Al Andalus | data | 17.5 | 8 | 18,400 | -19,697 | 87,784 | 34,044 | 1,943.2 | 77.7 (48.6 to 129.5) | 0.1 | -14,629 | -26,470 | 263-701 | 0.0 | 0.5 | 0.8 | 0.5 |
-| 8 | C5 | Al Marwah - Al-Zahra | data | 12.2 | 6 | 19,680 | -3,473 | 16,946 | 6,736 | 549.9 | 22.0 (13.7 to 36.6) | 0.7 | -3,553 | -11,009 | 184-490 | 0.0 | 0.5 | 0.9 | 0.5 |
+| 1 | C2 | Ar Ruwais - Ar Rughamah | data | 10.7 | 5 | 18,790 | 37,693 | 53,160 | 45,426 | 4,249.4 | 170.1 (106.3 to 283.4) | -0.1 | 36,246 | 37,025 | 160-427 | 0.0 | 0.8 | 0.6 | 0.5 |
+| 2 | C1 | Al-Salamah - King Abdulaziz University | data | 17.9 | 8 | 47,870 | 53,476 | 71,539 | 62,508 | 3,499.9 | 140.0 (87.5 to 233.3) | -4.7 | 55,707 | 28,484 | 268-714 | 0.0 | 1.5 | 0.8 | 0.5 |
+| 3 | C4 | Al Bawadi - Al-Balad | data | 16.2 | 7 | 30,810 | 21,984 | 90,265 | 56,124 | 3,464.4 | 138.5 (86.6 to 230.9) | -0.8 | 29,211 | 6,915 | 243-648 | 0.0 | 1.2 | 0.9 | 0.5 |
+| 4 | C6 | Al Jamiah - Tahlia / Al Andalus | data | 17.5 | 8 | 18,400 | 18,950 | 87,784 | 53,367 | 3,046.1 | 121.8 (76.1 to 203.1) | -0.2 | 17,051 | 12,037 | 263-701 | 0.0 | 0.8 | 0.8 | 0.5 |
+| 5 | C3 | Al Marwah - Ath Thaghr | data | 17.3 | 8 | 35,320 | 14,767 | 89,538 | 52,152 | 3,018.1 | 120.7 (75.5 to 201.2) | -0.6 | 15,439 | 2,983 | 259-691 | 0.0 | 1.1 | 0.8 | 0.5 |
+| 6 | C8 | KAIA airport (Terminal 1) - King Abdulaziz University | anchor test: KAIA airport (Terminal 1) | 23.3 | 8 | 29,240 | -15,677 | 67,700 | 26,012 | 1,115.4 | 44.6 (27.9 to 74.3) | -0.6 | -2,305 | -22,173 | 350-933 | 0.0 | 1.0 | 0.8 | 0.5 |
+| 7 | C7 | Al Baghdadiyah Al Gharbiyah - Al-Nahdah | data | 15.8 | 7 | 23,320 | -49,218 | 52,503 | 1,642 | 103.7 | 4.1 (2.6 to 6.9) | -0.5 | -41,350 | -61,167 | 238-633 | 0.0 | 0.9 | 0.9 | 0.5 |
+| 8 | C5 | Al Marwah - Al-Zahra | data | 12.2 | 6 | 19,680 | -49,085 | 16,946 | -16,070 | -1,311.8 | -52.5 (-32.8 to -87.4) | -0.2 | -41,651 | -56,863 | 184-490 | 0.0 | 0.9 | 0.9 | 0.5 |
 <!-- /LOOP:ranking -->
 
 ## Greedy selection under the 25 km budget
@@ -156,14 +156,14 @@ per-USD-M range runs from high to low capex. Flags are from the seed-1 run.
 <!-- LOOP:greedy -->
 | candidate | tunnel-km | relief/day per km | decision | selected km |
 |---|---|---|---|---|
-| C2 | 10.7 | 4,704.5 | dropped: C1 alone relieves more | 17.9 |
-| C1 | 17.9 | 3,991.8 | selected (relieves more alone than the per-km greedy set) | 17.9 |
-| C4 | 16.2 | 3,711.9 | over budget (26.9 > 25 km) | 17.9 |
-| C8 | 23.3 | 2,674.2 | over budget (34.0 > 25 km) | 17.9 |
-| C7 | 15.8 | 2,091.1 | over budget (26.5 > 25 km) | 17.9 |
-| C3 | 17.3 | 2,019.0 | sign differs between sim seeds (-19,760 / 89,538) | 17.9 |
-| C6 | 17.5 | 1,943.2 | sign differs between sim seeds (-19,697 / 87,784) | 17.9 |
-| C5 | 12.2 | 549.9 | sign differs between sim seeds (-3,473 / 16,946) | 17.9 |
+| C2 | 10.7 | 4,249.4 | dropped: C1 alone relieves more | - |
+| C1 | 17.9 | 3,499.9 | selected (relieves more alone than the per-km greedy set) | 17.9 |
+| C4 | 16.2 | 3,464.4 | over budget with C1 (34.1 > 25 km) | - |
+| C6 | 17.5 | 3,046.1 | over budget with C1 (35.4 > 25 km) | - |
+| C3 | 17.3 | 3,018.1 | over budget with C1 (35.1 > 25 km) | - |
+| C8 | 23.3 | 1,115.4 | sign differs between sim seeds (-15,677 / 67,700) | - |
+| C7 | 15.8 | 103.7 | sign differs between sim seeds (-49,218 / 52,503) | - |
+| C5 | 12.2 | -1,311.8 | sign differs between sim seeds (-49,085 / 16,946) | - |
 <!-- /LOOP:greedy -->
 
 ## Sweep on the selected corridors
@@ -174,13 +174,13 @@ per-USD-M range runs from high to low capex. Flags are from the seed-1 run.
 | shuttle, central (alpha 0.5, 90 km/h, measured capacity) | lever | 17.9 | 47,870 | 53,476 | 2.0 | 119.8 (74.9 to 199.6) | -4.7 | 28,484 | 55,707 | 0.0 | 0.3 | 1.5 | 0.8 | 0.5 | tunnel segment exceedance 30.0% |
 | shuttle at 50 km/h | lever | 17.9 | 47,870 | 42,679 | 1.6 | 95.6 (59.7 to 159.3) | -3.8 | 11,982 | 40,528 | 0.0 | 0.3 | 1.5 | 0.8 | 0.5 | tunnel segment exceedance 30.4% |
 | shuttle at 160 km/h | lever | 17.9 | 47,870 | 95,570 | 3.5 | 214.0 (133.8 to 356.7) | -4.0 | 74,372 | 105,300 | 0.0 | 0.3 | 1.5 | 0.8 | 0.5 | tunnel segment exceedance 30.5% |
-| private-EV, SAR 10 toll, 90 km/h | lever | 17.9 | 37,877 | 98,743 | 3.8 | 221.1 (138.2 to 368.6) | -1.9 | - | 88,739 | - | - | 3.0 | - | 0.4 | tunnel segment peak utilisation 2.98 (teleport-assisted) |
-| private-EV, SAR 0 toll, 90 km/h | lever | 17.9 | 37,877 | 163,662 | 6.2 | 366.5 (229.1 to 610.9) | -5.5 | - | 154,778 | - | 0.9 | 6.0 | - | 0.4 | tunnel segment exceedance 88.7% |
-| private-EV, SAR 25 toll, 90 km/h | lever | 17.9 | 37,877 | 44,913 | 1.7 | 100.6 (62.9 to 167.6) | -0.2 | - | 40,330 | - | 0.0 | 0.3 | - | 0.4 | ok |
+| private-EV, SAR 10 toll, 90 km/h | lever | 17.9 | 378,770 | 98,743 | 3.8 | 221.1 (138.2 to 368.6) | -1.9 | - | 88,739 | - | - | 3.0 | - | 0.4 | tunnel segment peak utilisation 2.98 (teleport-assisted) |
+| private-EV, SAR 0 toll, 90 km/h | lever | 17.9 | 378,770 | 163,662 | 6.2 | 366.5 (229.1 to 610.9) | -5.5 | - | 154,778 | - | 0.9 | 6.0 | - | 0.4 | tunnel segment exceedance 88.7% |
+| private-EV, SAR 25 toll, 90 km/h | lever | 17.9 | 378,770 | 44,913 | 1.7 | 100.6 (62.9 to 167.6) | -0.2 | - | 40,330 | - | 0.0 | 0.3 | - | 0.4 | ok |
 | shift share alpha 0.3 | uncertainty | 17.9 | 28,820 | 57,671 | 2.1 | 129.2 (80.7 to 215.3) | -2.9 | 54,150 | 61,140 | 0.0 | 0.0 | 1.1 | 0.7 | 0.5 | ok |
 | shift share alpha 0.7 | uncertainty | 17.9 | 68,480 | 73,455 | 2.7 | 164.5 (102.8 to 274.2) | -5.6 | 27 | 66,853 | 0.0 | 0.6 | 1.8 | 0.9 | 0.5 | tunnel segment exceedance 56.7% |
 | access radius 800 m | uncertainty | 17.9 | 5,240 | 2,394 | 0.1 | 5.4 (3.4 to 8.9) | -1.1 | 3,408 | 6,747 | 0.0 | 0.0 | 0.3 | 0.5 | 0.5 | ok |
-| private-EV, SAR 10 toll, engineering capacity (1.5 s headway) | uncertainty | 17.9 | 37,877 | 86,699 | 3.3 | 194.2 (121.4 to 323.6) | -2.4 | - | 77,014 | - | 0.0 | 0.8 | - | 0.4 | ok |
+| private-EV, SAR 10 toll, engineering capacity (1.5 s headway) | uncertainty | 17.9 | 378,770 | 86,699 | 3.3 | 194.2 (121.4 to 323.6) | -2.4 | - | 77,014 | - | 0.0 | 0.8 | - | 0.4 | ok |
 | engineering capacity (1.5 s headway, vendor side) | uncertainty | 17.9 | 47,870 | 53,476 | 2.0 | 119.8 (74.9 to 199.6) | -4.7 | 57,647 | 68,724 | 0.0 | 0.0 | 0.4 | 0.6 | 0.5 | ok |
 | time-competitive shift only, measured case (90 km/h, 12.5 min wait, 5.3 s headway) | uncertainty | 17.9 | 7,240 | -150 | -0.0 | -0.3 (-0.2 to -0.6) | -0.8 | 5,855 | 1,140 | 0.0 | 0.0 | 0.8 | 0.0 | 0.5 | no relief |
 | time-competitive shift only, Vegas-like 50 km/h, 12.5 min wait | uncertainty | 17.9 | 6,020 | 26,755 | 1.0 | 59.9 (37.5 to 99.9) | -1.1 | 31,602 | 29,361 | 0.0 | 0.0 | 0.6 | 0.0 | 0.5 | ok |
@@ -198,8 +198,8 @@ Private-EV use: private-EV, SAR 10 toll, 90 km/h: 16,320 entries/day, toll reven
 
 | item | value |
 |---|---|
-| congestion relief, VHT/day | 57,671 (band 23,435 to 91,907) |
-| relief per day per USD M | 129.2 at central capex (band 32.8 to 343.1) |
+| congestion relief, VHT/day | 63,349 (mean of 57,671, 69,027: 1 seed-1 run(s) and the seed-2 replicate; band 23,435 to 103,263 with the replicate noise) |
+| relief per day per USD M | 141.9 at central capex (band 32.8 to 385.4 with noise and capex range) |
 | capex USD M (low / central / high) | 268 / 446 / 714 |
 | AM-peak road delay change | -2.85 % |
 | passengers (or cars re-routed) per day | 28,820 |
@@ -246,21 +246,24 @@ headway; vendor speed claims do not change road relief at all.
    Al Haramain Road, Madinah Road and Prince Majid Road, then King Abdullah, King Fahd, Al Lith and
    King Abdulaziz roads (see the corridor list above; `sim/loop/results/corridors.csv`).
 2. **Which corridors.** Five candidates are positive in both seeds with a two-seed mean above the
-   noise: C1 Al-Salamah - KAU (71,293 VHT/day mean, 17.9 km; the two seeds agree within 1 %), C8
-   KAIA - KAU (62,362, 23.3 km), C4 Al Bawadi - Al Balad (60,132, 16.2 km; seeds 30,000 / 90,000),
-   C2 Ar Ruwais - Ar Rughamah (50,291, 10.7 km, best per km) and, weaker, C7 (33,102). C3, C5 and
-   C6 change sign between seeds and are not supported. Of the
-   anchors, KAU emerges from the data (end of both C1 and C8, next to the Al Naseem hot spot);
-   KAIA (C8) and Al Balad (C4) are positive but less efficient per km; Tahlia / Al Andalus (C6)
-   is not supported.
+   noise: C1 Al-Salamah - KAU (62,508 VHT/day mean; seeds 53,476 / 71,539; 17.9 km), C4 Al Bawadi -
+   Al Balad (56,124; 21,984 / 90,265), C6 Al Jamiah - Tahlia / Al Andalus (53,367; 18,950 /
+   87,784), C3 Al Marwah - Ath Thaghr (52,152; 14,767 / 89,538) and C2 Ar Ruwais - Ar Rughamah
+   (45,426; 37,693 / 53,160; 10.7 km, best per km). Only C1 and C2 are above the one-run noise in
+   both seeds; C3, C4 and C6 rest on a large seed-2 value. C8 (KAIA - KAU), C7 and C5 change sign
+   between seeds and are not supported. Of the anchors, KAU emerges from the data (end of C1,
+   next to the Al Naseem hot spot); Al Balad (C4) and Tahlia / Al Andalus (C6) are weakly
+   supported; the KAIA airport line (C8) is not.
 3. **Selection under 25 km.** C1 alone (17.86 km, USD 268-714 M). C2 is the most efficient per
    km, but nothing else fits beside it and C1 alone relieves more (knapsack correction).
 4. **Policy.** Shuttle mode on C1 with ridership limited to what the measured capacity carries
-   (about alpha 0.3, 28,820 passengers/day): congestion relief 57,671 VHT/day for the vehicles
-   still on the road (seed-2 replicate 69,027), AM-peak road delay -2.9 %, about 129 VHT/day per
-   USD M at central capex (band 33-343 with alpha, radius, capacity, noise and capex), about
-   14 M vehicle-hours/year at 250 days. Net of riders' extra door-to-door time it is
-   54,150 person-hours/day.
+   (about alpha 0.3, 28,820 passengers/day): congestion relief 63,349 VHT/day for the vehicles
+   still on the road (mean of seed 1, 57,671, and seed 2, 69,027; band 23,435 to 103,263 with the
+   replicate noise), AM-peak road delay -2.9 %, about 142 VHT/day per USD M at central capex
+   (band 33 to 385 with noise and the capex range), about 16 M vehicle-hours/year at 250 days.
+   Net of riders' extra door-to-door time it is 54,150 person-hours/day (seed 1). Behavioural and
+   capacity uncertainties are separate rows of the sweep table (alpha 0.7 and access radius 800 m:
+   73,455 and 2,394 VHT/day; time-competitive shift: -150 to 69,542).
 5. **Private-EV toll tunnel does not work at measured capacity.** At SAR 10 the one-shot routes
    send 16,320 cars/day into a tunnel that carries about 680/h per direction: queues teleport
    through (3x capacity in the peak), so its 98,743 VHT/day is not credible. At SAR 25 only 750
@@ -271,8 +274,11 @@ headway; vendor speed claims do not change road relief at all.
    shifted riders are slower than by car. Real ridership would be closer to the time-competitive
    runs (6,000-12,000 passengers/day on C1), where relief is small under measured service.
 7. **Noise dominates small effects.** One comparison is uncertain by about +/- 34,000 VHT/day
-   (baseline replicate), and runs that differ only in tunnel attributes spread over 43,000-96,000
-   VHT/day. Effects under ~1.5 % of city VHT cannot be separated from noise with two seeds.
+   (baseline replicate); runs that differ only in tunnel attributes spread over 43,000-96,000
+   VHT/day, and the shuttle dispatch window alone moved C1 from 71,047 to 53,476. (Changing only
+   the tunnel headway, an additional file, left road results bit-identical: the engineering and
+   measured shuttle rows show the same relief.) Effects under ~1.5 % of city VHT cannot be
+   separated from noise with two seeds.
 
 ## Caveats
 

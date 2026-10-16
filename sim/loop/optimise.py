@@ -501,8 +501,11 @@ def optimise(run: bool = True, budget: float | None = None, quiet: bool = False)
         result["sweep"].append(sweep_row(desc, role, rep, why) | {"suffix": suffix, "pass": ok})
     if chosen:
         pol = sweep_policy("_placebo_a0", "shuttle", {"alpha": 0.0}, chosen, tag)
-        if run or (runs_dir / pol.id / "loop_report.json").exists():
+        placebo_path = runs_dir / pol.id / "loop_report.json"
+        if run:
             result["placebo"] = run_one(pol, SAMPLE, SEED, runs_dir, prune=True, quiet=quiet)
+        elif placebo_path.exists():
+            result["placebo"] = json.loads(placebo_path.read_text())
     best = recommend(result["sweep"], cfg)
     result["recommended"] = best
     if best is not None:

@@ -391,7 +391,7 @@
       },
       "passengers_per_day": null,
       "car_vehicles_removed_per_day": 0,
-      "cars_rerouted": 37877,
+      "cars_rerouted": 378770,
       "flags": {
         "teleport_share": 0.410808,
         "teleport_share_compare": 0.456715,
@@ -486,7 +486,7 @@
       },
       "passengers_per_day": null,
       "car_vehicles_removed_per_day": 0,
-      "cars_rerouted": 37877,
+      "cars_rerouted": 378770,
       "flags": {
         "teleport_share": 0.401406,
         "teleport_share_compare": 0.456715,
@@ -583,7 +583,7 @@
       },
       "passengers_per_day": null,
       "car_vehicles_removed_per_day": 0,
-      "cars_rerouted": 37877,
+      "cars_rerouted": 378770,
       "flags": {
         "teleport_share": 0.441818,
         "teleport_share_compare": 0.456715,
@@ -1007,7 +1007,7 @@
       },
       "passengers_per_day": null,
       "car_vehicles_removed_per_day": 0,
-      "cars_rerouted": 37877,
+      "cars_rerouted": 378770,
       "flags": {
         "teleport_share": 0.417456,
         "teleport_share_compare": 0.456715,
