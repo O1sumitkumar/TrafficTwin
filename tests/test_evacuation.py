@@ -346,3 +346,21 @@ def test_registered_ids_unique_and_sourced() -> None:
     ids = [p.id for _, p in V.registered()]
     assert len(ids) == len(set(ids)) and all(i.startswith("A-evac-") for i in ids)
     assert all(p.source or p.assumption for _, p in V.registered())
+
+
+def test_corridors_avoid_zone_edges() -> None:
+    """Contraflow must not close or reverse an edge evacuees start on (B-D-034)."""
+    from sim.scenarios.run import window_inputs
+
+    _, s = V.load("evac_corniche_hamra")
+    try:
+        net, _, _ = window_inputs("tahlia")
+    except FileNotFoundError:
+        pytest.skip("tahlia window not built (gitignored data)")
+    idx = NetIndex(net)
+    ana = V.analyse(s, idx, seed=1)
+    zone = {o for o, _ in V.EvacNet(idx, s.zone).origins()}
+    assert ana["corridors"]
+    for c in ana["corridors"]:
+        assert not zone & set(c["inbound_edges"])
+        assert not zone & {e["edge"] for e in c["edges"]}

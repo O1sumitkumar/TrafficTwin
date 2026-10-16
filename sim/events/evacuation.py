@@ -343,7 +343,8 @@ class EvacNet:
         return sorted(found)
 
     def corridor(self, route: list[str], taken: set[str]) -> dict[str, Any] | None:
-        """The trailing part of a route (towards its exit) that can be reversed: contiguous edges
+        """The trailing part of a route (towards its exit) that can be reversed (edges in `taken`,
+        i.e. zone origin edges and other corridors, are excluded): contiguous edges
         of an allowed road type (A-evac-019) up to A-evac-016, skipping at most two fringe stubs
         at the exit. The inbound carriageway = partners found along it; it must run beside at
         least `partner_coverage` of the corridor length. Every corridor edge gets the same number
@@ -445,7 +446,8 @@ def analyse(spec: EvacSpec, idx: NetIndex, seed: int) -> dict[str, Any]:
         route_counts[x][o] += 1
     counts = Counter({x: n for x, n in counts.items() if n})
     corridors: list[dict[str, Any]] = []
-    taken: set[str] = set()
+    # zone edges are never reversed nor closed: evacuees start on them (corridors end at the zone)
+    taken: set[str] = {o for o, _ in origins}
     for x, _ in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])):
         if len(corridors) >= int(value("contraflow", "max_corridors")):
             break
