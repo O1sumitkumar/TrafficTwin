@@ -76,7 +76,9 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
     def translate_path(self, path: str) -> str:
         clean = path.split("?", 1)[0].split("#", 1)[0]
         if clean.startswith("/cinema-data/"):
-            parts = [p for p in clean[len("/cinema-data/") :].split("/") if p not in ("", ".", "..")]
+            parts = [
+                p for p in clean[len("/cinema-data/") :].split("/") if p not in ("", ".", "..")
+            ]
             if not parts:
                 return str(self.bundles / "_none")
             return str(self.bundles / parts[0] / "bundle" / "/".join(parts[1:]))
@@ -107,8 +109,18 @@ class Driver:
 
     def __init__(self, url: str, film: str, width: int, height: int) -> None:
         self.proc = subprocess.Popen(
-            ["node", str(DRIVER), "--url", url, "--film", film, "--width", str(width),
-             "--height", str(height)],  # fmt: skip
+            [
+                "node",
+                str(DRIVER),
+                "--url",
+                url,
+                "--film",
+                film,
+                "--width",
+                str(width),
+                "--height",
+                str(height),
+            ],
             cwd=WEB,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -128,7 +140,9 @@ class Driver:
 
     def render(self, a: int, b: int, out: Path) -> dict[str, Any]:
         assert self.proc.stdin is not None
-        self.proc.stdin.write(json.dumps({"cmd": "render", "from": a, "to": b, "dir": str(out)}) + "\n")
+        self.proc.stdin.write(
+            json.dumps({"cmd": "render", "from": a, "to": b, "dir": str(out)}) + "\n"
+        )
         self.proc.stdin.flush()
         msg = self._read()
         if msg.get("event") != "done":
@@ -170,30 +184,82 @@ def _run(cmd: list[str]) -> None:
 
 
 def encode_chunk(frames: Path, first: int, fps: int, out: Path, r: dict[str, Any]) -> None:
-    _run([
-        ffmpeg(), "-y", "-loglevel", "error", "-framerate", str(fps), "-start_number", str(first),
-        "-i", str(frames / "f_%06d.png"), "-c:v", "libx264", "-preset", str(r["preset"]),
-        "-crf", str(r["crf"]), "-pix_fmt", str(r["pix_fmt"]), "-r", str(fps),
-        "-fflags", "+bitexact", "-flags:v", "+bitexact", str(out),
-    ])  # fmt: skip
+    _run(
+        [
+            ffmpeg(),
+            "-y",
+            "-loglevel",
+            "error",
+            "-framerate",
+            str(fps),
+            "-start_number",
+            str(first),
+            "-i",
+            str(frames / "f_%06d.png"),
+            "-c:v",
+            "libx264",
+            "-preset",
+            str(r["preset"]),
+            "-crf",
+            str(r["crf"]),
+            "-pix_fmt",
+            str(r["pix_fmt"]),
+            "-r",
+            str(fps),
+            "-fflags",
+            "+bitexact",
+            "-flags:v",
+            "+bitexact",
+            str(out),
+        ]
+    )
 
 
 def concat(segments: list[Path], out: Path) -> None:
     lst = out.with_suffix(".txt")
     lst.write_text("".join(f"file '{s}'\n" for s in segments))
-    _run([ffmpeg(), "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst),
-          "-c", "copy", "-movflags", "+faststart", str(out)])  # fmt: skip
+    _run(
+        [
+            ffmpeg(),
+            "-y",
+            "-loglevel",
+            "error",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            str(lst),
+            "-c",
+            "copy",
+            "-movflags",
+            "+faststart",
+            str(out),
+        ]
+    )
     lst.unlink()
 
 
 def probe(path: Path) -> dict[str, Any]:
     exe = shutil.which("ffprobe") or "ffprobe"
     res = subprocess.run(
-        [exe, "-v", "error", "-select_streams", "v:0", "-count_frames", "-show_entries",
-         "stream=width,height,nb_read_frames,r_frame_rate,pix_fmt,codec_name:format=duration",
-         "-of", "json", str(path)],  # fmt: skip
-        capture_output=True, text=True, check=True,
-    )  # fmt: skip
+        [
+            exe,
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-count_frames",
+            "-show_entries",
+            "stream=width,height,nb_read_frames,r_frame_rate,pix_fmt,codec_name:format=duration",
+            "-of",
+            "json",
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
     data = json.loads(res.stdout)
     s = data["streams"][0]
     num, den = (int(x) for x in s["r_frame_rate"].split("/"))
@@ -212,10 +278,29 @@ def make_gif(mp4: Path, gif: Path, start: float, r: dict[str, Any]) -> dict[str,
     """Palette GIF of <= gif_seconds; shrinks width/fps until it is under gif_max_bytes."""
     width, fps = int(r["gif_width"]), int(r["gif_fps"])
     for _ in range(6):
-        vf = (f"fps={fps},scale={width}:-2:flags=lanczos,split[a][b];"
-              f"[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4")  # fmt: skip
-        _run([ffmpeg(), "-y", "-loglevel", "error", "-ss", f"{start:.3f}", "-t",
-              str(r["gif_seconds"]), "-i", str(mp4), "-vf", vf, "-loop", "0", str(gif)])  # fmt: skip
+        vf = (
+            f"fps={fps},scale={width}:-2:flags=lanczos,split[a][b];"
+            f"[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4"
+        )
+        _run(
+            [
+                ffmpeg(),
+                "-y",
+                "-loglevel",
+                "error",
+                "-ss",
+                f"{start:.3f}",
+                "-t",
+                str(r["gif_seconds"]),
+                "-i",
+                str(mp4),
+                "-vf",
+                vf,
+                "-loop",
+                "0",
+                str(gif),
+            ]
+        )
         if gif.stat().st_size <= int(r["gif_max_bytes"]):
             break
         width = int(width * 0.85) // 2 * 2
@@ -231,7 +316,11 @@ def sha_png(path: Path) -> str:
 
 
 def _dir_mb(path: Path) -> float:
-    return sum(p.stat().st_size for p in path.rglob("*") if p.is_file()) / 1e6 if path.exists() else 0.0
+    return (
+        sum(p.stat().st_size for p in path.rglob("*") if p.is_file()) / 1e6
+        if path.exists()
+        else 0.0
+    )
 
 
 def render_film(
@@ -255,8 +344,9 @@ def render_film(
         log(f"{name}: stub spec ({film.note or 'no runs'}), not rendered")
         return {"film": name, "stub": True, "note": film.note}
     fps = fps or int(r["fps"])
-    width, height = size or ((int(r["width_4k"]), int(r["height_4k"])) if k4 else
-                             (int(r["width"]), int(r["height"])))  # fmt: skip
+    width, height = size or (
+        (int(r["width_4k"]), int(r["height_4k"])) if k4 else (int(r["width"]), int(r["height"]))
+    )
     t_start = time.time()
     work = movies_runs_dir() / film.film
     log(f"{name}: bundle ({width}x{height}, {fps} fps)")
@@ -283,7 +373,8 @@ def render_film(
     driver = Driver(url, film.film, width, height)
     t_frames = 0.0
     try:
-        log(f"{name}: rendering frames {a}..{b - 1} on {driver.ready.get('gpu', {}).get('renderer')}")
+        gpu = driver.ready.get("gpu", {}).get("renderer")
+        log(f"{name}: rendering frames {a}..{b - 1} on {gpu}")
         for c0 in range(a, b, chunk):
             c1 = min(b, c0 + chunk)
             t0 = time.time()
@@ -310,8 +401,10 @@ def render_film(
             else:
                 for p in frames_dir.glob("*.png"):
                     p.unlink()
-            log(f"{name}: {c1 - a}/{b - a} frames ({(time.time() - t0) / (c1 - c0):.2f} s/frame, "
-                f"browser {rss_max:.0f} MB, disk {disk_max:.0f} MB)")  # fmt: skip
+            log(
+                f"{name}: {c1 - a}/{b - a} frames ({(time.time() - t0) / (c1 - c0):.2f} s/frame, "
+                f"browser {rss_max:.0f} MB, disk {disk_max:.0f} MB)"
+            )
     finally:
         driver.close()
         server.shutdown()
@@ -320,15 +413,19 @@ def render_film(
     shutil.rmtree(seg_dir, ignore_errors=True)
     shutil.rmtree(frames_dir, ignore_errors=True)
     info = probe(mp4)
-    gif = make_gif(mp4, out_dir / f"{film.film}.gif",
-                   max(0.0, min(info["duration_s"] - float(r["gif_seconds"]),
-                                film.title_card_s + 0.5)), r)  # fmt: skip
+    gif = make_gif(
+        mp4,
+        out_dir / f"{film.film}.gif",
+        max(0.0, min(info["duration_s"] - float(r["gif_seconds"]), film.title_card_s + 0.5)),
+        r,
+    )
     meta = {
         "film": film.film,
         "label": SYNTHETIC_LABEL,
         "title": film.title,
-        "spec": str(spec_path(name).relative_to(REPO_ROOT)) if spec_path(name).is_relative_to(
-            REPO_ROOT) else str(spec_path(name)),  # fmt: skip
+        "spec": str(spec_path(name).relative_to(REPO_ROOT))
+        if spec_path(name).is_relative_to(REPO_ROOT)
+        else str(spec_path(name)),
         "spec_sha": sha_file(spec_path(name)),
         "bundle_hashes": json.loads((bundle / "hashes.json").read_text()),
         "sources": manifest["sources"],
@@ -346,9 +443,11 @@ def render_film(
         "gpu": driver.ready.get("gpu"),
     }
     (out_dir / f"{film.film}.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
-    log(f"{name}: {mp4.relative_to(REPO_ROOT) if mp4.is_relative_to(REPO_ROOT) else mp4} "
+    log(
+        f"{name}: {mp4.relative_to(REPO_ROOT) if mp4.is_relative_to(REPO_ROOT) else mp4} "
         f"{info['width']}x{info['height']} {info['duration_s']:.2f} s, "
-        f"{mp4.stat().st_size / 1e6:.1f} MB, {meta['seconds']['total']} s")  # fmt: skip
+        f"{mp4.stat().st_size / 1e6:.1f} MB, {meta['seconds']['total']} s"
+    )
     if rss_max > float(r["max_browser_rss_mb"]) or disk_max > float(r["max_disk_mb"]):
         log(f"{name}: WARNING over budget (browser {rss_max:.0f} MB, disk {disk_max:.0f} MB)")
     return meta
@@ -392,8 +491,16 @@ def main(
     failed = []
     for name in names:
         try:
-            render_film(name, fps or None, parse_size(size), k4, letterbox, parse_frames(frames),
-                        out, keep_frames)  # fmt: skip
+            render_film(
+                name,
+                fps or None,
+                parse_size(size),
+                k4,
+                letterbox,
+                parse_frames(frames),
+                out,
+                keep_frames,
+            )
         except Exception as exc:  # noqa: BLE001 - keep going with the other films
             log(f"{name}: FAILED {exc}")
             failed.append(name)

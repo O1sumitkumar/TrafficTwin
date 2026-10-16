@@ -49,6 +49,7 @@ export interface TripsFile {
   n_vehicles: number;
   n_points: number;
   speed_scale: number;
+  classes: Record<string, number>;
 }
 
 export interface Manifest {

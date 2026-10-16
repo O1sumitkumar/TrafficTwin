@@ -34,7 +34,8 @@ PBF_CANDIDATES = [
 ]
 COORD_DECIMALS = 6
 SIMPLIFY_DEG = 0.00001  # ~1 m: drops collinear vertices, keeps footprints
-BASEMAP_VERSION = "1"
+SEA_PAD_DEG = 1.5  # sea faces touching the box edge continue this far beyond it (no hard edge)
+BASEMAP_VERSION = "2"
 
 
 def basemap_dir() -> Path:
@@ -83,9 +84,7 @@ def _read_seq(path: Path) -> list[dict[str, Any]]:
 def _export(pbf: Path, filters: list[str], out: Path, tmp: Path) -> list[dict[str, Any]]:
     filtered = tmp / f"{out.stem}.osm.pbf"
     run_cmd(["osmium", "tags-filter", str(pbf), *filters, "-o", str(filtered), "--overwrite"])
-    run_cmd(
-        ["osmium", "export", str(filtered), "-f", "geojsonseq", "-o", str(out), "--overwrite"]
-    )
+    run_cmd(["osmium", "export", str(filtered), "-f", "geojsonseq", "-o", str(out), "--overwrite"])
     return _read_seq(out)
 
 
@@ -128,8 +127,25 @@ def sea_faces(lines: list[LineString], frame: Polygon) -> list[Polygon]:
         b = line.interpolate(min(d + 1e-5, line.length))
         cross = (b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)
         if cross < 0:  # right of the coastline direction = water
-            sea.append(face)
+            sea.append(extend_beyond(face, frame, SEA_PAD_DEG))
     return sea
+
+
+def extend_beyond(face: Polygon, frame: Polygon, pad: float) -> Polygon:
+    """Continue a face past every box side it runs along, so pitched views show no edge."""
+    w, s, e, n = frame.bounds
+    sides = {
+        "w": (LineString([(w, s), (w, n)]), box(w - pad, s - pad, w, n + pad)),
+        "e": (LineString([(e, s), (e, n)]), box(e, s - pad, e + pad, n + pad)),
+        "s": (LineString([(w, s), (e, s)]), box(w - pad, s - pad, e + pad, s)),
+        "n": (LineString([(w, n), (e, n)]), box(w - pad, n, e + pad, n + pad)),
+    }
+    out = face
+    for line, band in sides.values():
+        shared = face.boundary.intersection(line)
+        if shared.length > 0.1 * line.length:
+            out = out.union(band)
+    return out if out.geom_type == "Polygon" else max(_polys(out), key=lambda g: g.area)
 
 
 def build_basemap(bbox: tuple[float, float, float, float], force: bool = False) -> Path:
@@ -147,8 +163,18 @@ def build_basemap(bbox: tuple[float, float, float, float], force: bool = False) 
         tmp = Path(td)
         clip = tmp / "clip.osm.pbf"
         run_cmd(
-            ["osmium", "extract", "-b", f"{w},{s},{e},{n}", "-s", "smart", str(_pbf()),
-             "-o", str(clip), "--overwrite"]  # fmt: skip
+            [
+                "osmium",
+                "extract",
+                "-b",
+                f"{w},{s},{e},{n}",
+                "-s",
+                "smart",
+                str(_pbf()),
+                "-o",
+                str(clip),
+                "--overwrite",
+            ]
         )
         feats = _export(clip, ["wr/building"], tmp / "b.geojsonseq", tmp)
         rows = []
@@ -169,8 +195,11 @@ def build_basemap(bbox: tuple[float, float, float, float], force: bool = False) 
         }
         water_feats = _export(
             clip,
-            ["nwr/natural=water,bay,coastline", "wr/landuse=reservoir,basin",
-             "wr/waterway=riverbank,dock"],  # fmt: skip
+            [
+                "nwr/natural=water,bay,coastline",
+                "wr/landuse=reservoir,basin",
+                "wr/waterway=riverbank,dock",
+            ],
             tmp / "w.geojsonseq",
             tmp,
         )
@@ -179,7 +208,10 @@ def build_basemap(bbox: tuple[float, float, float, float], force: bool = False) 
     for f in water_feats:
         geom = shape(f["geometry"])
         props = f.get("properties") or {}
-        if props.get("natural") == "coastline" and geom.geom_type in ("LineString", "MultiLineString"):
+        if props.get("natural") == "coastline" and geom.geom_type in (
+            "LineString",
+            "MultiLineString",
+        ):
             coast_lines.extend([geom] if geom.geom_type == "LineString" else list(geom.geoms))
         elif geom.geom_type in ("Polygon", "MultiPolygon"):
             water_polys.extend(_polys(geom.intersection(frame)))
@@ -196,8 +228,16 @@ def build_basemap(bbox: tuple[float, float, float, float], force: bool = False) 
     (out / "buildings.json").write_text(json.dumps(buildings, separators=(",", ":")))
     (out / "water.json").write_text(json.dumps(water, separators=(",", ":")))
     (out / "basemap.json").write_text(
-        json.dumps({"bbox": bbox, "buildings": len(rows), "water_polygons": len(polys),
-                    "sea_faces": len(sea), "pbf": _pbf().name}, indent=1)  # fmt: skip
+        json.dumps(
+            {
+                "bbox": bbox,
+                "buildings": len(rows),
+                "water_polygons": len(polys),
+                "sea_faces": len(sea),
+                "pbf": _pbf().name,
+            },
+            indent=1,
+        )
     )
     return out
 

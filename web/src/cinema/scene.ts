@@ -166,9 +166,11 @@ export class Scene {
         x = x - bv[e]!;
         if (!(x === x)) continue;
         const signed = higherBetter ? x : -x; // > 0 = relief
+        const mag = Math.min(1, Math.abs(signed) / half);
+        if (mag < 0.04) continue; // unchanged edges stay base-coloured
         tt = 0.5 + signed / (2 * half);
         col = DIFF_LUT;
-        alpha = Math.round(70 + 185 * Math.min(1, Math.abs(signed) / half));
+        alpha = Math.round(255 * Math.pow(mag, 0.6));
       } else {
         if (!(x === x)) continue;
         tt = (x - lo) / (hi - lo || 1);
@@ -541,9 +543,9 @@ export class Scene {
           data: data as never,
           _pathType: "open",
           widthUnits: "meters",
-          widthScale: tripsOn ? 1.8 : 3.2,
-          widthMinPixels: 2,
-          opacity: (tripsOn ? 0.08 : 0.2) + 0.15 * night,
+          widthScale: tripsOn && !compare ? 1.8 : 3.2,
+          widthMinPixels: compare ? 3 : 2,
+          opacity: (tripsOn && !compare ? 0.08 : 0.2) + 0.15 * night,
           parameters: ADDITIVE,
         }) as unknown as Layer,
         new PathLayer({
@@ -551,9 +553,9 @@ export class Scene {
           data: data as never,
           _pathType: "open",
           widthUnits: "meters",
-          widthScale: tripsOn ? 0.7 : 1,
-          widthMinPixels: 0.9,
-          opacity: tripsOn ? 0.5 : 0.95,
+          widthScale: tripsOn && !compare ? 0.7 : 1,
+          widthMinPixels: compare ? 1.6 : 0.9,
+          opacity: tripsOn && !compare ? 0.5 : 0.95,
           parameters: FLAT,
         }) as unknown as Layer,
       );

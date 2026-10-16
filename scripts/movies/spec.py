@@ -95,9 +95,9 @@ class Layers(Strict):
     metric: Literal["speed_rel", "delay_s_per_veh", "density_veh_km"] = "speed_rel"
     trips: str | None = None  # source id of vehicle trajectories
     color_by: ColorBy = "speed"
-    overlays: list[Literal["events", "closures", "zone", "exits", "routes", "phases", "contraflow"]] = Field(
-        default_factory=list
-    )
+    overlays: list[
+        Literal["events", "closures", "zone", "exits", "routes", "phases", "contraflow"]
+    ] = Field(default_factory=list)
     route_source: str | None = None  # strategist source whose route is highlighted
     buildings: bool = True
     outline: list[tuple[float, float]] | None = None  # extra polygon (e.g. a policy cordon)

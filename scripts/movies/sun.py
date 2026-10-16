@@ -1,4 +1,4 @@
-"""Sun position (NOAA solar-position equations) and the film lighting derived from it (A-mov-003/004).
+"""Sun position (NOAA equations) and the film lighting derived from it (A-mov-003, A-mov-004).
 
 `sun_position(date, local_seconds)` gives the compass azimuth (degrees from north, clockwise) and
 the elevation of the sun's centre above the horizon for Jeddah on that date, with the simulated
@@ -36,9 +36,7 @@ def _julian_day(d: Date) -> float:
     return math.floor(365.25 * (y + 4716)) + math.floor(30.6001 * (m + 1)) + d.day + b - 1524.5
 
 
-def sun_position(
-    d: Date, local_s: float, lat: float, lon: float, utc_offset_h: float
-) -> Sun:
+def sun_position(d: Date, local_s: float, lat: float, lon: float, utc_offset_h: float) -> Sun:
     """NOAA solar position for local clock seconds `local_s` (may exceed one day)."""
     utc_s = local_s - utc_offset_h * 3600.0
     jd = _julian_day(d) + utc_s / DAY_S

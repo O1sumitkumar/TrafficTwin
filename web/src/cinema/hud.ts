@@ -142,10 +142,9 @@ export class Hud {
     if (kind === "class") {
       el("div", "cin-legend-t", this.legend, "Vehicles");
       const chips = el("div", "cin-chips", this.legend);
+      const counts = shot.layers.trips ? this.m.files.trips[shot.layers.trips]?.classes : undefined;
       this.m.vehicle_classes.forEach((c, i) => {
-        if (c === "convoy" || c === "evacuee") {
-          if (!shot.hud.caption.toLowerCase().includes(c === "convoy" ? "motorcade" : "evac")) return;
-        }
+        if (counts && !counts[c]) return;
         const chip = el("div", "cin-chip", chips);
         const dot = el("span", "cin-dot", chip);
         dot.style.background = `rgb(${CLASS_COLORS[i]!.join(",")})`;

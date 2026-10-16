@@ -31,8 +31,9 @@ def main(
     r = load_settings()["render"]
     bundle = movies_runs_dir() / film / "bundle"
     if rebuild or not (bundle / "manifest.json").exists():
-        build_bundle(load_film(film), int(r["fps"]), int(r["width"]), int(r["height"]), False,
-                     out=bundle)  # fmt: skip
+        build_bundle(
+            load_film(film), int(r["fps"]), int(r["width"]), int(r["height"]), False, out=bundle
+        )
     ensure_web_build()
     handler = functools.partial(_Handler, directory=str(DIST))
     server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)

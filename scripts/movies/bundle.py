@@ -45,12 +45,17 @@ BUNDLE_VERSION = 1
 # Road classes (drawing order, width and glow in the renderer)
 ROAD_CLASSES = ["motorway", "primary", "secondary", "minor", "link"]
 _CLASS_OF = {
-    "motorway": 0, "trunk": 0,
+    "motorway": 0,
+    "trunk": 0,
     "primary": 1,
-    "secondary": 2, "tertiary": 2,
-    "motorway_link": 4, "trunk_link": 4, "primary_link": 4, "secondary_link": 4,
+    "secondary": 2,
+    "tertiary": 2,
+    "motorway_link": 4,
+    "trunk_link": 4,
+    "primary_link": 4,
+    "secondary_link": 4,
     "tertiary_link": 4,
-}  # fmt: skip
+}
 VEHICLE_CLASSES = ["car", "truck", "bus", "emergency", "convoy", "evacuee"]
 
 
@@ -74,9 +79,12 @@ def vehicle_class(vtype: str, vid: str = "") -> int:
     """Display class from the vType (and the event-vehicle id prefix for evacuees)."""
     s = f"{vtype} {vid}".lower()
     for key, cls in (
-        ("emergency", 3), ("ambulance", 3), ("bluelight", 3),
-        ("convoy", 4), ("motorcade", 4),
-    ):  # fmt: skip
+        ("emergency", 3),
+        ("ambulance", 3),
+        ("bluelight", 3),
+        ("convoy", 4),
+        ("motorcade", 4),
+    ):
         if key in s:
             return cls
     if vid.startswith(EVACUEE_PREFIX) or "evac" in s:
@@ -124,7 +132,7 @@ def fill_text(text: str, facts: dict[str, dict[str, Any]]) -> str:
         v = facts[src][path]
         return format(v, fmt) if fmt else str(v)
 
-    return FACT_RE.sub(sub, text)
+    return FACT_RE.sub(sub, text).replace("`", "")
 
 
 # ----------------------------------------------------------------------------- sources
@@ -244,9 +252,11 @@ def _edge_index(src: SourceData) -> tuple[Any, dict[str, Any]]:
 
 
 def film_network(
-    sources: dict[str, SourceData], primary: str, bbox: tuple[float, float, float, float],
+    sources: dict[str, SourceData],
+    primary: str,
+    bbox: tuple[float, float, float, float],
     major_only: bool,
-) -> FilmNet:  # fmt: skip
+) -> FilmNet:
     index, attrs = _edge_index(sources[primary])
     types = attrs["types"]
     names = attrs["names"]
@@ -259,10 +269,7 @@ def film_network(
         pts = index.path(i)
         if len(pts) < 2:
             continue
-        if (
-            pts[:, 0].max() < w or pts[:, 0].min() > e or pts[:, 1].max() < s
-            or pts[:, 1].min() > n
-        ):  # fmt: skip
+        if pts[:, 0].max() < w or pts[:, 0].min() > e or pts[:, 1].max() < s or pts[:, 1].min() > n:
             continue
         keep.append(i)
     keep_a = np.asarray(keep, dtype=np.int64)
@@ -310,9 +317,13 @@ def _heat_ranges(shots: list[Shot], plans: list[FramePlan], sid: str) -> tuple[f
 
 
 def build_heat(
-    src: SourceData, net: FilmNet, metric: str, t_range: tuple[float, float], out: Path,
+    src: SourceData,
+    net: FilmNet,
+    metric: str,
+    t_range: tuple[float, float],
+    out: Path,
     settings: dict[str, Any],
-) -> dict[str, Any]:  # fmt: skip
+) -> dict[str, Any]:
     from api.bins import bin_values, ensure_bins
 
     run = src.run
@@ -391,11 +402,22 @@ def read_fcd(run: Any, t0: float, t1: float, step: int) -> Trips:
     spd = table["speed_ms"].to_numpy().astype(np.float32)
     order = np.lexsort((t, vid_arr))  # by vehicle, then time (deterministic)
     vid_arr, vtype_arr, t, lon, lat, spd = (
-        vid_arr[order], vtype_arr[order], t[order], lon[order], lat[order], spd[order]
-    )  # fmt: skip
+        vid_arr[order],
+        vtype_arr[order],
+        t[order],
+        lon[order],
+        lat[order],
+        spd[order],
+    )
     if len(vid_arr) == 0:
-        return Trips(np.zeros(1, np.uint32), np.zeros((0, 2)), np.zeros(0), np.zeros(0),
-                     np.zeros(0, np.uint8), [])  # fmt: skip
+        return Trips(
+            np.zeros(1, np.uint32),
+            np.zeros((0, 2)),
+            np.zeros(0),
+            np.zeros(0),
+            np.zeros(0, np.uint8),
+            [],
+        )
     cuts = np.flatnonzero(vid_arr[1:] != vid_arr[:-1]) + 1
     begins = np.concatenate([[0], cuts])
     ends = np.concatenate([cuts, [len(vid_arr)]])
@@ -518,8 +540,12 @@ def fcd_series(run: Any, kind: str, times: list[float]) -> list[float]:
             ).fetchnumpy()
             arr = np.sort(next(iter(last.values())))
             end = arr.max() if len(arr) else 0
-            return [float(np.searchsorted(arr, t, side="left")) if t < end else float(
-                np.searchsorted(arr, end, side="left")) for t in times]  # fmt: skip
+            return [
+                float(np.searchsorted(arr, t, side="left"))
+                if t < end
+                else float(np.searchsorted(arr, end, side="left"))
+                for t in times
+            ]
         rows = con.execute(
             f"SELECT floor(time_s) AS s, count(*) AS n, "
             f"sum(CASE WHEN speed_ms < 0.1 THEN 1 ELSE 0 END) AS halted, "
@@ -553,23 +579,46 @@ def tripinfo_series(run: Any, kind: str, times: list[float]) -> list[float]:
 
 
 def build_overlays(src: SourceData, net: FilmNet) -> dict[str, Any]:
-    out: dict[str, Any] = {"events": [], "closures": [], "zone": None, "exits": [],
-                           "routes": [], "phases": [], "contraflow": []}  # fmt: skip
+    out: dict[str, Any] = {
+        "events": [],
+        "closures": [],
+        "zone": None,
+        "exits": [],
+        "routes": [],
+        "phases": [],
+        "contraflow": [],
+    }
     if src.kind == "strategist":
         assert src.rec is not None
-        out["routes"].append({"name": src.facts.get("route_name") or "default route",
-                              "paths": edge_paths(net, route_edges(src))})  # fmt: skip
+        out["routes"].append(
+            {
+                "name": src.facts.get("route_name") or "default route",
+                "paths": edge_paths(net, route_edges(src)),
+            }
+        )
         ev = src.rec.get("closed_lanes_at_t") or []
         edges = sorted({lane.rsplit("_", 1)[0] for lane in ev})
         if edges:
-            out["events"].append({"id": "crash", "type": "accident", "begin_s": 0.0,
-                                  "end_s": 1e9, "paths": edge_paths(net, edges)})  # fmt: skip
+            out["events"].append(
+                {
+                    "id": "crash",
+                    "type": "accident",
+                    "begin_s": 0.0,
+                    "end_s": 1e9,
+                    "paths": edge_paths(net, edges),
+                }
+            )
         return out
     rep = src.report or {}
     for ev in rep.get("events") or []:
         geom = ev.get("geometry") or {}
-        item = {"id": ev["id"], "type": ev["type"], "begin_s": ev.get("begin_s") or 0.0,
-                "end_s": ev.get("end_s") or 1e9, "paths": edge_paths(net, ev.get("edges") or [])}  # fmt: skip
+        item = {
+            "id": ev["id"],
+            "type": ev["type"],
+            "begin_s": ev.get("begin_s") or 0.0,
+            "end_s": ev.get("end_s") or 1e9,
+            "paths": edge_paths(net, ev.get("edges") or []),
+        }
         if geom.get("type") == "Point":
             item["point"] = geom["coordinates"]
             if ev.get("producer_type") == "evacuation_exit":
@@ -580,8 +629,12 @@ def build_overlays(src: SourceData, net: FilmNet) -> dict[str, Any]:
             continue
         out["events"].append(item)
     for c in rep.get("closures") or []:
-        item = {"id": c["id"], "begin_s": c.get("begin_s") or 0.0, "end_s": c.get("end_s") or 1e9,
-                "paths": edge_paths(net, c.get("edges") or [])}  # fmt: skip
+        item = {
+            "id": c["id"],
+            "begin_s": c.get("begin_s") or 0.0,
+            "end_s": c.get("end_s") or 1e9,
+            "paths": edge_paths(net, c.get("edges") or []),
+        }
         if str(c["id"]).startswith("contraflow:"):
             continue  # dormant contraflow lanes: drawn from the evacuation block below
         out["closures"].append(item)
@@ -591,11 +644,18 @@ def build_overlays(src: SourceData, net: FilmNet) -> dict[str, Any]:
         active = {str(x) for x in evac.get("contraflow") or []}
         for cor in evac.get("corridors") or []:
             if "all" in active or cor.get("id") in active or cor.get("exit") in active:
-                out["contraflow"].append({"id": cor.get("id"), "name": cor.get("name"),
-                                          "begin_s": order,
-                                          "paths": edge_paths(net, cor.get("inbound_edges") or [])})  # fmt: skip
-        cf_on = next((e["t"] for e in rep.get("event_log") or []
-                      if e.get("action") == "contraflow_on"), order)  # fmt: skip
+                out["contraflow"].append(
+                    {
+                        "id": cor.get("id"),
+                        "name": cor.get("name"),
+                        "begin_s": order,
+                        "paths": edge_paths(net, cor.get("inbound_edges") or []),
+                    }
+                )
+        cf_on = next(
+            (e["t"] for e in rep.get("event_log") or [] if e.get("action") == "contraflow_on"),
+            order,
+        )
         for c in out["contraflow"]:
             c["begin_s"] = float(cf_on)
         out["phases"] = evac_phases(src, evac)
@@ -608,8 +668,9 @@ def evac_phases(src: SourceData, evac: dict[str, Any]) -> list[dict[str, Any]]:
     Each band is a convex hull of where its evacuees start, lit from the first departure in the
     band; band = position of the departure inside the release window (equal shares, A-evac-014).
     """
-    from api.ingest import ensure_fcd
     from shapely.geometry import MultiPoint
+
+    from api.ingest import ensure_fcd
 
     bands = evac.get("bands") or {}
     n_bands = len(bands)
@@ -636,14 +697,16 @@ def evac_phases(src: SourceData, evac: dict[str, Any]) -> list[dict[str, Any]]:
         if len(pts) < 3:
             continue
         hull = MultiPoint([(x, y) for _, x, y in pts]).convex_hull.buffer(0.0004)
-        out.append({
-            "band": b,
-            "begin_s": round(min(p[0] for p in pts), 1),
-            "end_s": round(max(p[0] for p in pts), 1),
-            "vehicles": len(pts),
-            "ring": [[round(x, 6), round(y, 6)] for x, y in hull.exterior.coords],
-            "points": [[round(x, 6), round(y, 6), round(t, 1)] for t, x, y in sorted(pts)],
-        })
+        out.append(
+            {
+                "band": b,
+                "begin_s": round(min(p[0] for p in pts), 1),
+                "end_s": round(max(p[0] for p in pts), 1),
+                "vehicles": len(pts),
+                "ring": [[round(x, 6), round(y, 6)] for x, y in hull.exterior.coords],
+                "points": [[round(x, 6), round(y, 6), round(t, 1)] for t, x, y in sorted(pts)],
+            }
+        )
     return out
 
 
@@ -685,17 +748,30 @@ def fade_alpha(film: Film, plans: list[FramePlan], fps: int) -> list[float]:
 
 
 def plan_json(
-    film: Film, plans: list[FramePlan], fps: int, sources: dict[str, SourceData],
+    film: Film,
+    plans: list[FramePlan],
+    fps: int,
+    sources: dict[str, SourceData],
     settings: dict[str, Any],
-) -> dict[str, Any]:  # fmt: skip
+) -> dict[str, Any]:
     # sun per frame
     light = []
     for p in plans:
-        lt = lighting(sun_for_film(film.date, local_seconds(film, p.camera.sim_t), settings),
-                      settings)  # fmt: skip
-        light.append([lt["night"], lt["sun_intensity"], lt["ambient_intensity"],
-                      *lt["direction"], *lt["sun_color"], *lt["ambient_color"],
-                      lt["elevation_deg"], lt["azimuth_deg"]])  # fmt: skip
+        lt = lighting(
+            sun_for_film(film.date, local_seconds(film, p.camera.sim_t), settings), settings
+        )
+        light.append(
+            [
+                lt["night"],
+                lt["sun_intensity"],
+                lt["ambient_intensity"],
+                *lt["direction"],
+                *lt["sun_color"],
+                *lt["ambient_color"],
+                lt["elevation_deg"],
+                lt["azimuth_deg"],
+            ]
+        )
     # KPI values per frame
     kpi_vals: list[list[float | None]] = [[] for _ in plans]
     series_cache: dict[tuple[str, str], list[float]] = {}
@@ -741,12 +817,33 @@ def plan_json(
         "shot": [p.shot for p in plans],
         "shot_t": [round(p.shot_t, 5) for p in plans],
         "sim_t": [round(p.camera.sim_t, 4) for p in plans],
-        "camera": [[round(p.camera.lon, 7), round(p.camera.lat, 7), round(p.camera.zoom, 5),
-                    round(p.camera.pitch, 4), round(p.camera.bearing, 4)] for p in plans],  # fmt: skip
+        "camera": [
+            [
+                round(p.camera.lon, 7),
+                round(p.camera.lat, 7),
+                round(p.camera.zoom, 5),
+                round(p.camera.pitch, 4),
+                round(p.camera.bearing, 4),
+            ]
+            for p in plans
+        ],
         "light": light,
-        "light_fields": ["night", "sun_intensity", "ambient_intensity", "dx", "dy", "dz",
-                         "sun_r", "sun_g", "sun_b", "amb_r", "amb_g", "amb_b",
-                         "elevation_deg", "azimuth_deg"],  # fmt: skip
+        "light_fields": [
+            "night",
+            "sun_intensity",
+            "ambient_intensity",
+            "dx",
+            "dy",
+            "dz",
+            "sun_r",
+            "sun_g",
+            "sun_b",
+            "amb_r",
+            "amb_g",
+            "amb_b",
+            "elevation_deg",
+            "azimuth_deg",
+        ],
         "clock": [clock_text(film, p.camera.sim_t) for p in plans],
         "kpi": kpi_vals,
         "caption_alpha": caption_alpha,
@@ -814,23 +911,34 @@ def build_bundle(
                 heat_ids[sid] = lay.metric
     for sid, metric in sorted(heat_ids.items()):
         files["heat"][sid] = build_heat(
-            sources[sid], net, metric, _heat_ranges(film.shots, plans, sid),
-            out / f"heat-{sid}.bin", settings,
-        )  # fmt: skip
+            sources[sid],
+            net,
+            metric,
+            _heat_ranges(film.shots, plans, sid),
+            out / f"heat-{sid}.bin",
+            settings,
+        )
     # trips
     trail = float(settings["trips"]["trail_s"]["value"])
     step = int(settings["trips"]["fcd_step"]["value"])
     trip_ids = sorted(
-        {sid for s in film.shots for sid in (s.layers.trips, *(s.layers.split or ()))
-         if sid is not None}  # fmt: skip
+        {
+            sid
+            for s in film.shots
+            for sid in (s.layers.trips, *(s.layers.split or ()))
+            if sid is not None
+        }
     )
     for sid in trip_ids:
         src = sources[sid]
         t0, t1 = _trip_range(film.shots, plans, sid)
         if src.kind == "strategist":
             amb = ambulance_trip(src, net)
-            trips = merge_trips(read_fcd(src.background, t0 - trail, t1, step), amb) if (
-                src.background is not None) else amb  # fmt: skip
+            trips = (
+                merge_trips(read_fcd(src.background, t0 - trail, t1, step), amb)
+                if (src.background is not None)
+                else amb
+            )
         else:
             if src.run.tier != "B":
                 continue
@@ -872,9 +980,13 @@ def build_bundle(
         "letterbox": settings["render"]["letterbox_aspect"] if letterbox else None,
         "bbox": list(bbox),
         "origin": list(origin),
-        "roads": {"url": "roads.bin", "n_edges": len(net.edge_ids),
-                  "n_points": int(net.starts[-1]), "classes": ROAD_CLASSES,
-                  "network_hash": net.network_hash},  # fmt: skip
+        "roads": {
+            "url": "roads.bin",
+            "n_edges": len(net.edge_ids),
+            "n_points": int(net.starts[-1]),
+            "classes": ROAD_CLASSES,
+            "network_hash": net.network_hash,
+        },
         "vehicle_classes": VEHICLE_CLASSES,
         "trail_s": trail,
         "diff_half_range": settings["heat"]["diff_half_range"],
@@ -882,13 +994,15 @@ def build_bundle(
         "frames": "frames.json",
         "shots": shots,
         "sources": {
-            sid: {"kind": s.kind,
-                  "run_id": s.run.run_id if s.run is not None else None,
-                  "recommendation_id": (s.rec or {}).get("recommendation_id"),
-                  "candidate": s.candidate,
-                  "background": s.background.run_id if s.background is not None else None}
+            sid: {
+                "kind": s.kind,
+                "run_id": s.run.run_id if s.run is not None else None,
+                "recommendation_id": (s.rec or {}).get("recommendation_id"),
+                "candidate": s.candidate,
+                "background": s.background.run_id if s.background is not None else None,
+            }
             for sid, s in sorted(sources.items())
-        },  # fmt: skip
+        },
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1))
     hashes = {p.name: sha_file(p) for p in sorted(out.iterdir()) if p.is_file()}

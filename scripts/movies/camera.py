@@ -93,7 +93,9 @@ def camera_at(keys: Sequence[Keyframe], t: float) -> CameraState:
     sim_t = sim_time_at(keys, t)
     if t <= keys[0].t or len(keys) == 1:
         k = keys[0]
-        return CameraState(k.lon, k.lat, k.zoom, k.pitch, lerp_angle(k.bearing, k.bearing, 0), sim_t)
+        return CameraState(
+            k.lon, k.lat, k.zoom, k.pitch, lerp_angle(k.bearing, k.bearing, 0), sim_t
+        )
     for a, b in zip(keys, keys[1:], strict=False):
         if t <= b.t:
             f = ease((t - a.t) / (b.t - a.t), b.ease)
