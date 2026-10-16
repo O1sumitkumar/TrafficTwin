@@ -1187,6 +1187,9 @@ def full_sim(spec: dict[str, Any]) -> dict[str, Any]:
     register_event_classes()
     res = run_window_sim(spec)
     res["background"] = background_delay(Path(spec["run_dir"]) / "tripinfo.xml")
+    tel = res.get("teleport_events", [])
+    res["teleports"] = len(tel)
+    res["teleports_evacuees"] = sum(1 for x in tel if x["vehicle"].startswith(EVENT_VEHICLE_PREFIX))
     return res
 
 

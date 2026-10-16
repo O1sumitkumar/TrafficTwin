@@ -596,9 +596,14 @@ def render_md(r: dict[str, Any]) -> str:
         rec_line = f"**Recommendation: option 1 (`{r['recommended']}`).**"
     fast = next((t for t in r["candidates"] if t["candidate_id"] == r["fastest_clearance"]), None)
     if fast:
+        nb = r["no_strategy"]["clearance"]
+        vs = (
+            f"T90 {fast['t90_vs_no_strategy_s']:+.0f} s versus no strategy"
+            if nb["t90_s"] is not None and fast["clearance"]["t90_s"] is not None
+            else f"T90 {_s(fast['clearance']['t90_s'])} s (no strategy: {_s(nb['t90_s'])})"
+        )
         rec_line += (
-            f" Fastest clearance (T90 + T100): `{fast['candidate_id']}`, T90 "
-            f"{fast['t90_vs_no_strategy_s']:+.0f} s versus no strategy, score "
+            f" Fastest clearance (T90 + T100): `{fast['candidate_id']}`, {vs}, score "
             f"{fast['score']:,.0f} versus {r['no_strategy']['score']:,.0f} (penalty terms: "
             + ", ".join(
                 f"{k} {v:,.0f}" for k, v in fast["terms"].items() if k not in ("t90", "t100") and v

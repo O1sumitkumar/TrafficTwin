@@ -24,7 +24,7 @@ SCEN = "evac_demo"
 def runs(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     root = tmp_path_factory.mktemp("evac")
     a = V.run(SCEN, seed=1, fcd=False, runs_dir=root / "a", quiet=True)
-    b = V.run(SCEN, seed=1, fcd=False, runs_dir=root / "b", quiet=True)
+    b = V.run(SCEN, seed=1, fcd=True, runs_dir=root / "b", quiet=True)  # M5 path with FCD
     return {"a": a, "b": b, "root": root}
 
 
@@ -48,6 +48,8 @@ def test_demo_run_deterministic(runs: dict[str, Any]) -> None:
     ra, rb = runs["a"]["report"], runs["b"]["report"]
     assert ra["result"]["clearance"] == rb["result"]["clearance"]
     assert ra["result"]["background"] == rb["result"]["background"]
+    assert ra["result"]["teleports"] == rb["result"]["teleports"]
+    assert "window_kpis" in rb and list(Path(runs["b"]["out"]).rglob("fcd.parquet"))
     assert ra["result"]["bottlenecks"] == rb["result"]["bottlenecks"]
 
 
