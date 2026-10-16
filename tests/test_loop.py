@@ -119,6 +119,14 @@ def test_shuttle_route_and_meso_types(tmp_path: Path) -> None:
     assert 'tauff="50.000"' in text and "loop_tunnel" in text and "loop_ramp" in text
 
 
+def test_pool_dispatch_window() -> None:
+    from sim.loop.transforms import pool
+
+    t = np.array([0.0, 100.0, 1000.0, 1010.0, 1020.0, 5000.0])
+    assert pool(t, 2, 180.0) == [(100.0, 2), (1010.0, 2), (1200.0, 1), (5180.0, 1)]
+    assert pool(t, 3, 50.0) == [(50.0, 1), (150.0, 1), (1020.0, 3), (5050.0, 1)]
+
+
 def test_nearest_station() -> None:
     idx, d = nearest_station(np.array([0.0, 900.0, np.nan]), np.array([0.0, 0.0, 0.0]),
                              np.array([0.0, 1000.0]), np.array([0.0, 0.0]))  # fmt: skip
@@ -129,12 +137,14 @@ def test_shuttles_fill_by_occupancy_and_reposition() -> None:
     pax = pd.DataFrame({"line": "A", "os": [0, 0, 0, 0, 0, 2], "ds": [2, 2, 2, 2, 2, 0],
                         "t_station": [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]})  # fmt: skip
     seg = {("A", 0): 1000.0, ("A", 1): 1500.0}
-    p = {"occupancy": 2.0, "empty_reposition_factor": 0.0, "dwell_s": 30.0, "speed_kmh": 90.0}
+    p = {"occupancy": 2.0, "empty_reposition_factor": 0.0, "dwell_s": 30.0, "speed_kmh": 90.0,
+         "max_pool_wait_s": 180.0}  # fmt: skip
     sh = shuttles(pax, seg, p, seed=1)
     loaded = sh[~sh["empty"]]
     assert loaded["pax"].sum() == 6 and len(loaded) == 4  # 5 pax -> 3 shuttles, 1 pax -> 1
     first = loaded[(loaded["os"] == 0)].sort_values("depart")
-    assert list(first["depart"]) == [20.0, 40.0, 50.0]  # leaves with its last passenger
+    # full shuttles leave with their last passenger; the lone last one after the max wait
+    assert list(first["depart"]) == [20.0, 40.0, 230.0]
     assert set(loaded["ride_m"]) == {2500.0}
     p["empty_reposition_factor"] = 1.0
     sh2 = shuttles(pax, seg, p, seed=1)
@@ -190,6 +200,8 @@ def fake_eval(cid: str, km: float, saved: int, exceed: float = 0.0) -> dict:
     cx = {"low": km * 15, "central": km * 25, "high": km * 40}
     return {
         "candidate": cid, "run_id": f"loop_{cid.lower()}", "tunnel_km": km, "stations": 5,
+        "relief_vht_per_day": saved, "relief_pct": 1.0, "net_person_hours_per_day": saved,
+        "relief_per_usd_m": {k: saved / v for k, v in cx.items()},
         "passengers_per_day": 1000, "vht_saved_per_day": saved, "vht_saved_pct": 1.0,
         "road_vht_saved_per_day": saved, "am_peak_delay_change_pct": -1.0,
         "vht_saved_per_km": saved / km, "capex_usd_m": cx,
@@ -234,15 +246,16 @@ def test_quality_gate_and_render(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     cands = {"A": line("A", 39.15)}
     ev = {"A": fake_eval("A", 10, 5000)}
     row = O.sweep_row("shuttle central", "lever", {**ev["A"], "run_id": "loop_opt_a"}, "ok")
-    res = {"greedy": [{"candidate": "A", "km": 10, "vht_saved_per_km": 500, "decision": "selected",
+    res = {"greedy": [{"candidate": "A", "km": 10, "relief_per_km": 500, "decision": "selected",
                        "cumulative_km": 10}], "sweep": [row], "selected": ["A"],
            "selected_km": 10, "budget_km": 25,
-           "noise": {"run": "n", "vht_delta": 100, "noise_vht": 100, "teleport_share": 0.5},
+           "noise": {"run": "n", "vht_delta": 100, "relief_delta": -100, "noise_relief": 100,
+                     "teleport_share": 0.5, "teleport_share_delta": 0.001},
            "recommended": row,
-           "band": {"vht_saved_per_day": 5000, "vht_saved_range": [4000, 6000],
+           "band": {"relief_vht_per_day": 5000, "relief_range": [4000, 6000],
                     "per_usd_m_central": 20.0, "per_usd_m_range": [10.0, 40.0],
                     "capex_usd_m": ev["A"]["capex_usd_m"]}}  # fmt: skip
-    O.render(res, cands, ev, cfg)
+    O.render(res, cands, ev)
     text = doc.read_text()
     assert "old" not in text and "shuttle central" in text and "| 1 | A |" in text
     assert "band 4,000 to 6,000" in text

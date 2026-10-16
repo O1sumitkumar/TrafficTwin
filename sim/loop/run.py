@@ -1,6 +1,7 @@
 """Run a Loop policy through Track A's policy runner and add the Loop KPIs.
 
-    python -m sim.loop.run loop_demo --daytype weekday --sample 0.10 --seed 1
+    python -m sim.loop.run loop_demo --demo                 # demo window, seconds
+    python -m sim.loop.run loop_recommended                 # city, 10 % sample
 
 `sim.policies.run.run_policy` does the work (baselines, transforms, incremental routing, matched
 control, meso run, policy report); this module only swaps in a transform dispatcher that also
@@ -93,8 +94,15 @@ def main(
     sample: float = typer.Option(0.10),
     seed: int = typer.Option(1),
     runs_dir: Path | None = typer.Option(None),
+    demo: bool = typer.Option(False, "--demo", help="run on the demo window (100 %, seconds)"),
 ) -> None:
-    meta = run_loop_policy(policy, daytype, sample, seed, runs_dir)
+    if demo:
+        from sim.loop.demo import DEMO_RUNS, demo_env
+
+        with demo_env() as kw:
+            meta = run_loop_policy(policy, daytype, 1.0, seed, runs_dir or DEMO_RUNS / "runs", **kw)
+    else:
+        meta = run_loop_policy(policy, daytype, sample, seed, runs_dir)
     typer.echo(meta["loop"]["headline"])
 
 

@@ -106,6 +106,22 @@ def choose_line(snaps: pd.DataFrame, tour_ids: np.ndarray) -> pd.DataFrame:
 # ---------------------------------------------------------------------------- shuttle mode
 
 
+def pool(t: np.ndarray, seats: int, max_wait: float) -> list[tuple[float, int]]:
+    """Dispatch in arrival order: a shuttle leaves when full (with its last passenger) or when its
+    first passenger has waited `max_wait`. Returns (departure, passengers) per shuttle."""
+    out = []
+    i = 0
+    while i < len(t):
+        t0 = t[i]
+        j = i + 1
+        while j < len(t) and j - i < seats and t[j] - t0 <= max_wait:
+            j += 1
+        k = j - i
+        out.append((float(t[j - 1] if k == seats else t0 + max_wait), k))
+        i = j
+    return out
+
+
 def shuttles(
     pax: pd.DataFrame,
     seg_len: dict[tuple[str, int], float],
@@ -113,15 +129,13 @@ def shuttles(
     seed: int,
 ) -> pd.DataFrame:
     """Shuttle trips from passenger arrival times at stations (loaded + empty repositioning)."""
-    occ = p["occupancy"]
+    seats = max(int(round(p["occupancy"])), 1)
+    max_wait = float(p["max_pool_wait_s"])
     rows = []
     for (line, os_, ds), g in pax.groupby(["line", "os", "ds"], sort=True):
-        t = np.sort(g["t_station"].to_numpy())
-        group = np.floor(np.arange(len(t)) / occ).astype(np.int64)
-        dep = pd.Series(t).groupby(group).max().to_numpy()
-        npax = np.bincount(group)
-        for n, (d, k) in enumerate(zip(dep, npax, strict=True)):
-            rows.append((line, int(os_), int(ds), float(d), int(k), False, n))
+        dispatch = pool(np.sort(g["t_station"].to_numpy()), seats, max_wait)
+        for n, (d, k) in enumerate(dispatch):
+            rows.append((line, int(os_), int(ds), d, k, False, n))
     df = pd.DataFrame(rows, columns=["line", "os", "ds", "depart", "pax", "empty", "n"])
     if df.empty:
         return df
@@ -154,7 +168,7 @@ def write_shuttle_routes(path: Any, sh: pd.DataFrame, p: dict[str, Any], scale: 
         "<routes>",
         f'    <vType id="{SHUTTLE_VTYPE}" vClass="{cfg["shuttle_vclass"]}" '
         f'length="{float(s["length_m"]) * scale:.2f}" minGap="{float(s["min_gap_m"]) * scale:.2f}" '
-        f'maxSpeed="{250 / 3.6:.2f}" emissionClass="Zero" color="1,0,0"/>',
+        f'maxSpeed="{float(s["max_speed_kmh"]) / 3.6:.2f}" emissionClass="Zero" color="1,0,0"/>',
     ]  # fmt: skip
     for r in sh.itertuples():
         edges = " ".join(shuttle_route(r.line, r.os, r.ds))

@@ -50,6 +50,7 @@ def resolve_params(
                 if t.empty_reposition_factor is None
                 else t.empty_reposition_factor
             ),
+            "max_pool_wait_s": float(cfg["shuttle"]["max_pool_wait_s"]),
             "shift_modes": list(sh["modes"]),
             "competitive_only": bool(
                 sh["competitive_only"] if t.competitive_only is None else t.competitive_only

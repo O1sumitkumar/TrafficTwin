@@ -117,7 +117,7 @@ def test_private_mode_uses_tunnel_and_matched_control(lenv: dict, tmp_path: Path
         assert m["control_run"] == f"{m['run_id']}--control"  # TA-018 matched control
         assert rep["compare"] == m["control_run"]
         entries[toll] = rep["private"]["tunnel_entries_per_day"]
-    assert entries[0.0] > 0 and entries[10.0] <= entries[0.0]
+    assert entries[0.0] > 0 and entries[10.0] < entries[0.0]
 
 
 def demo_site_cfg() -> dict:

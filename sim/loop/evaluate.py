@@ -162,6 +162,42 @@ def baseline_replicate(runs_dir: Path, sim_seed: int, sample: float = 0.10, seed
     return json.loads(meta_path.read_text())
 
 
+def pair_with_replicate(rep: dict[str, Any], runs_dir: Path, rep_base: dict[str, Any]) -> None:
+    """Seed-2 estimates against the seed-2 baseline replicate (paired), written into `rep`."""
+    from sim.loop.kpis import relief
+
+    out = runs_dir / rep["run_id"]
+    meta = json.loads((out / "meta.json").read_text())
+    rep["vht_saved_vs_replicate"] = round(
+        float(rep_base["result"]["vht"]) - float(meta["result"]["vht"])
+    )
+    rel = relief(out / "tripinfo.parquet", runs_dir / rep_base["run_id"] / "tripinfo.parquet",
+                 float(meta["sample"]), float(meta["sim_end_s"]))  # fmt: skip
+    rep["relief_vs_replicate"] = round(rel["relief_vht_per_day"])
+    rep["replicate_baseline"] = rep_base["run_id"]
+
+
+def rebuild_results(results: Path) -> None:
+    """Recompute the Loop report of every finished run in `results` (no simulation)."""
+    from sim.loop.kpis import rebuild
+
+    runs_dir = REPO_ROOT / "runs"
+    doc = json.loads(results.read_text())
+    for rid, old in list(doc["runs"].items()):
+        if not (runs_dir / rid / "meta.json").exists():
+            continue
+        rep = rebuild(runs_dir / rid)
+        for k in ("candidate", "sim_seed", "replicate_baseline"):
+            if k in old:
+                rep[k] = old[k]
+        if rep.get("replicate_baseline"):
+            base = json.loads((runs_dir / rep["replicate_baseline"] / "meta.json").read_text())
+            pair_with_replicate(rep, runs_dir, base)
+        doc["runs"][rid] = rep
+        typer.echo(rep["headline"])
+    results.write_text(json.dumps(doc, indent=2, default=float))
+
+
 def blocked(reason: str) -> None:
     from sim.loop.status import append_status
 
@@ -185,8 +221,12 @@ def main(
     seed: int = typer.Option(1),
     keep_outputs: bool = typer.Option(False, help="keep edge/emission Parquet of each run"),
     sim_seed: int | None = typer.Option(None, help="replicate: re-simulate with this sim seed"),
+    rebuild: bool = typer.Option(False, "--rebuild", help="recompute reports of finished runs"),
     results: Path = typer.Option(RESULTS / "evaluation.json"),
 ) -> None:
+    if rebuild:
+        rebuild_results(results)
+        return
     cfg = loop_config()
     cands = load_candidates(candidates)
     todo = [c.strip() for c in ids.split(",")] if ids else list(cands)
@@ -223,11 +263,7 @@ def main(
         rep["sim_seed"] = sim_seed or seed
         if rep_base is not None:
             # paired estimate: policy and baseline both simulated with this sim seed
-            meta = json.loads((runs_dir / rep["run_id"] / "meta.json").read_text())
-            rep["vht_saved_vs_replicate"] = round(
-                float(rep_base["result"]["vht"]) - float(meta["result"]["vht"])
-            )
-            rep["replicate_baseline"] = rep_base["run_id"]
+            pair_with_replicate(rep, runs_dir, rep_base)
         merge_results(results, [rep])
         typer.echo("  " + rep["headline"])
 

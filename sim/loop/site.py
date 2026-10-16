@@ -307,7 +307,7 @@ def overlaps(c: pd.Series, chosen: list[pd.Series], cfg: dict[str, Any]) -> bool
         if shared > int(s["max_shared_stations"]):
             return True
         # parallel duplicate: most stations within 2 x overlap of the other line's stations
-        if (d.min(axis=1) <= 2 * lim).mean() > 0.6:
+        if (d.min(axis=1) <= float(s["parallel_factor"]) * lim).mean() > float(s["parallel_share"]):
             return True
     return False
 
@@ -317,7 +317,7 @@ def select(cands: pd.DataFrame, sites: pd.DataFrame, cfg: dict[str, Any]) -> lis
     n_max = int(s["n_candidates"])
     ranked = cands.sort_values("delay_h_per_km", ascending=False)
     # only alignments that capture a meaningful amount (top half by captured delay)
-    floor = ranked["captured_delay_h"].quantile(0.5)
+    floor = ranked["captured_delay_h"].quantile(float(s["capture_floor_quantile"]))
     chosen: list[pd.Series] = []
     for _, c in ranked[ranked["captured_delay_h"] >= floor].iterrows():
         if not overlaps(c, chosen, cfg):

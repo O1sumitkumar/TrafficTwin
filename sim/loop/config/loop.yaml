@@ -17,7 +17,7 @@ tunnel:
   curvature_factor: 1.15
   ramp_length_m: 150
   ramp_speed_kmh: 40
-  assumption: "A-loop-002: tunnel length = straight station-to-station distance x 1.15 (alignment follows streets and avoids foundations; 1.05-1.3); station portals: 150 m ramp per direction at 40 km/h (Vegas/LVCC portal ramps are of this order; 100-250 m)."
+  assumption: "A-loop-002: one lane per direction (single-bore per direction, brief); tunnel length = straight station-to-station distance x 1.15 (alignment follows streets and avoids foundations; 1.05-1.3); station portals: 150 m ramp per direction at 40 km/h (Vegas/LVCC portal ramps are of this order; 100-250 m)."
 
 station:
   dwell_s: 30
@@ -25,7 +25,7 @@ station:
   dwell_assumption: "A-loop-003: 20-40 s loading stop at the departure station (brief; Vegas vehicles load at kerbside bays); 30 s default."
   connect_types: [highway.trunk, highway.primary, highway.secondary, highway.tertiary]
   max_connect_m: 800
-  connect_assumption: "A-loop-004: each station's ramps join the surface network at the nearest junction that has an incoming and an outgoing trunk/primary/secondary/tertiary edge in the network's main strongly connected component, within 800 m (else the nearest such junction, flagged)."
+  connect_assumption: "A-loop-004: each station's ramps join the surface network at the nearest non-signalised junction (signal programs are not rewritten) that has an incoming and an outgoing trunk/primary/secondary/tertiary edge in the network's main strongly connected component, within 800 m (else the nearest such junction, flagged)."
 
 shuttle:
   occupancy: 2.0
@@ -33,6 +33,9 @@ shuttle:
   length_m: 4.79
   min_gap_m: 2.0
   empty_reposition_factor: 0.3
+  max_pool_wait_s: 180
+  max_speed_kmh: 250
+  pool_assumption: "A-loop-019: a shuttle leaves when its seats (occupancy, rounded) are full or when its first passenger has waited 3 min (on-demand dispatch; 1-5 min). max_speed_kmh is a model setting: the tunnel edge speed (A-loop-001) is binding."
   occupancy_assumption: "A-loop-005: 2.0 passengers per shuttle (Tesla Model Y driven by staff, at most 4 passengers per car; brief range 1.5-3); length 4.8 m (Model Y 4.751 m 2020-24, 4.790 m 2025 refresh), minGap 2 m; empty repositioning trips = 0.3 per loaded trip (demand is directional in peaks; Vegas runs on-demand dispatch; 0.1-0.6)."
 
 capacity:
@@ -90,6 +93,9 @@ siting:
   snap_m: 700
   n_candidates: 8
   max_shared_stations: 1
+  capture_floor_quantile: 0.5
+  parallel_factor: 2.0
+  parallel_share: 0.6
   overlap_m: 1200
   top_desire_lines: 25
   top_corridors: 12
@@ -98,10 +104,10 @@ siting:
     - {name: "Al Balad / Corniche", lon: 39.1877, lat: 21.4860}
     - {name: "Tahlia / Al Andalus", lon: 39.1293, lat: 21.5470}
     - {name: "King Abdulaziz University", lon: 39.2489, lat: 21.4964}
-  assumption: "A-loop-013: candidate stations = delay-weighted trip-end hot spots (750 m grid, peaks at least 1.5 km apart, top 45) plus four named anchors that are tested, not assumed (OpenStreetMap coordinates, docs/data-sources-trackD.md: KAIA T1 forecourt, Al Balad centre, Tahlia x Al Andalus, KAU). Alignments: straight lines between two sites 6-25 km apart with 4-8 stations at 1.5-3 km spacing, intermediate stations snapped to the best site within 700 m; scored by delay of trips both of whose ends fall within R of two different stations. 8 candidates, at most 1 shared station between candidates."
+  assumption: "A-loop-013: candidate stations = delay-weighted trip-end hot spots (750 m grid, peaks at least 1.5 km apart, top 45) plus four named anchors that are tested, not assumed (OpenStreetMap coordinates, docs/data-sources-trackD.md: KAIA T1 forecourt, Al Balad centre, Tahlia x Al Andalus, KAU). Alignments: straight lines between two sites 6-25 km apart with 4-8 stations at 1.5-3 km spacing, intermediate stations snapped to the best site within 700 m; scored by delay of trips both of whose ends fall within R of two different stations. 8 candidates, at most 1 shared station (within 1.2 km) between candidates and no parallel duplicate (more than 60 % of stations within 2 x 1.2 km of the other line); only alignments in the top half by captured delay are eligible (capture_floor_quantile 0.5). top_desire_lines / top_corridors are display settings."
 
 budget_km: 25
-budget_source: "brief: greedy corridor selection under a 25 km budget (about USD 375-1,000 M at A-loop-012)."
+budget_source: "A-loop-018: brief: greedy corridor selection under a 25 km budget (about USD 375-1,000 M at A-loop-012)."
 
 # Quality thresholds used by the recommendation (reported, not hidden).
 quality:
