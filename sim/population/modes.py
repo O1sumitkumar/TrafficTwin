@@ -3,7 +3,7 @@
 One mode per tour (both legs share it). Rules: walking only under `walk_max_km` (with a short-trip
 boost), bus only where both ends are within the bus catchment of a stop. Vehicle trips: each tour
 puts a vehicle on the road with probability `vehicle_per_trip` (1/occupancy for shared vehicles);
-escort tours add the driver's empty legs.
+escort tours add the driver's empty legs (with a configured probability).
 
     python -m sim.population.modes --daytype weekday --seed 1 --sample 0.10
 """
@@ -125,6 +125,10 @@ def vehicle_trips(
     v["empty"] = False
     esc_modes = [m for m, s in spec.items() if s.get("return_empty")]
     esc = v[v["mode"].isin(esc_modes)]
+    # the empty leg happens only when the driver is not travelling on (e.g. a parent continuing to
+    # work, whose commute is already a trip of its own)
+    p_empty = esc["mode"].map({m: float(spec[m]["return_empty"]) for m in esc_modes})
+    esc = esc[stream(seed, f"escort:{daytype}").random(len(esc)) < p_empty.to_numpy(dtype=float)]
     if len(esc):
         tt = np.maximum(esc["dist_km"].to_numpy() / speed_kmh * 3600.0, 240.0)
         from_home = esc["leg"].to_numpy() == 0

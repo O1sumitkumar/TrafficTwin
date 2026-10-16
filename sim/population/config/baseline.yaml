@@ -1,6 +1,6 @@
 # Tier A baseline (python -m sim.runner --baseline ...). Model settings; behavioural ones are registered.
 label: "synthetic demand, uncalibrated"
-net: data/jeddah/jeddah.net.xml
+net: data/jeddah/jeddah.m2.net.xml   # M1 net + untagged-road overlay (TA-007, A-net-201)
 begin: 0
 end: 86400
 # Simulation continues past midnight so late trips can finish; KPIs count trips departing in [begin, end).
@@ -13,6 +13,12 @@ assignment:            # duaIterate.py (SUMO tools/assign)
   routing_threads: 8
   max_alternatives: 3
   extra: [--clean-alt, --disable-summary, --disable-tripinfos]
+
+# Tier A option overrides for baselines (sim/config/runner.yaml is shared and left unchanged).
+# Full meso junction control jammed priority junctions even at light load (10 % demand unscaled,
+# 00-09 h: 1,969 teleports with full control, 59 with .limited, 13 without; TA-008).
+tier_A_overrides:
+  replace: {"--meso-junction-control": "--meso-junction-control.limited"}
 
 edgedata_freq_s: 300
 emissions_freq_s: 3600

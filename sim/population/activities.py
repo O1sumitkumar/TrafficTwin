@@ -162,6 +162,8 @@ def main_tours(ctx: Context, persons: pd.DataFrame) -> tuple[np.ndarray, np.ndar
         start = sample_time(rng, len(idx), tour.start)
         dur = sample_duration(rng, len(idx), tour.duration)
         end = start + dur
+        ea = ctx.cfg["early_arrival"]
+        buffer = rng.uniform(float(ea["lo_min"]) * 60.0, float(ea["hi_min"]) * 60.0, len(idx))
         if segment == "school":
             group = np.full(len(idx), "pupil", dtype=object)
         else:
@@ -177,7 +179,7 @@ def main_tours(ctx: Context, persons: pd.DataFrame) -> tuple[np.ndarray, np.ndar
             d_zone=pz,
             o_edge=he,
             d_edge=pe,
-            depart=start - tt,
+            depart=start - tt - buffer,
         )
         split = np.zeros(len(idx), dtype=bool)
         if tour.split_shift is not None:
@@ -260,7 +262,7 @@ def main_tours(ctx: Context, persons: pd.DataFrame) -> tuple[np.ndarray, np.ndar
                 depart=leave,
             )
             home_at[stop] = leave + ctx.tt(sz, hz[stop])
-        busy_from[idx] = np.minimum(busy_from[idx], start - tt)
+        busy_from[idx] = np.minimum(busy_from[idx], start - tt - buffer)
         home_again[idx] = np.maximum(home_again[idx], home_at)
     return busy_from, home_again
 

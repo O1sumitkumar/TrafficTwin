@@ -108,18 +108,22 @@ def scale_options(sample: float, cfg: dict[str, Any]) -> tuple[float, list[str]]
     return scale, opts
 
 
-def tier_a_options() -> list[str]:
+def tier_a_options(cfg: dict[str, Any] | None = None) -> list[str]:
+    """Shared Tier A options (sim/config/runner.yaml) with the baseline overrides applied."""
     from sim.runner import flatten, runner_config
 
+    cfg = cfg or baseline_config()
     rc = runner_config()
-    return [*flatten(rc["sumo_common"]), *flatten(rc["tier_A"]["options"])]
+    opts = [*flatten(rc["sumo_common"]), *flatten(rc["tier_A"]["options"])]
+    replace = cfg.get("tier_A_overrides", {}).get("replace", {})
+    return [replace.get(o, o) for o in opts]
 
 
 def dua_command(
     net: Path, trips: Path, end: int, cfg: dict[str, Any], tau_opts: list[str]
 ) -> list[str]:
     a = cfg["assignment"]
-    rc_opts = tier_a_options()
+    rc_opts = tier_a_options(cfg)
     tls = (
         rc_opts[rc_opts.index("--meso-tls-penalty") + 1]
         if "--meso-tls-penalty" in rc_opts
@@ -135,7 +139,9 @@ def dua_command(
         "-l", str(a["iterations"]),
         "-a", str(a["aggregation_s"]),
         "--mesosim",
-        "--meso-junctioncontrol",
+        "--meso-junctioncontrollimited"
+        if "--meso-junction-control.limited" in rc_opts
+        else "--meso-junctioncontrol",
         "--time-to-teleport", ttt,
         "--routing-algorithm", str(a["routing_algorithm"]),
         "--max-alternatives", str(a["max_alternatives"]),

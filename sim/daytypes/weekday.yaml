@@ -10,7 +10,7 @@ special: {ramadan: false, friday: false, umrah_season: false, school_day: true}
 main_tours:
   school:
     participation: {value: 0.93, assumption: "Pupils attending on a given school day (absence, illness). Range 0.88-0.96."}
-    start: {dist: normal, mean: "06:45", sd_min: 10, lo: "06:15", hi: "07:30", source: "Riyadh directorate 2025: assembly 06:15-06:45, first class 06:30-07:00 (Gulf News Apr 2025; Ajel); Jeddah directorate times not found, assumed the same (A-day-001)."}
+    start: {dist: mixture, components: [{w: 0.5, mean: "06:15", sd_min: 10}, {w: 0.5, mean: "06:45", sd_min: 10}], lo: "05:55", hi: "07:15", source: "Riyadh directorate 2025: assembly 06:15 / first class 06:30 (summer timing) and assembly 06:45 / first class 07:00 (winter timing) (Gulf News Apr 2025; Ajel). Jeddah not found; the 50/50 mix stands for directorate and school-level variation (A-day-001)."}
     duration: {mean_min: 360, sd_min: 30, lo_min: 270, hi_min: 450, assumption: "School day ends around 12:30-13:30 (A-day-002). Range 5-7 h."}
   university:
     participation: {value: 0.75, assumption: "University students with classes on campus on a given weekday. Range 0.6-0.85."}
@@ -18,7 +18,7 @@ main_tours:
     duration: {mean_min: 300, sd_min: 90, lo_min: 90, hi_min: 540, assumption: "Time on campus 1.5-9 h."}
   government:
     participation: {value: 0.92, assumption: "Civil servants at work on a weekday (leave, sick, field work). Range 0.88-0.95."}
-    start: {dist: mixture, components: [{w: 0.7, mean: "07:30", sd_min: 15}, {w: 0.3, mean: "08:30", sd_min: 20}], lo: "06:45", hi: "09:45", source: "Civil-service day roughly 07:30-14:30 (PROJECT.md 6.3); 2020 MHRSD notice of flexible starts 07:30/08:30/09:30 (Gulf News). Not verified for 2026 (A-day-004)."}
+    start: {dist: mixture, components: [{w: 0.5, mean: "07:30", sd_min: 15}, {w: 0.35, mean: "08:30", sd_min: 15}, {w: 0.15, mean: "09:30", sd_min: 15}], lo: "06:45", hi: "10:00", source: "Civil-service day roughly 07:30-14:30 (PROJECT.md 6.3); 2020 MHRSD notice of flexible starts 07:30/08:30/09:30 (Gulf News); weights assumed. Not verified for 2026 (A-day-004)."}
     duration: {mean_min: 420, sd_min: 20, lo_min: 360, hi_min: 480, assumption: "Seven-hour day (A-day-004)."}
     stop_on_return: {value: 0.15, assumption: "Errand on the way home. Range 0.1-0.25."}
   private_office:

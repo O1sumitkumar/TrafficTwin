@@ -10,7 +10,7 @@ special: {ramadan: false, friday: true, umrah_season: false, school_day: false}
 # No school, university, government or education tours (closed on Friday; omitted).
 main_tours:
   private_office:
-    participation: {value: 0.15, assumption: "A-day-101: Friday is the weekly rest day (Labour Law Art. 104: Friday is the normal rest day); only a minority of private offices/showrooms open. Range 0.08-0.25."}
+    participation: {value: 0.15, assumption: "A-day-101: Friday is the weekly rest day (Labour Law reference not verified); only a minority of private offices/showrooms open. Range 0.08-0.25."}
     start: {dist: mixture, components: [{w: 0.35, mean: "09:00", sd_min: 45}, {w: 0.65, mean: "16:00", sd_min: 45}], lo: "07:30", hi: "18:00", assumption: "A-day-101: those who work either a short morning before Jumu'ah or an afternoon/evening shift after it."}
     duration: {mean_min: 300, sd_min: 60, lo_min: 150, hi_min: 480, assumption: "A-day-101: short Friday shift, range 2.5-8 h."}
     stop_on_return: {value: 0.25, assumption: "A-day-101: range 0.15-0.35."}

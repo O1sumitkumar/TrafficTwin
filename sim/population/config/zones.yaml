@@ -6,7 +6,7 @@ inputs:
   districts: data/jeddah/districts.geojson
   buildings: data/jeddah/buildings.geojson
   osm_pbf: data/osm/jeddah.osm.pbf
-  net: data/jeddah/jeddah.net.xml
+  net: data/jeddah/jeddah.m2.net.xml   # Track A network variant (TA-007)
 out_dir: data/population/zones
 
 control_total:

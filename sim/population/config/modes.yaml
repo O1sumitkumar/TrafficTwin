@@ -10,12 +10,12 @@ modes:
   chauffeured:  {vehicle_per_trip: 1.0, vtype: car}
   car_passenger: {vehicle_per_trip: 0.0}
   ridehail:     {vehicle_per_trip: 1.0, vtype: ridehail}
-  escort:       {vehicle_per_trip: 0.6, vtype: car, return_empty: true}
+  escort:       {vehicle_per_trip: 0.5, vtype: car, return_empty: 0.5}
   school_bus:   {vehicle_per_trip: 0.04, vtype: bus}
   company_bus:  {vehicle_per_trip: 0.04, vtype: bus}
   bus:          {vehicle_per_trip: 0.0}
   walk:         {vehicle_per_trip: 0.0}
-  assumption: "Escort: 1.67 pupils per escort car (siblings share), the driver returns empty (school runs are a large share of the morning peak). School and company buses carry about 25 people. Chauffeured trips by a household driver carry one passenger; waiting time at the destination is ignored (no empty legs). Range: escort occupancy 1.3-2.5, bus 15-40."
+  assumption: "Escort: 2 pupils per escort car (siblings and neighbours share); in half of the escort legs the driver makes an empty leg home or back to school, in the other half the driver is a parent travelling on to or from work (that commute is already modelled) (school runs are a large share of the morning peak). School and company buses carry about 25 people. Chauffeured trips by a household driver carry one passenger; waiting time at the destination is ignored (no empty legs). Range: escort occupancy 1.5-2.5, empty-leg probability 0.3-0.8, bus 15-40."
 
 # Shares by person group and car availability: driver = has a licence and a car is free;
 # hh_car = household has a car but the person cannot drive it; no_car = no household car.
