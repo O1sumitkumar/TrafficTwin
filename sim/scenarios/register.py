@@ -46,6 +46,16 @@ def _cell(text: str) -> str:
     return str(text).replace("|", "/").replace("\n", " ")
 
 
+LINK_ROWS_FILE = "sim/config/link_assumptions.yaml"
+
+
+def link_rows() -> tuple[str, ...]:
+    """Tier link and window-build rows (sim.link reads the values from sim/config/link.yaml)."""
+    keys = ("id", "parameter", "value", "unit", "range", "assumption", "status", "used_in")
+    data = load_yaml(REPO_ROOT / LINK_ROWS_FILE)
+    return tuple("| " + " | ".join(_cell(r[k]) for k in keys) + " |" for r in data["rows"])
+
+
 def rows() -> list[tuple[str, str]]:
     out: list[tuple[str, str]] = []
     seen: dict[str, str] = {}
@@ -77,11 +87,13 @@ def _key(pid: str) -> tuple[str, int, str]:
 
 def render() -> str:
     body = [r for _, r in sorted(rows(), key=lambda kv: _key(kv[0]))]
-    return HEADER + "\n".join([*body, *EXTRA_ROWS]) + "\n"
+    return HEADER + "\n".join([*body, *EXTRA_ROWS, *link_rows()]) + "\n"
 
 
 def all_ids() -> set[str]:
-    return {pid for pid, _ in rows()} | {r.split("|")[1].strip() for r in EXTRA_ROWS}
+    return {pid for pid, _ in rows()} | {
+        r.split("|")[1].strip() for r in (*EXTRA_ROWS, *link_rows())
+    }
 
 
 def write(path: Path = REGISTER_FILE) -> Path:
