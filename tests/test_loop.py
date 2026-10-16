@@ -246,12 +246,15 @@ def test_quality_gate_and_render(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     cands = {"A": line("A", 39.15)}
     ev = {"A": fake_eval("A", 10, 5000)}
     row = O.sweep_row("shuttle central", "lever", {**ev["A"], "run_id": "loop_opt_a"}, "ok")
+    row |= {"suffix": "", "pass": True}
+    best = O.recommend([row])
+    assert best is not None and best["relief_used"] == 5000
     res = {"greedy": [{"candidate": "A", "km": 10, "relief_per_km": 500, "decision": "selected",
                        "cumulative_km": 10}], "sweep": [row], "selected": ["A"],
            "selected_km": 10, "budget_km": 25,
            "noise": {"run": "n", "vht_delta": 100, "relief_delta": -100, "noise_relief": 100,
                      "teleport_share": 0.5, "teleport_share_delta": 0.001},
-           "recommended": row,
+           "recommended": best,
            "band": {"relief_vht_per_day": 5000, "relief_range": [4000, 6000],
                     "per_usd_m_central": 20.0, "per_usd_m_range": [10.0, 40.0],
                     "capex_usd_m": ev["A"]["capex_usd_m"]}}  # fmt: skip
@@ -271,3 +274,19 @@ def test_greedy_knapsack_correction() -> None:
     assert chosen == ["B"]  # A then B does not fit; B alone relieves more than A
     why = {r["candidate"]: r["decision"] for r in log}
     assert why["A"].startswith("dropped") and why["B"].startswith("selected")
+
+
+def test_recommend_pools_shuttle_speeds_and_reports_gate() -> None:
+    import sim.loop.optimise as O
+
+    def row(suffix: str, rel: int, ok: bool, role: str = "lever") -> dict:
+        return {"suffix": suffix, "rel": rel, "pass": ok, "ok": "ok" if ok else "segment",
+                "role": role, "config": suffix or "central", "run": f"r{suffix}"}  # fmt: skip
+
+    sweep = [row("", 50_000, False), row("_v50", 40_000, False), row("_v160", 90_000, False),
+             row("_private_toll10", 55_000, True),
+             row("_capeng", 60_000, True, "uncertainty")]  # fmt: skip
+    best = O.recommend(sweep)
+    assert best["suffix"] == "" and best["relief_used"] == 60_000  # pooled mean beats 55k
+    assert best["pooled_values"] == [50_000, 40_000, 90_000]
+    assert {v["config"] for v in best["passing_variants"]} == {"_private_toll10", "_capeng"}

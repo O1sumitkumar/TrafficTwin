@@ -484,11 +484,10 @@ def optimise(run: bool = True, budget: float | None = None, quiet: bool = False)
         pol = sweep_policy("_placebo_a0", "shuttle", {"alpha": 0.0}, chosen, tag)
         if run or (runs_dir / pol.id / "loop_report.json").exists():
             result["placebo"] = run_one(pol, SAMPLE, SEED, runs_dir, prune=True, quiet=quiet)
-    levers = [r for r in result["sweep"] if r["role"] == "lever" and r["pass"]]
-    best = max(levers, key=lambda r: r["per_usd_central"]) if levers else None
+    best = recommend(result["sweep"])
     result["recommended"] = best
     if best is not None:
-        result["band"] = band(reports[best["suffix"]], reports, noise, best["suffix"])
+        result["band"] = band(best, reports, noise)
         suffix, mode, params = next((s, m, p) for s, m, p, _, _ in plan if s == best["suffix"])
         pol = sweep_policy(suffix, mode, params, chosen, tag)
         if run:
@@ -514,13 +513,57 @@ def write_policy_yaml(pol: Any, path: Path, best: dict[str, Any]) -> None:
     path.write_text(head + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=100))
 
 
+def recommend(sweep: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Pick the mode/toll with the most relief (same corridors, so also the most per USD M).
+
+    Shuttle runs at different tunnel speeds have identical road demand and shuttles never use
+    surface roads, so their relief differs only by simulation noise: they are pooled (mean) as
+    replicates of one option, reported at the central speed. Each private-EV toll is its own
+    option (cars re-route through the tunnel). The quality gate of the chosen option is reported;
+    if it fails, the option is still recommended with the failure named, together with the
+    uncertainty runs that pass (e.g. engineering capacity)."""
+    levers = [r for r in sweep if r["role"] == "lever"]
+    shuttle = [r for r in levers if not r["suffix"].startswith("_private")]
+    options = []
+    central = next((r for r in shuttle if r["suffix"] == ""), None)
+    if central is not None:
+        mean = float(np.mean([r["rel"] for r in shuttle]))
+        options.append(
+            central
+            | {
+                "relief_used": round(mean),
+                "pooled_from": [r["run"] for r in shuttle],
+                "pooled_values": [r["rel"] for r in shuttle],
+            }
+        )
+    for r in levers:
+        if r["suffix"].startswith("_private"):
+            options.append(
+                r
+                | {"relief_used": r["rel"], "pooled_from": [r["run"]], "pooled_values": [r["rel"]]}
+            )
+    if not options:
+        return None
+    best = max(options, key=lambda r: r["relief_used"])
+    best["alternatives"] = [
+        {"config": o["config"], "relief": o["relief_used"], "gate": o["ok"]}
+        for o in options
+        if o is not best
+    ]
+    if not best["pass"]:
+        best["passing_variants"] = [
+            {"config": r["config"], "relief": r["rel"], "run": r["run"]} for r in sweep if r["pass"]
+        ]
+    return best
+
+
 def band(
-    rec: dict[str, Any], reports: dict[str, dict[str, Any]], noise: dict[str, Any], suffix: str
+    best: dict[str, Any], reports: dict[str, dict[str, Any]], noise: dict[str, Any]
 ) -> dict[str, Any]:
-    """Band of the recommended configuration's relief (and per USD M): its uncertainty runs
-    (shuttle: alpha, radius, capacity, time-competitive), the noise and the capex range."""
-    vals = [rec["relief_vht_per_day"]]
-    if suffix == "":
+    """Band of the recommended option's relief (and per USD M): its pooled runs, for shuttle the
+    uncertainty runs (alpha, radius, capacity, time-competitive), the noise and the capex range."""
+    vals = list(best["pooled_values"])
+    if best["suffix"] == "":
         vals += [
             r["relief_vht_per_day"]
             for s, r in reports.items()
@@ -528,11 +571,12 @@ def band(
         ]
     lo = min(vals) - noise["noise_relief"]
     hi = max(vals) + noise["noise_relief"]
-    cx = rec["capex_usd_m"]
+    cx = reports[best["suffix"]]["capex_usd_m"]
+    rel = best["relief_used"]
     return {
-        "relief_vht_per_day": rec["relief_vht_per_day"],
+        "relief_vht_per_day": rel,
         "relief_range": [round(lo), round(hi)],
-        "per_usd_m_central": rec["relief_per_usd_m"]["central"],
+        "per_usd_m_central": round(rel / cx["central"], 2),
         "per_usd_m_range": [
             round(lo / cx["high"] if lo > 0 else lo / cx["low"], 2),
             round(hi / cx["low"], 2),
@@ -641,6 +685,7 @@ def render(
     best = res.get("recommended")
     if best:
         b = res["band"]
+        pooled = ", ".join(f"{v:,}" for v in best["pooled_values"])
         sel = " + ".join(
             f"{c} ({cands[c]['name']}, {cands[c]['tunnel_km']} km)" for c in res["selected"]
         )
@@ -649,7 +694,8 @@ def render(
             f"budget.\n\n**Policy:** {best['config']} (run `runs/{best['run']}`; policy file "
             f"`sim/policies/loop_recommended.yaml`).\n\n"
             f"| item | value |\n|---|---|\n"
-            f"| congestion relief, VHT/day | {b['relief_vht_per_day']:,} "
+            f"| congestion relief, VHT/day | {b['relief_vht_per_day']:,} (mean of "
+            f"{len(best['pooled_from'])} run(s): {pooled}) "
             f"(band {b['relief_range'][0]:,} to {b['relief_range'][1]:,}) |\n"
             f"| relief per day per USD M | {b['per_usd_m_central']:.1f} at central capex "
             f"(band {b['per_usd_m_range'][0]:.1f} to {b['per_usd_m_range'][1]:.1f}) |\n"
@@ -662,7 +708,26 @@ def render(
             f"{fmt(best['segx'], 3)} |\n"
             f"| riders slower than by car | {fmt(best['slower'], 3)} |\n"
             f"| teleports per vehicle | {fmt(best['tele'], 3)} |\n"
+            f"| quality gate | {best['ok']} |\n"
         )
+        if not best["pass"]:
+            alts = "; ".join(
+                f"{v['config']} ({v['relief']:,} VHT/day, `runs/{v['run']}`)"
+                for v in best.get("passing_variants", [])
+            )
+            rec_md += (
+                f"\n**Quality gate not met at central assumptions** ({best['ok']}). "
+                f"Variants that pass: {alts or 'none'}.\n"
+            )
+        if best.get("alternatives"):
+            rec_md += (
+                "\nOther options: "
+                + "; ".join(
+                    f"{a['config']}: {a['relief']:,} VHT/day ({a['gate']})"
+                    for a in best["alternatives"]
+                )
+                + ".\n"
+            )
     elif not res["selected"]:
         rec_md = (
             "No candidate passed the greedy step (consistent, above-noise relief); there is "
