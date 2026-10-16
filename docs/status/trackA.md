@@ -172,3 +172,27 @@ Run estimate before starting the two new city baselines (recorded 08:35): the Fr
 deterministic 1-thread default (TA-013) routing is ~4x slower than the 8-thread M2 run: estimate
 2.5-4 h each, run in parallel (2 routing cores, ~3-4 GB RAM each). The 10 % sample is the smallest
 city sample; the weekday 10 % baseline from M2 is the result already available.
+
+Decisions (M4):
+- TA-014 Incremental routing for policy runs (A-pol-090): unchanged vehicles keep their baseline
+  route; new / re-timed / re-moded / affected vehicles get a one-shot duarouter route on the
+  starting baseline's congested travel times (edgedata, 900 s). A fresh 3-step assignment per
+  policy would cost 2-5 h each; the incremental run costs ~12 min. A no-change policy reproduces
+  the baseline tripinfo bit for bit (test). One-shot routing on fixed weights is repeatable with
+  any thread count (test), so policy runs use 8 routing threads.
+- Policy models live in `sim/schemas.py` (Track A's file since M2; additive) and
+  `python -m sim.validate` is a new module; `sim/runner.py` gets an additive `--policy` option.
+  `--daytype` is the comparison baseline; a policy with a `daytype` transform starts from that
+  day type's baseline (Friday, Ramadan) and a daytype-only policy reuses its outputs.
+- TA-015 The Ramadan baseline died when the disk filled (09:00, 1 GB free) and was restarted with
+  8 routing threads (launcher monkeypatches `routing_threads`; baseline.yaml unchanged), so its
+  routes, like the M2 weekday routes, are reproducible from the route cache only
+  (`routes_deterministic: false`). The Friday baseline continues with 1 thread.
+- TA-016 Policy runs write gzipped SUMO outputs (the uncompressed 10 % edgedata is 2.2 GB and
+  filled the disk once); `sim/metrics.py` reads `.xml.gz`; sumo/build logs are gzipped.
+- TA-017 `staggered_hours` groups institutions by the district of the school / workplace: the
+  synthetic population has no school ids (the first attempt grouped by school edge: 35,715
+  "schools", effectively per pupil).
+- Network variants of `network_change` go to `data/jeddah/jeddah.m2.<policy>-<hash>.net.xml.gz`
+  (new names; the base network is untouched); netconvert with the window cutter's structural
+  options reproduces the base network body byte for byte on an empty patch.
