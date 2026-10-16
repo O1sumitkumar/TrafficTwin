@@ -259,3 +259,15 @@ def test_quality_gate_and_render(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     text = doc.read_text()
     assert "old" not in text and "shuttle central" in text and "| 1 | A |" in text
     assert "band 4,000 to 6,000" in text
+
+
+def test_greedy_knapsack_correction() -> None:
+    from sim.loop.optimise import greedy
+
+    cfg = loop_config()
+    cands = {"A": line("A", 39.15), "B": line("B", 39.30)}
+    ev = {"A": fake_eval("A", 10, 30_000), "B": fake_eval("B", 20, 50_000)}  # A wins per km
+    chosen, log = greedy(cands, ev, 25.0, 1000.0, cfg)
+    assert chosen == ["B"]  # A then B does not fit; B alone relieves more than A
+    why = {r["candidate"]: r["decision"] for r in log}
+    assert why["A"].startswith("dropped") and why["B"].startswith("selected")

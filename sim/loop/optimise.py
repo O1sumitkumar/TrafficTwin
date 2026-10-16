@@ -209,6 +209,25 @@ def greedy(
                 "cumulative_km": round(used, 2),
             }
         )
+    # knapsack correction (modified greedy): a single corridor that relieves more than the whole
+    # per-km greedy set (because the budget left after the first pick fits nothing) wins
+    passed = ("selected", "over budget", "overlaps")
+    singles = [
+        r["candidate"]
+        for r in log
+        if r["decision"].startswith(passed) and float(evals[r["candidate"]]["tunnel_km"]) <= budget
+    ]
+    if singles:
+        best = max(singles, key=lambda c: relief_of(evals[c]))
+        if relief_of(evals[best]) > sum(relief_of(evals[c]) for c in chosen):
+            for r in log:
+                if r["candidate"] in chosen and r["candidate"] != best:
+                    r["decision"] = f"dropped: {best} alone relieves more"
+                elif r["candidate"] == best:
+                    r["decision"] = "selected (relieves more alone than the per-km greedy set)"
+            chosen = [best]
+            for r in log:
+                r["cumulative_km"] = round(float(evals[best]["tunnel_km"]), 2)
     return chosen, log
 
 
