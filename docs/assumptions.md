@@ -281,8 +281,17 @@ Merged at integration (2026-10-16) from `docs/assumptions-trackC.md`, which stay
 | A-network-007 | Imagery currency | Esri World Imagery as served on the access date | - | capture dates vary, typically 1-4 years old | Source: Esri World Imagery (Esri, Maxar, Earthstar Geographics, and the GIS User Community); capture date per tile not recorded; recent road works may be missing | sourced | data/osm/fixes/imagery-lanes.yaml (`source:`) |
 | A-network-008 | Ways cut from one named road are not independent samples of reading accuracy | at most 5 ways per named road and class in the attempt-2 holdout | ways | - | Assumption: one road's markings, imagery date and tag history are shared by all its ways (Prince Majid Road alone is 39 of 54 fresh trunk candidates); capping keeps one road from deciding the gate. Unnamed ways are not capped | assumed | sim/network/lane_audit.py (sample-calibration --max-per-road), data/osm/fixes/imagery-eval.json |
 
+## Release demo (M9)
+Settings of `make demo` (`sim/config/demo.yaml`). The demo-window population is a pipeline demonstration, not a model of the district.
+
+| id | parameter | value | unit | range | source or assumption | status | used in |
+|---|---|---|---|---|---|---|---|
+| A-demo-001 | residents of the demo-window policy demo (control total on four rectangular quadrant "districts") | 8000 | persons | 2000-20000 | Assumption: demo scale so the population, its 24 h meso baseline and the `remote_work_30` run finish in under a minute; the 3.3 km2 Tahlia / Al Andalus window is not given a real population. Demo only, never a result | assumed | sim/config/demo.yaml, sim/demo.py |
+
 Notes
 - Smoke-run random-trip rates (`sim/config/runner.yaml`, `smoke:`) are test load for exercising the
   network, not behavioural demand, so they are not registered here. Behavioural demand starts in M2.
+  The same holds for the `make demo` Tier A smoke (`sim/config/demo.yaml`, `tier_a_smoke`: 12:00-13:00,
+  one trip per second).
 - Network-build settings (netconvert options, junction join distance, teleport time) are model
   settings, recorded in `sim/network/config/city.yaml` and `sim/config/runner.yaml`.

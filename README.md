@@ -7,12 +7,55 @@ built and measured.
 
 > All results use **synthetic demand, uncalibrated**. Simulation and decision support only.
 
-## Setup (macOS arm64 or Linux)
+## Quickstart (one command)
+
+Needs macOS (Apple silicon) or Linux with [uv](https://docs.astral.sh/uv/), Node 22+ and npm,
+`make`, `curl`, and network access. `osmium-tool` is installed with Homebrew when missing (Linux:
+`apt install osmium-tool`).
+
+```bash
+git clone <this repo> TrafficTwin && cd TrafficTwin
+make demo            # opens http://localhost:5173 when ready; Ctrl-C stops the servers
+```
+
+`make demo` does, in order:
+1. `make setup`: `uv python install 3.12`, `uv sync --frozen` (SUMO 1.28 from the `eclipse-sumo`
+   wheel), `npm ci --include=dev` in `web/`.
+2. `make city-net`: downloads the Geofabrik GCC extract (243 MB, first run only), clips it to
+   Jeddah and builds `data/jeddah/jeddah.net.xml` (about 2 min after the download). Skip with
+   `make demo CITY=0` (no city view, no Tier A run).
+3. `python -m sim.demo`: the demo runs (about 4 min; finished steps are skipped next time):
+   a Tier B smoke and a fictional event scenario (accident under heavy rain, motorcade, ambulance)
+   on the demo window, the emergency strategist, an evacuation, a demo-scale `remote_work_30`
+   policy comparison, and a one-hour Tier A city smoke at 12:00. Run ids go to
+   `runs/demo-manifest.json`.
+4. `python -m api.ingest --all`, then `./run_app.sh`: API on :8000, viewer on :5173.
+
+The viewer opens on the Tier A city run at mid-day; pick other runs in the Run panel. A
+5-minute walkthrough is in `docs/demo-script.md`; the architecture in `docs/architecture.md`.
+
+| command | what it does |
+|---|---|
+| `make demo` | everything above (`CITY=0` to skip the city; `DETACH=1` to leave servers in the background) |
+| `./run_app.sh [--detach]` | serve whatever is in `runs/` (`TT_API_PORT`, `TT_WEB_PORT`, `TT_NO_OPEN=1`) |
+| `make stop` | stop servers started with `--detach` |
+| `make city` | network variant, zones and the **10 % weekday 24 h baseline** (long: about 2 h uncached, peak ~3 GB RAM; `SAMPLE=0.01` for a quick check) |
+| `make test` | ruff, format check, pytest (demo window, about 3 min), web typecheck |
+| `make screenshots` | headless Chrome screenshots `docs/img/final-*.png` of the running demo |
+| `docker compose up --build` | the same demo in containers (a `demo` job, then `api` and `web`) |
+
+Ports already in use? Set `TT_API_PORT=8010` (the viewer proxies to it) or stop the other server.
+The Geofabrik extract is "latest", so a fresh clone builds from newer OSM data than the measured
+numbers in `docs/STATUS.md` and its network hash differs; runs are deterministic for a given
+network and seed.
+
+## Setup by hand (macOS arm64 or Linux)
 
 ```bash
 uv python install 3.12
 uv sync                         # Python 3.12 venv; SUMO 1.28 comes from the eclipse-sumo wheel
 brew install osmium-tool        # Linux: apt install osmium-tool
+cd web && npm ci --include=dev  # viewer dependencies
 ```
 SUMO binaries and tools are found through the `eclipse-sumo` wheel; `SUMO_HOME` is set
 automatically by `sim/common.py` (or honoured if already set).
@@ -84,19 +127,9 @@ Results, matched controls and noise checks: `docs/policies.md`.
 uv run uvicorn api.main:app --port 8000                              # file-backed API over runs/
 cd web && npm install --include=dev && npm run dev                   # http://localhost:5173
 ```
-`docker compose up --build` starts both (API on 8000, viewer on 5173). Data contract:
+`./run_app.sh` starts both with the right proxy settings; `docker compose up --build` runs the
+demo job and then both (API on 8000, viewer on 5173). Data contract:
 `docs/contracts/run-outputs.md`; viewer guide: `docs/viewer.md`.
-
-## Layout
-
-`sim/` simulation (network, population, day types, policies, events, runner), `strategist/`
-decision logic, `api/` + `web/` presentation, `docs/` status, assumptions and data sources,
-`tests/` demo-window tests.
-
-## Licence
-
-Code: Apache-2.0 (`LICENSE`). Data derived from OpenStreetMap is (c) OpenStreetMap contributors,
-ODbL; SUMO is EPL-2.0 (dependency, not vendored); GASTAT open data with attribution. See `NOTICE`.
 
 ## Focus windows and events (M5)
 
@@ -148,3 +181,16 @@ Synthetic counts only exercise the pipeline. See `docs/calibration.md`.
 `sim/network/lane_audit.py` is built but its calibration precision is below the gate, so no
 imagery-derived lanes are applied and `data/jeddah/jeddah.net.xml` stays the default network.
 See `docs/lane-audit.md`.
+
+## Layout
+
+`sim/` simulation (network, population, day types, policies, events, runner), `strategist/`
+decision logic, `api/` + `web/` presentation, `docs/` status, assumptions and data sources,
+`tests/` demo-window tests.
+
+## Licence
+
+Code: Apache-2.0 (`LICENSE`). Data derived from OpenStreetMap is (c) OpenStreetMap contributors,
+ODbL; SUMO is EPL-2.0 (dependency, not vendored); GASTAT open data with attribution. See `NOTICE`.
+
+Contributing: `CONTRIBUTING.md`. Changes: `CHANGELOG.md`.

@@ -1,6 +1,7 @@
 # `docker compose up --build` = `make demo` in containers: the `demo` service builds the city
 # network (unless CITY=0) and the demo runs into ./data and ./runs, then the API and the viewer
-# start on http://localhost:8000 and http://localhost:5173. Synthetic demand, uncalibrated.
+# start on http://localhost:8000 and http://localhost:5173 (TT_API_PORT / TT_WEB_PORT to change
+# the host ports). Synthetic demand, uncalibrated.
 services:
   demo:
     build:
@@ -24,9 +25,9 @@ services:
       context: .
       dockerfile: Dockerfile.api
     ports:
-      - "8000:8000"
+      - "${TT_API_PORT:-8000}:8000"
     environment:
-      TT_CORS_ORIGINS: "http://localhost:5173"
+      TT_CORS_ORIGINS: "http://localhost:${TT_WEB_PORT:-5173}"
     volumes:
       - ./data:/app/data:ro
       - ./runs:/app/runs
@@ -42,7 +43,7 @@ services:
     working_dir: /web
     command: sh -c "npm ci --include=dev --no-audit --no-fund && npx vite --host 0.0.0.0 --port 5173 --strictPort"
     ports:
-      - "5173:5173"
+      - "${TT_WEB_PORT:-5173}:5173"
     volumes:
       - ./web:/web
       - /web/node_modules
