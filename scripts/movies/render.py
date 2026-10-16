@@ -1,0 +1,406 @@
+"""Render films: bundle -> headless Chrome frames -> H.264 MP4 + poster + GIF preview.
+
+    python -m scripts.movies.render tahlia-street            # one film (make movie FILM=...)
+    python -m scripts.movies.render --all                    # every spec (make movies)
+    python -m scripts.movies.render tahlia-street --size 640x360 --frames 0:10 --out /tmp/x
+    python -m scripts.movies.render tahlia-street --4k --fps 60 --letterbox
+
+Per film: the data bundle is built (scripts.movies.bundle), the built viewer (web/dist) and the
+bundle are served from 127.0.0.1 on a free port, web/scripts/cinema.mjs steps the frames in
+headless Chrome and writes PNGs to runs/movies/<film>/frames/ in chunks; each chunk is encoded
+(libx264, yuv420p, CRF 18) and its PNGs deleted, so at most one chunk sits on disk. The chunks are
+joined without re-encoding into movies/<film>.mp4; then movies/<film>.poster.png (middle frame),
+movies/<film>.gif (<= 6 s, <= 3 MB) and movies/<film>.json (sizes, hashes of the first, middle and
+last frame, browser RSS, disk peak, timings). Frames are deleted after a successful encode.
+"""
+
+from __future__ import annotations
+
+import functools
+import hashlib
+import http.server
+import json
+import os
+import shutil
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+from typing import Any
+
+import psutil
+import typer
+
+from scripts.movies.bundle import build_bundle, movies_runs_dir, sha_file
+from scripts.movies.spec import SPECS_DIR, film_names, load_film, load_settings, spec_path
+from sim.common import REPO_ROOT, SYNTHETIC_LABEL
+
+WEB = REPO_ROOT / "web"
+DIST = WEB / "dist"
+DRIVER = WEB / "scripts" / "cinema.mjs"
+MOVIES_DIR = REPO_ROOT / "movies"
+
+
+def log(msg: str) -> None:
+    print(f"[movies] {msg}", flush=True)
+
+
+# ----------------------------------------------------------------------------- web build
+
+
+def _newest(paths: list[Path]) -> float:
+    newest = 0.0
+    for root in paths:
+        files = [root] if root.is_file() else [p for p in root.rglob("*") if p.is_file()]
+        newest = max([newest, *(p.stat().st_mtime for p in files)])
+    return newest
+
+
+def ensure_web_build(force: bool = False) -> None:
+    """`npm run build` when web/dist is missing or older than web/src."""
+    index = DIST / "index.html"
+    srcs = [WEB / "src", WEB / "index.html", WEB / "package-lock.json", WEB / "vite.config.ts"]
+    if not force and index.exists() and index.stat().st_mtime >= _newest(srcs):
+        return
+    log("building the viewer (npm run build)")
+    subprocess.run(["npm", "run", "build"], cwd=WEB, check=True, stdout=subprocess.DEVNULL)
+
+
+# ----------------------------------------------------------------------------- static server
+
+
+class _Handler(http.server.SimpleHTTPRequestHandler):
+    bundles: Path = movies_runs_dir()
+
+    def translate_path(self, path: str) -> str:
+        clean = path.split("?", 1)[0].split("#", 1)[0]
+        if clean.startswith("/cinema-data/"):
+            parts = [p for p in clean[len("/cinema-data/") :].split("/") if p not in ("", ".", "..")]
+            if not parts:
+                return str(self.bundles / "_none")
+            return str(self.bundles / parts[0] / "bundle" / "/".join(parts[1:]))
+        rel = [p for p in clean.split("/") if p not in ("", ".", "..")]
+        target = DIST.joinpath(*rel) if rel else DIST / "index.html"
+        return str(target if target.exists() else DIST / "index.html")
+
+    def end_headers(self) -> None:
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
+    def log_message(self, format: str, *args: Any) -> None:  # noqa: A002 - stdlib signature
+        pass
+
+
+def start_server() -> tuple[http.server.ThreadingHTTPServer, str]:
+    handler = functools.partial(_Handler, directory=str(DIST))
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server, f"http://127.0.0.1:{server.server_address[1]}"
+
+
+# ----------------------------------------------------------------------------- driver
+
+
+class Driver:
+    """The node frame stepper (web/scripts/cinema.mjs) as a child process."""
+
+    def __init__(self, url: str, film: str, width: int, height: int) -> None:
+        self.proc = subprocess.Popen(
+            ["node", str(DRIVER), "--url", url, "--film", film, "--width", str(width),
+             "--height", str(height)],  # fmt: skip
+            cwd=WEB,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        self.ready = self._read()
+        if self.ready.get("event") != "ready":
+            raise RuntimeError(f"cinema driver failed: {self.ready}")
+        self.browser_pid = self.ready.get("browser_pid")
+
+    def _read(self) -> dict[str, Any]:
+        assert self.proc.stdout is not None
+        line = self.proc.stdout.readline()
+        if not line:
+            raise RuntimeError("cinema driver exited")
+        return json.loads(line)
+
+    def render(self, a: int, b: int, out: Path) -> dict[str, Any]:
+        assert self.proc.stdin is not None
+        self.proc.stdin.write(json.dumps({"cmd": "render", "from": a, "to": b, "dir": str(out)}) + "\n")
+        self.proc.stdin.flush()
+        msg = self._read()
+        if msg.get("event") != "done":
+            raise RuntimeError(f"render {a}:{b} failed: {msg}")
+        return msg
+
+    def browser_rss_mb(self) -> float:
+        if not self.browser_pid:
+            return 0.0
+        try:
+            root = psutil.Process(int(self.browser_pid))
+            procs = [root, *root.children(recursive=True)]
+            return sum(p.memory_info().rss for p in procs if p.is_running()) / 1e6
+        except psutil.Error:
+            return 0.0
+
+    def close(self) -> None:
+        if self.proc.poll() is None and self.proc.stdin is not None:
+            try:
+                self.proc.stdin.write(json.dumps({"cmd": "quit"}) + "\n")
+                self.proc.stdin.flush()
+                self.proc.wait(timeout=30)
+            except (OSError, subprocess.TimeoutExpired):
+                self.proc.kill()
+
+
+# ----------------------------------------------------------------------------- ffmpeg
+
+
+def ffmpeg() -> str:
+    exe = shutil.which("ffmpeg")
+    if not exe:
+        raise RuntimeError("ffmpeg not found: brew install ffmpeg")
+    return exe
+
+
+def _run(cmd: list[str]) -> None:
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+
+def encode_chunk(frames: Path, first: int, fps: int, out: Path, r: dict[str, Any]) -> None:
+    _run([
+        ffmpeg(), "-y", "-loglevel", "error", "-framerate", str(fps), "-start_number", str(first),
+        "-i", str(frames / "f_%06d.png"), "-c:v", "libx264", "-preset", str(r["preset"]),
+        "-crf", str(r["crf"]), "-pix_fmt", str(r["pix_fmt"]), "-r", str(fps),
+        "-fflags", "+bitexact", "-flags:v", "+bitexact", str(out),
+    ])  # fmt: skip
+
+
+def concat(segments: list[Path], out: Path) -> None:
+    lst = out.with_suffix(".txt")
+    lst.write_text("".join(f"file '{s}'\n" for s in segments))
+    _run([ffmpeg(), "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst),
+          "-c", "copy", "-movflags", "+faststart", str(out)])  # fmt: skip
+    lst.unlink()
+
+
+def probe(path: Path) -> dict[str, Any]:
+    exe = shutil.which("ffprobe") or "ffprobe"
+    res = subprocess.run(
+        [exe, "-v", "error", "-select_streams", "v:0", "-count_frames", "-show_entries",
+         "stream=width,height,nb_read_frames,r_frame_rate,pix_fmt,codec_name:format=duration",
+         "-of", "json", str(path)],  # fmt: skip
+        capture_output=True, text=True, check=True,
+    )  # fmt: skip
+    data = json.loads(res.stdout)
+    s = data["streams"][0]
+    num, den = (int(x) for x in s["r_frame_rate"].split("/"))
+    return {
+        "width": s["width"],
+        "height": s["height"],
+        "frames": int(s.get("nb_read_frames") or 0),
+        "fps": num / den,
+        "pix_fmt": s.get("pix_fmt"),
+        "codec": s.get("codec_name"),
+        "duration_s": float(data["format"]["duration"]),
+    }
+
+
+def make_gif(mp4: Path, gif: Path, start: float, r: dict[str, Any]) -> dict[str, Any]:
+    """Palette GIF of <= gif_seconds; shrinks width/fps until it is under gif_max_bytes."""
+    width, fps = int(r["gif_width"]), int(r["gif_fps"])
+    for _ in range(6):
+        vf = (f"fps={fps},scale={width}:-2:flags=lanczos,split[a][b];"
+              f"[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4")  # fmt: skip
+        _run([ffmpeg(), "-y", "-loglevel", "error", "-ss", f"{start:.3f}", "-t",
+              str(r["gif_seconds"]), "-i", str(mp4), "-vf", vf, "-loop", "0", str(gif)])  # fmt: skip
+        if gif.stat().st_size <= int(r["gif_max_bytes"]):
+            break
+        width = int(width * 0.85) // 2 * 2
+        fps = max(8, fps - 2)
+    return {"bytes": gif.stat().st_size, "width": width, "fps": fps, "seconds": r["gif_seconds"]}
+
+
+# ----------------------------------------------------------------------------- render
+
+
+def sha_png(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
+def _dir_mb(path: Path) -> float:
+    return sum(p.stat().st_size for p in path.rglob("*") if p.is_file()) / 1e6 if path.exists() else 0.0
+
+
+def render_film(
+    name: str,
+    fps: int | None = None,
+    size: tuple[int, int] | None = None,
+    k4: bool = False,
+    letterbox: bool = False,
+    frames: tuple[int, int] | None = None,
+    out_dir: Path | None = None,
+    keep_frames: bool = False,
+    build_web: bool = True,
+) -> dict[str, Any]:
+    os.environ.setdefault("TT_RUNS_READONLY", "1")
+    settings = load_settings()
+    r = settings["render"]
+    film = load_film(name)
+    out_dir = out_dir or MOVIES_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+    if film.stub:
+        log(f"{name}: stub spec ({film.note or 'no runs'}), not rendered")
+        return {"film": name, "stub": True, "note": film.note}
+    fps = fps or int(r["fps"])
+    width, height = size or ((int(r["width_4k"]), int(r["height_4k"])) if k4 else
+                             (int(r["width"]), int(r["height"])))  # fmt: skip
+    t_start = time.time()
+    work = movies_runs_dir() / film.film
+    log(f"{name}: bundle ({width}x{height}, {fps} fps)")
+    bundle = build_bundle(film, fps, width, height, letterbox, out=work / "bundle")
+    manifest = json.loads((bundle / "manifest.json").read_text())
+    n = int(manifest["n_frames"])
+    a, b = frames or (0, n)
+    b = min(b, n)
+    if build_web:
+        ensure_web_build()
+    server, url = start_server()
+    frames_dir = work / "frames"
+    seg_dir = work / "segments"
+    for d in (frames_dir, seg_dir):
+        shutil.rmtree(d, ignore_errors=True)
+        d.mkdir(parents=True)
+    picks = sorted({a, a + (b - a) // 2, b - 1})
+    hashes: dict[str, str] = {}
+    poster = out_dir / f"{film.film}.poster.png"
+    rss_max = 0.0
+    disk_max = 0.0
+    segments: list[Path] = []
+    chunk = int(r["chunk_frames"])
+    driver = Driver(url, film.film, width, height)
+    t_frames = 0.0
+    try:
+        log(f"{name}: rendering frames {a}..{b - 1} on {driver.ready.get('gpu', {}).get('renderer')}")
+        for c0 in range(a, b, chunk):
+            c1 = min(b, c0 + chunk)
+            t0 = time.time()
+            msg = driver.render(c0, c1, frames_dir)
+            t_frames += time.time() - t0
+            if msg.get("errors"):
+                log(f"page errors: {msg['errors'][:3]}")
+            rss_max = max(rss_max, driver.browser_rss_mb())
+            for k in picks:
+                if c0 <= k < c1:
+                    png = frames_dir / f"f_{k:06d}.png"
+                    hashes[str(k)] = sha_png(png)
+                    if k == a + (b - a) // 2:
+                        shutil.copyfile(png, poster)
+            disk_max = max(disk_max, _dir_mb(work))
+            seg = seg_dir / f"seg_{c0:06d}.mp4"
+            encode_chunk(frames_dir, c0, fps, seg, r)
+            segments.append(seg)
+            if keep_frames:
+                keep = work / "frames-kept"
+                keep.mkdir(exist_ok=True)
+                for p in frames_dir.glob("*.png"):
+                    shutil.move(str(p), keep / p.name)
+            else:
+                for p in frames_dir.glob("*.png"):
+                    p.unlink()
+            log(f"{name}: {c1 - a}/{b - a} frames ({(time.time() - t0) / (c1 - c0):.2f} s/frame, "
+                f"browser {rss_max:.0f} MB, disk {disk_max:.0f} MB)")  # fmt: skip
+    finally:
+        driver.close()
+        server.shutdown()
+    mp4 = out_dir / f"{film.film}.mp4"
+    concat(segments, mp4)
+    shutil.rmtree(seg_dir, ignore_errors=True)
+    shutil.rmtree(frames_dir, ignore_errors=True)
+    info = probe(mp4)
+    gif = make_gif(mp4, out_dir / f"{film.film}.gif",
+                   max(0.0, min(info["duration_s"] - float(r["gif_seconds"]),
+                                film.title_card_s + 0.5)), r)  # fmt: skip
+    meta = {
+        "film": film.film,
+        "label": SYNTHETIC_LABEL,
+        "title": film.title,
+        "spec": str(spec_path(name).relative_to(REPO_ROOT)) if spec_path(name).is_relative_to(
+            REPO_ROOT) else str(spec_path(name)),  # fmt: skip
+        "spec_sha": sha_file(spec_path(name)),
+        "bundle_hashes": json.loads((bundle / "hashes.json").read_text()),
+        "sources": manifest["sources"],
+        "width": width,
+        "height": height,
+        "fps": fps,
+        "frames_rendered": [a, b],
+        "expected_duration_s": (b - a) / fps,
+        "mp4": info,
+        "frame_sha256_16": hashes,
+        "gif": gif,
+        "browser_rss_max_mb": round(rss_max, 1),
+        "disk_max_mb": round(disk_max, 1),
+        "seconds": {"frames": round(t_frames, 1), "total": round(time.time() - t_start, 1)},
+        "gpu": driver.ready.get("gpu"),
+    }
+    (out_dir / f"{film.film}.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
+    log(f"{name}: {mp4.relative_to(REPO_ROOT) if mp4.is_relative_to(REPO_ROOT) else mp4} "
+        f"{info['width']}x{info['height']} {info['duration_s']:.2f} s, "
+        f"{mp4.stat().st_size / 1e6:.1f} MB, {meta['seconds']['total']} s")  # fmt: skip
+    if rss_max > float(r["max_browser_rss_mb"]) or disk_max > float(r["max_disk_mb"]):
+        log(f"{name}: WARNING over budget (browser {rss_max:.0f} MB, disk {disk_max:.0f} MB)")
+    return meta
+
+
+def parse_size(v: str | None) -> tuple[int, int] | None:
+    if not v:
+        return None
+    w, h = v.lower().split("x")
+    return int(w), int(h)
+
+
+def parse_frames(v: str | None) -> tuple[int, int] | None:
+    if not v:
+        return None
+    a, b = v.split(":")
+    return int(a), int(b)
+
+
+app = typer.Typer(add_completion=False, help=__doc__)
+
+
+@app.command()
+def main(
+    films: list[str] = typer.Argument(None, help="film names (movies/specs/<name>.yaml)"),
+    all_: bool = typer.Option(False, "--all", help="render every spec in movies/specs/"),
+    fps: int = typer.Option(0, help="frames per second (default 30)"),
+    k4: bool = typer.Option(False, "--4k", help="3840x2160"),
+    size: str = typer.Option("", help="WxH, overrides --4k"),
+    letterbox: bool = typer.Option(False, help="2.39:1 letterbox bars"),
+    frames: str = typer.Option("", help="render only frames A:B (smoke tests)"),
+    out: Path = typer.Option(None, help="output directory (default movies/)"),
+    keep_frames: bool = typer.Option(False, help="keep the PNG frames (debugging)"),
+) -> None:
+    names = film_names() if all_ else list(films or [])
+    if not names:
+        raise typer.BadParameter("give film names or --all")
+    for name in names:
+        if not (SPECS_DIR / f"{name}.yaml").exists() and not Path(name).exists():
+            raise typer.BadParameter(f"no spec {name}")
+    failed = []
+    for name in names:
+        try:
+            render_film(name, fps or None, parse_size(size), k4, letterbox, parse_frames(frames),
+                        out, keep_frames)  # fmt: skip
+        except Exception as exc:  # noqa: BLE001 - keep going with the other films
+            log(f"{name}: FAILED {exc}")
+            failed.append(name)
+    if failed:
+        log(f"failed: {failed}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    app()
