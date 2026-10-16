@@ -1,9 +1,15 @@
 # Lane audit from aerial imagery (Track C)
 
-Status: **blocked - accuracy** (2026-10-16). The blind calibration against OSM `lanes` tags did
-not reach 80 % precision on held-out ways at any usable confidence threshold, so no imagery-derived
-lane counts were written to the fix list, and the city network was not rebuilt. This page records
-the method, the measured accuracy, the failure analysis and what would unblock it.
+Status: **blocked - accuracy** after two attempts (2026-10-16). No imagery-derived lane counts were
+written to the fix list, and the city network was not rebuilt (`jeddah.net.xml` untouched, no
+`jeddah.lanes.net.xml`).
+
+- Attempt 2 (motorway + trunk only, two independent reads): the calibration set found no
+  confidence threshold that gives 80 % precision on at least 15 agreed counts (agreed precision
+  68.4 %, 26/38). The fresh 30-way holdout scored 82.1 % on its agreed counts (23/28), but under the
+  protocol fixed before reading, it can only be scored at a threshold chosen on the calibration set.
+  Most of the disagreement between the two sets comes from one road (Prince Majid Road, below).
+- Attempt 1 (all four classes, one read): 60 % held-out precision (below the "Attempt 1" heading).
 
 All simulation results remain **synthetic demand, uncalibrated**.
 
@@ -11,6 +17,124 @@ Imagery: Esri World Imagery (Esri, Maxar, Earthstar Geographics, and the GIS Use
 `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer`, accessed
 2026-10-16. Only lane counts would be derived; the example crops below are reproduced with this
 attribution (see `NOTICE`). Google imagery was not used (its terms forbid derived datasets).
+
+## Attempt 2: motorway and trunk, two independent reads (2026-10-16)
+
+### Protocol (fixed before any crop was read)
+
+- **Scope.** Motorway and trunk ways only. Audit list: 247 untagged ways of at least 60 m (89
+  motorway, 158 trunk), all within the 600-crop cap. Crops in this pass: 50 + 30 + 247 = 327.
+- **Two reads.** Every crop is read twice by the `imagery-analyst` subagent, in separate
+  calls. Read A sees the crops in set order, 20 per batch. Read B sees them shuffled (seed 7),
+  so its batches have different neighbours. Each call gets a folder that holds only the PNG
+  crops (`data/imagery/<set>/reads/read-{a,b}/batch-NNN/`): blindness is enforced, not just
+  instructed. A count is accepted only if both reads give the same integer **and** both
+  confidences are at or above the threshold, i.e. the lower one is (`combine_reads`).
+- **Instruction.** Same as attempt 1, without the bridge-deck cap. A bridge or flyover deck with
+  clear dashed lines is read like any other carriageway. Verbatim text:
+  `data/imagery/v2-prompts/instruction.txt`. The crops, sample points and zoom are unchanged
+  (C-007).
+- **Calibration set** (chooses the threshold): the 50 motorway and trunk ways of attempt 1's
+  calibration and holdout sets (25 + 25), read again under the new protocol.
+- **Fresh holdout**: 30 tagged motorway and trunk ways never used before (seed 3, excluding every
+  earlier set and the reviewed fixes). It has 17 motorway and 13 trunk ways, with **at most 5 ways
+  per named road and class**. Without that cap, Prince Majid Road would supply 39 of the 54
+  candidate trunk ways. Ways cut from one road are not independent samples, and the audit
+  population (untagged trunk ways) does not contain that road (C-021).
+- **Gate.** The threshold is chosen on the calibration set's agreed counts with the attempt-1 rule
+  (lowest confidence giving at least 80 % precision on at least 15 kept crops, and staying at or
+  above 80 % at every higher threshold; C-008). The holdout must then reach at least 80 % at that
+  threshold, on at least 10 kept agreed crops. All 160 reads (calibration and holdout) were taken
+  before anything was scored.
+
+### Results (`data/osm/fixes/imagery-eval.json`, `protocol: two-reads`)
+
+| set | ways | single read exact (A / B) | reads agree | agreed counts correct | threshold | precision at threshold |
+|---|---|---|---|---|---|---|
+| calibration (re-read) | 50 | 66 % / 54 % | 76 % (38) | **68.4 %** (26/38) | **none** | - |
+| fresh holdout | 30 | 80 % / 80 % | 93 % (28) | 82.1 % (23/28) | not reached | (information only) |
+| pooled | 80 | - | - | 74.2 % (49/66) | - | - |
+
+Calibration agreed-precision curve (lower read confidence >= t): 0.2 -> 68.4 % (38 kept), 0.5 ->
+69.2 % (26), 0.7 -> 68.4 % (19), 0.75 -> 66.7 % (15), 0.8 -> 81.8 % (11), 0.85 -> 100 % (7).
+No point reaches 80 % with 15 or more kept, so no threshold was chosen.
+
+By class, agreed counts correct: calibration motorway 19/23 (82.6 %) and trunk 7/15 (46.7 %);
+holdout motorway 12/15 (80.0 %) and trunk 11/13 (84.6 %). For information only, holdout
+precision at every confidence cut keeping at least 10 agreed crops stays between 80.0 % and 90.9 %
+(0.5 -> 20/22).
+
+**Decision: `LANE_AUDIT_V2: blocked - accuracy`.** The brief says to proceed only if held-out
+precision on agreed counts reaches 80 %. Read alone, the holdout figure (82.1 %) would meet that.
+It was not used, for three reasons:
+1. The protocol needs a threshold from the calibration set, and the calibration set produced none.
+2. Choosing a threshold after looking at the holdout would turn it into a second calibration set.
+3. The two blind sets disagree (68 % vs 82 %). Pooled, they give 74 %, which is under 80 %.
+Agreement between reads did raise precision (single reads 54-80 %, agreed reads 68-82 %). It did
+not remove systematic errors, because both reads usually make the same mistake on the same crop.
+The audit crops are on disk (247, `data/imagery/v2-audit/`), but none were read.
+
+### Where the calibration errors come from
+
+12 agreed calibration counts disagree with the tags:
+- **Prince Majid Road (trunk, tagged `lanes=3`): 6.** Both reads say 4 on five ways
+  (1432320656, 1432320655, 1024884983, 444383287, 646811886) and 6 on one (41519535). Of its 13
+  agreed calibration counts, 7 match the tag. Attempt 1 read the same ways as 4, so three
+  independent passes now agree. The tag was edited on 2026-05-17. Either the tag or the imagery
+  is out of date, and a tag-based score cannot tell which (A-network-004).
+- **Motorway: 4 under or overcounts by one lane.** 43172347 reads 3 against tag 4: the
+  carriageway has 3 lanes plus a merge lane at the gore. Also 302761815 (3 vs 4), 43172615 (3 vs 4,
+  no markings, 0.3) and 46874457 (5 vs 4, 0.3).
+- **Trunk connectors: 2.** 1074526712 (tag 1, read 4) is the connector drawn beside the main
+  carriageway, already noted in attempt 1. 134839727 reads 3 against tag 2.
+
+Sensitivity check, recorded in the eval file and **not used for the gate**: without Prince Majid
+Road, the calibration rule picks threshold 0.45 with 83.3 % on 18 kept crops. The holdout at 0.45
+is 87.0 % (20/23). So whether the audit can go ahead comes down to one fact: how many lanes per
+direction Prince Majid Road has.
+
+### What would unblock it
+
+1. **A person checks Prince Majid Road**, on site or on recent dated imagery: 3 or 4 through lanes
+   per direction on the sampled sections. If it has 4, correct the OSM tag (and add a reviewed
+   fix). Then re-run `evaluate-two-reads`: the calibration reaches 31/38 agreed (81.6 %), and the
+   rule picks threshold 0.75 (12 of 15 kept, exactly 80 %, so only just). If it has 3, the reading
+   method overcounts wide urban trunk roads, and the trunk class should stay out of the audit.
+2. The audit is then ready to run: 26 analyst calls (247 crops x 2 reads), then
+   `write-fixes`, `rebuild`, the after-smoke, and the network-effect table below.
+3. Not tried: a geometry check that drops samples whose ticks do not fall on the carriageway
+   (connector ways such as 1074526712), and dated imagery to settle stale-tag questions.
+
+### Reproduce attempt 2
+
+```bash
+uv run python -m sim.network.lane_audit subset-set --set v2-calibration \
+    --from-set calibration --from-set holdout --classes motorway,trunk
+uv run python -m sim.network.lane_audit sample-calibration --n 30 --seed 3 --set v2-holdout \
+    --exclude-set calibration --exclude-set holdout --exclude-set archive/calibration-v1-midpoint \
+    --exclude-set v2-calibration --classes motorway,trunk --max-per-road 5
+uv run python -m sim.network.lane_audit select-audit --cap 600 --set v2-audit --classes motorway,trunk
+for s in v2-calibration v2-holdout v2-audit; do
+  uv run --with pillow python -m sim.network.lane_audit crops --set $s
+  uv run python -m sim.network.lane_audit prepare-reads --set $s     # read-a / read-b folders
+done
+# imagery-analyst: one call per batch folder; the prompt starts with "READ-TAG <set>/<read>/<batch>",
+# then the folder path and data/imagery/v2-prompts/instruction.txt. Then:
+uv run python -m sim.network.lane_audit collect-reads --transcripts <session>/subagents
+uv run python -m sim.network.lane_audit evaluate-two-reads --sensitivity-exclude-road "Prince Majid Road"
+# only if passed: read v2-audit the same way, then write-fixes, rebuild, smoke (see below)
+```
+
+Measured: crops 50 in 6 s (cached tiles), 30 in 82 s (251 tiles), 247 in 411 s (1,236 tiles).
+The 10 analyst calls ran in parallel in about 100 s.
+
+---
+
+# Attempt 1: all major classes, one read (2026-10-16)
+
+Status: **blocked - accuracy**. The blind calibration against OSM `lanes` tags did not reach 80 %
+precision on held-out ways at any usable confidence threshold. The committed `imagery-eval.json`
+now holds attempt 2. Attempt 1's file is in git at commit 403d2af.
 
 ## Why
 

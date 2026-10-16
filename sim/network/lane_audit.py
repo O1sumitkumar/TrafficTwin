@@ -258,8 +258,20 @@ def load_inventory(path: Path | None = None) -> list[Way]:
 # ---------------------------------------------------------------- selection
 
 
-def stratified_calibration(ways: list[Way], n: int, seed: int, exclude: set[int]) -> list[Way]:
-    """Tagged, comparable ways: n split evenly over classes (spare slots go to larger classes)."""
+def stratified_calibration(
+    ways: list[Way],
+    n: int,
+    seed: int,
+    exclude: set[int],
+    classes: tuple[str, ...] = CLASSES,
+    max_per_road: int | None = None,
+) -> list[Way]:
+    """Tagged, comparable ways: n split evenly over classes (spare slots go to larger classes).
+
+    ``max_per_road`` keeps at most that many ways of one named road per class (picked at random
+    with the same seed), so one long, densely split road cannot dominate a set; unnamed ways are
+    not capped.
+    """
     pool = {
         cls: [
             w
@@ -270,13 +282,25 @@ def stratified_calibration(ways: list[Way], n: int, seed: int, exclude: set[int]
             and w.length_m >= MIN_LENGTH_M
             and w.way_id not in exclude
         ]
-        for cls in CLASSES
+        for cls in classes
     }
     rng = random.Random(seed)
-    quota = dict.fromkeys(CLASSES, 0)
+    if max_per_road is not None:
+        for cls in classes:
+            shuffled = rng.sample(pool[cls], len(pool[cls]))
+            seen: Counter[str] = Counter()
+            capped = []
+            for w in shuffled:
+                if w.name is not None:
+                    if seen[w.name] >= max_per_road:
+                        continue
+                    seen[w.name] += 1
+                capped.append(w)
+            pool[cls] = sorted(capped, key=lambda w: w.way_id)
+    quota = dict.fromkeys(classes, 0)
     remaining = n
     while remaining > 0:
-        open_cls = [c for c in CLASSES if quota[c] < len(pool[c])]
+        open_cls = [c for c in classes if quota[c] < len(pool[c])]
         if not open_cls:
             break
         for c in sorted(open_cls, key=lambda c: (quota[c], -len(pool[c]))):
@@ -285,16 +309,23 @@ def stratified_calibration(ways: list[Way], n: int, seed: int, exclude: set[int]
             quota[c] += 1
             remaining -= 1
     picked: list[Way] = []
-    for cls in CLASSES:
+    for cls in classes:
         picked.extend(rng.sample(pool[cls], quota[cls]))
     return picked
 
 
-def audit_priority(ways: list[Way], cap: int, exclude: set[int]) -> list[Way]:
+def audit_priority(
+    ways: list[Way], cap: int, exclude: set[int], classes: tuple[str, ...] = CLASSES
+) -> list[Way]:
     """Untagged ways, motorway -> trunk -> primary -> secondary, longest first within a class."""
     order = {c: i for i, c in enumerate(CLASSES)}
     pool = [
-        w for w in ways if not w.tagged and w.length_m >= MIN_LENGTH_M and w.way_id not in exclude
+        w
+        for w in ways
+        if not w.tagged
+        and w.highway in classes
+        and w.length_m >= MIN_LENGTH_M
+        and w.way_id not in exclude
     ]
     pool.sort(key=lambda w: (order[w.highway], -w.length_m, w.way_id))
     return pool[:cap]
@@ -585,6 +616,167 @@ def score_at(
     }
 
 
+# ---------------------------------------------------------------- two independent reads (attempt 2)
+
+READS = ("read-a", "read-b")  # independent analyst passes, different batch orderings
+MIN_HOLDOUT_KEPT = 10  # the holdout must keep at least this many agreed crops to be scored
+
+
+def combine_reads(a: dict[int, dict[str, Any]], b: dict[int, dict[str, Any]]) -> dict[int, dict]:
+    """One record per way read in both passes. A count stands only if both reads give the same
+    integer; its confidence is the lower of the two. Disagreements keep ``lanes_marked_side=None``
+    and ``agree=False``."""
+    out: dict[int, dict[str, Any]] = {}
+    for way_id in sorted(set(a) & set(b)):
+        la_, lb_ = a[way_id].get("lanes_marked_side"), b[way_id].get("lanes_marked_side")
+        ca, cb = float(a[way_id].get("confidence", 0.0)), float(b[way_id].get("confidence", 0.0))
+        agree = isinstance(la_, int) and la_ == lb_
+        out[way_id] = {
+            "way_id": way_id,
+            "lanes_marked_side": la_ if agree else None,
+            "confidence": min(ca, cb) if agree else 0.0,
+            "agree": agree,
+            "reads": [la_, lb_],
+            "confidences": [ca, cb],
+            "note": " | ".join(str(r.get("note", "")) for r in (a[way_id], b[way_id])),
+        }
+    return out
+
+
+def evaluate_two_reads(
+    ways: list[Way],
+    a: dict[int, dict[str, Any]],
+    b: dict[int, dict[str, Any]],
+    threshold: float | None = None,
+    target: float = TARGET_PRECISION,
+    min_kept: int = MIN_CALIBRATION_ACCEPTED,
+) -> dict[str, Any]:
+    """Score agreed counts against the tags. Without ``threshold`` it is chosen on this set with
+    the C-008 rule over agreed crops (confidence = the lower of the two reads); with one, the set
+    is a holdout scored at that threshold."""
+    combined = combine_reads(a, b)
+    rows = []
+    for w in ways:
+        rec = combined.get(w.way_id)
+        truth = w.expected_lanes()
+        agree = bool(rec and rec["agree"])
+        pred = rec["lanes_marked_side"] if rec else None
+        rows.append(
+            {
+                "way_id": w.way_id,
+                "highway": w.highway,
+                "name": w.name,
+                "truth": truth,
+                "read_a": rec["reads"][0] if rec else None,
+                "read_b": rec["reads"][1] if rec else None,
+                "conf_a": rec["confidences"][0] if rec else None,
+                "conf_b": rec["confidences"][1] if rec else None,
+                "agree": agree,
+                "pred": pred,
+                "confidence": rec["confidence"] if rec else 0.0,
+                "correct": agree and pred == truth,
+                "note": rec["note"] if rec else "missing",
+            }
+        )
+    agreed = [r for r in rows if r["agree"]]
+    curve = precision_curve([(r["confidence"], r["correct"]) for r in agreed])
+    single = {name: evaluate(ways, reads) for name, reads in zip(READS, (a, b), strict=True)}
+    out: dict[str, Any] = {
+        "n": len(rows),
+        "read_agreement": round(len(agreed) / len(rows), 4) if rows else 0.0,
+        "single_read_exact": {k: v["agreement_all"] for k, v in single.items()},
+        "agreed_n": len(agreed),
+        "agreed_precision_all": (
+            round(sum(r["correct"] for r in agreed) / len(agreed), 4) if agreed else None
+        ),
+        "target_precision": target,
+        "curve_agreed": curve,
+    }
+    if threshold is None:
+        chosen = choose_threshold(curve, target, min_kept)
+        out.update(
+            {
+                "min_kept": min_kept,
+                "threshold": chosen["threshold"] if chosen else None,
+                "precision_at_threshold": chosen["precision"] if chosen else None,
+                "kept_at_threshold": chosen["kept"] if chosen else 0,
+                "passed": chosen is not None,
+            }
+        )
+        threshold = chosen["threshold"] if chosen else None
+    else:
+        kept = [r for r in agreed if r["confidence"] >= threshold]
+        correct = sum(r["correct"] for r in kept)
+        precision = round(correct / len(kept), 4) if kept else 0.0
+        out.update(
+            {
+                "min_kept": MIN_HOLDOUT_KEPT,
+                "threshold": threshold,
+                "kept_at_threshold": len(kept),
+                "correct_at_threshold": correct,
+                "precision_at_threshold": precision,
+                "passed": len(kept) >= MIN_HOLDOUT_KEPT and precision >= target,
+            }
+        )
+    by_class: dict[str, Any] = {}
+    for cls in CLASSES:
+        sel = [r for r in rows if r["highway"] == cls]
+        if not sel:
+            continue
+        kept = [
+            r for r in sel if r["agree"] and threshold is not None and r["confidence"] >= threshold
+        ]
+        by_class[cls] = {
+            "n": len(sel),
+            "agreed": sum(r["agree"] for r in sel),
+            "agreed_correct": sum(r["correct"] for r in sel),
+            "kept_at_threshold": len(kept),
+            "correct_at_threshold": sum(r["correct"] for r in kept),
+        }
+    out["by_class"] = by_class
+    out["coverage_at_threshold"] = round(out["kept_at_threshold"] / len(rows), 4) if rows else 0.0
+    out["rows"] = rows
+    return out
+
+
+def read_folders(
+    set_dir: Path, way_ids: list[int], batch: int, seed: int
+) -> dict[str, list[list[int]]]:
+    """Copy the crops (PNG only, nothing else) into one folder tree per read: read-a in set
+    order, read-b shuffled with ``seed``, so the two passes see different batch neighbours and
+    the analyst cannot reach ways.json or earlier results from its folder."""
+    import shutil
+
+    src = {p.stem: p for p in (set_dir / "crops").rglob("*.png")}
+    orders = {READS[0]: list(way_ids), READS[1]: random.Random(seed).sample(way_ids, len(way_ids))}
+    layout: dict[str, list[list[int]]] = {}
+    for name, order in orders.items():
+        root = set_dir / "reads" / name
+        if root.exists():
+            shutil.rmtree(root)
+        batches = [order[i : i + batch] for i in range(0, len(order), batch)]
+        for k, ids in enumerate(batches):
+            folder = root / f"batch-{k:03d}"
+            folder.mkdir(parents=True)
+            for way_id in ids:
+                shutil.copy2(src[str(way_id)], folder / f"{way_id}.png")
+        layout[name] = batches
+    return layout
+
+
+def analyst_records(text: str) -> list[dict[str, Any]]:
+    """JSON objects (one per line) with a ``way_id`` from an analyst reply."""
+    recs = []
+    for line in text.splitlines():
+        line = line.strip().strip("`").strip()
+        if line.startswith("{") and '"way_id"' in line:
+            try:
+                recs.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+    return recs
+
+
 # ---------------------------------------------------------------- fix list
 
 
@@ -631,6 +823,9 @@ def fix_entries(
             continue
         lanes = rec.get("lanes_marked_side")
         conf = float(rec.get("confidence", 0.0))
+        if rec.get("agree") is False:
+            tally["reads_disagree"] += 1
+            continue
         if lanes is None or conf < threshold:
             tally["below_threshold"] += 1
             continue
@@ -646,6 +841,7 @@ def fix_entries(
             continue
         tally["raises" if lanes > default else "lowers"] += 1
         m = manifest[w.way_id]
+        reads = f"; {len(rec['reads'])} independent reads agree" if "reads" in rec else ""
         entries.append(
             {
                 "id": f"IMG-{w.way_id}",
@@ -656,7 +852,7 @@ def fix_entries(
                 "reason": (
                     f"Untagged {w.highway} ({'one-way' if w.oneway != 'no' else 'two-way'}, "
                     f"{w.length_m:.0f} m); imagery shows {lanes} lane(s) per direction at the "
-                    f"mid-segment sample, network default {default}"
+                    f"mid-segment sample, network default {default}{reads}"
                 ),
                 "date": date,
                 "author": "lane-audit",
@@ -716,25 +912,43 @@ def sample_calibration(
     seed: int = typer.Option(1),
     set_name: str = typer.Option("calibration", "--set", help="calibration or holdout"),
     exclude_set: list[str] = typer.Option([], help="sets whose ways must not be re-used"),
+    classes: str = typer.Option(",".join(CLASSES), help="comma-separated highway classes"),
+    max_per_road: int | None = typer.Option(None, help="cap ways per named road and class"),
     inv: Path | None = None,
 ) -> None:
     """Stratified sample of tagged ways for the blind calibration (or its disjoint holdout)."""
     exclude = human_fix_ways()
     for other in exclude_set:
         exclude |= {w.way_id for w in _set_ways(other)}
-    ways = stratified_calibration(load_inventory(inv), n, seed, exclude)
+    cls = tuple(c for c in CLASSES if c in classes.split(","))
+    ways = stratified_calibration(load_inventory(inv), n, seed, exclude, cls, max_per_road)
     _write_json(
         _set_dir(set_name) / "ways.json",
-        {"seed": seed, "excluded_sets": exclude_set, "ways": [asdict(w) for w in ways]},
+        {
+            "seed": seed,
+            "excluded_sets": exclude_set,
+            "classes": list(cls),
+            "max_per_road": max_per_road,
+            "ways": [asdict(w) for w in ways],
+        },
     )
     typer.echo(f"{len(ways)} {set_name} ways: {dict(Counter(w.highway for w in ways))}")
 
 
 @app.command("select-audit")
-def select_audit(cap: int = typer.Option(1500), inv: Path | None = None) -> None:
+def select_audit(
+    cap: int = typer.Option(1500),
+    set_name: str = typer.Option("audit", "--set"),
+    classes: str = typer.Option(",".join(CLASSES), help="comma-separated highway classes"),
+    inv: Path | None = None,
+) -> None:
     """Untagged ways in priority order, capped."""
-    ways = audit_priority(load_inventory(inv), cap, human_fix_ways())
-    _write_json(_set_dir("audit") / "ways.json", {"cap": cap, "ways": [asdict(w) for w in ways]})
+    cls = tuple(c for c in CLASSES if c in classes.split(","))
+    ways = audit_priority(load_inventory(inv), cap, human_fix_ways(), cls)
+    _write_json(
+        _set_dir(set_name) / "ways.json",
+        {"cap": cap, "classes": list(cls), "ways": [asdict(w) for w in ways]},
+    )
     typer.echo(f"{len(ways)} audit ways: {dict(Counter(w.highway for w in ways))}")
 
 
@@ -812,6 +1026,140 @@ def evaluate_cmd(out: Path = typer.Option(EVAL_JSON)) -> None:
     )
 
 
+@app.command("subset-set")
+def subset_set(
+    set_name: str = typer.Option(..., "--set"),
+    from_set: list[str] = typer.Option(..., help="existing sets to take ways from"),
+    classes: str = typer.Option("motorway,trunk"),
+) -> None:
+    """A new set from the ways of earlier sets, restricted to some classes (re-read afresh)."""
+    cls = classes.split(",")
+    ways = [w for name in from_set for w in _set_ways(name) if w.highway in cls]
+    _write_json(
+        _set_dir(set_name) / "ways.json",
+        {"from_sets": from_set, "classes": cls, "ways": [asdict(w) for w in ways]},
+    )
+    typer.echo(f"{len(ways)} {set_name} ways: {dict(Counter(w.highway for w in ways))}")
+
+
+@app.command("prepare-reads")
+def prepare_reads(
+    set_name: str = typer.Option(..., "--set"),
+    batch: int = typer.Option(20),
+    seed: int = typer.Option(7, help="shuffle seed for the second read's ordering"),
+) -> None:
+    """Copy crops into reads/read-a and reads/read-b batch folders (crops only)."""
+    ids = [w.way_id for w in _set_ways(set_name)]
+    layout = read_folders(_set_dir(set_name), ids, batch, seed)
+    _write_json(_set_dir(set_name) / "reads" / "layout.json", {"seed": seed, **layout})
+    typer.echo(f"{set_name}: {len(ids)} crops x {len(layout)} reads, {batch} per batch")
+
+
+@app.command("collect-reads")
+def collect_reads(
+    transcripts: Path = typer.Option(..., help="folder of subagent transcript *.jsonl files"),
+) -> None:
+    """Save analyst replies as results/<read>/<batch>.jsonl. Each analyst prompt carries a line
+    ``READ-TAG <set>/<read>/<batch>``; its final reply is one JSON object per crop."""
+    saved = 0
+    for path in sorted(transcripts.glob("*.jsonl")):
+        tag, last_text = None, ""
+        for line in path.read_text().splitlines():
+            msg = json.loads(line).get("message") or {}
+            content = msg.get("content")
+            texts = (
+                [content]
+                if isinstance(content, str)
+                else [c.get("text", "") for c in content or [] if c.get("type") == "text"]
+            )
+            for text in texts:
+                if tag is None and msg.get("role") == "user" and "READ-TAG " in text:
+                    tag = text.split("READ-TAG ", 1)[1].split()[0]
+                elif msg.get("role") == "assistant" and analyst_records(text):
+                    last_text = text
+        if tag is None or not last_text:
+            continue
+        set_name, read, batch = tag.split("/")
+        expected = {p.stem for p in (_set_dir(set_name) / "reads" / read / batch).glob("*.png")}
+        recs = [r for r in analyst_records(last_text) if str(r["way_id"]) in expected]
+        out = _set_dir(set_name) / "results" / read / f"{batch}.jsonl"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in recs))
+        saved += 1
+        missing = len(expected) - len(recs)
+        typer.echo(f"{tag}: {len(recs)} records" + (f", {missing} MISSING" if missing else ""))
+    typer.echo(f"{saved} batches saved")
+
+
+def _reads(set_name: str) -> tuple[dict[int, dict[str, Any]], dict[int, dict[str, Any]]]:
+    a, b = (read_results(_set_dir(set_name) / "results" / r) for r in READS)
+    return a, b
+
+
+@app.command("evaluate-two-reads")
+def evaluate_two_reads_cmd(
+    calibration_set: str = typer.Option("v2-calibration"),
+    holdout_set: str = typer.Option("v2-holdout"),
+    audit_set: str = typer.Option("v2-audit"),
+    sensitivity_exclude_road: str | None = typer.Option(
+        None, help="also score the calibration without this road (information only)"
+    ),
+    out: Path = typer.Option(EVAL_JSON),
+) -> None:
+    """Attempt 2: threshold on agreed reads of the calibration set, checked on a fresh holdout."""
+    cal = evaluate_two_reads(_set_ways(calibration_set), *_reads(calibration_set))
+    report: dict[str, Any] = {
+        "generated": dt.date.today().isoformat(),
+        "protocol": "two-reads",
+        "imagery": f"{TILE_SOURCE}, zoom {ZOOM}, {CROP_PX} px crops upscaled {OUT_SCALE}x",
+        "method": (
+            "imagery-analyst subagent, two independent blind reads per crop (different batch "
+            "orderings, folders with crops only); a count is accepted only if both reads agree "
+            "and the lower confidence is at or above the threshold"
+        ),
+        "truth": "OSM lanes tags (oneway: lanes; two-way: lanes:forward or lanes/2)",
+        "calibration_set": calibration_set,
+        "holdout_set": holdout_set,
+        "audit_set": audit_set,
+        "calibration": cal,
+        "threshold": cal["threshold"],
+    }
+    hold = None
+    if cal["threshold"] is not None and (_set_dir(holdout_set) / "ways.json").exists():
+        hold = evaluate_two_reads(
+            _set_ways(holdout_set), *_reads(holdout_set), threshold=cal["threshold"]
+        )
+        report["holdout"] = hold
+    elif (_set_dir(holdout_set) / "results").exists():
+        # No threshold from calibration: the gate has failed. The holdout is still scored on
+        # every agreed count (threshold 0) and recorded for information; it cannot pass.
+        info = evaluate_two_reads(_set_ways(holdout_set), *_reads(holdout_set), threshold=0.0)
+        info["passed"] = False
+        report["holdout_info_no_threshold"] = info
+    if sensitivity_exclude_road:
+        # Information only, never used for the gate: the calibration without one named road.
+        keep = [w for w in _set_ways(calibration_set) if w.name != sensitivity_exclude_road]
+        sens = evaluate_two_reads(keep, *_reads(calibration_set))
+        sens.pop("rows")
+        sens["excluded_road"] = sensitivity_exclude_road
+        report["sensitivity_calibration_without_road"] = sens
+    report["passed"] = bool(cal["passed"] and hold is not None and hold["passed"])
+    report["agreement_at_threshold"] = hold["precision_at_threshold"] if hold else None
+    report["kept_at_threshold"] = hold["kept_at_threshold"] if hold else 0
+    _write_json(out, report)
+    typer.echo(
+        f"calibration: reads agree {cal['read_agreement']:.0%}, threshold {cal['threshold']} -> "
+        f"{cal['precision_at_threshold']} on {cal['kept_at_threshold']}; holdout: "
+        + (
+            f"{hold['precision_at_threshold']} on {hold['kept_at_threshold']} "
+            f"(agree {hold['read_agreement']:.0%})"
+            if hold
+            else "not scored"
+        )
+        + f"; passed={report['passed']}"
+    )
+
+
 @app.command("write-fixes")
 def write_fixes(
     net: Path = typer.Option(RAW_NET, help="network giving the default lanes per way"),
@@ -822,10 +1170,15 @@ def write_fixes(
     if not report.get("passed"):
         raise typer.BadParameter("calibration did not pass; no audit fixes are written")
     threshold = float(report["threshold"])
-    ways = _set_ways("audit")
-    results = read_results(_set_dir("audit") / "results")
+    audit_set = report.get("audit_set", "audit")
+    ways = _set_ways(audit_set)
+    if report.get("protocol") == "two-reads":
+        results = combine_reads(*_reads(audit_set))
+    else:
+        results = read_results(_set_dir(audit_set) / "results")
     manifest = {
-        int(k): v for k, v in json.loads((_set_dir("audit") / "manifest.json").read_text()).items()
+        int(k): v
+        for k, v in json.loads((_set_dir(audit_set) / "manifest.json").read_text()).items()
     }
     defaults = way_default_lanes(net, {w.way_id for w in ways})
     entries, tally = fix_entries(

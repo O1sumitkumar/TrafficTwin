@@ -129,3 +129,57 @@ Next: once Tracks A/B produce a 24 h baseline and a policy run, replay them in t
 
 Integration pending: root README demo commands, `docker compose up --build`.
 M3: done
+
+## LANE_AUDIT_V2 (motorway + trunk, two independent reads) — 2026-10-16
+Decisions
+- C-019 Scope: motorway and trunk only, crop cap 600. Audit list: 247 untagged ways >= 60 m
+  (89 motorway, 158 trunk). Crops this pass: 327 (50 calibration + 30 holdout + 247 audit).
+- C-020 Two reads per crop in separate `imagery-analyst` calls: read A in set order, read B
+  shuffled (seed 7), 20 crops per batch. Each call gets a folder holding only PNG crops, so
+  blindness is enforced. A count is accepted only if both integers match and the lower confidence
+  is at or above the threshold. The bridge-deck cap was dropped from the instruction
+  (`data/imagery/v2-prompts/instruction.txt`); everything else is unchanged.
+- C-021 Calibration set = attempt 1's 50 motorway/trunk ways, read again. Fresh holdout = 30 tagged
+  motorway/trunk ways never used before (seed 3; 17 motorway, 13 trunk), at most 5 per named road
+  and class (A-network-008). Without the cap, Prince Majid Road would be 39 of the 54 trunk
+  candidates.
+- C-022 Gate, fixed before any read: threshold chosen on the calibration set's agreed counts with
+  the C-008 rule; the holdout must reach >= 80 % at that threshold on >= 10 kept crops. All 160
+  calibration and holdout reads were taken before any scoring.
+- C-023 Blocked, although the holdout alone scored 82.1 % on agreed counts: the calibration set
+  produced no threshold, choosing one on the holdout would spend it, and the pooled agreed precision
+  is 74 %. Audit crops prepared but not read.
+- C-024 `collect-reads` takes analyst replies from the subagent transcripts using a
+  `READ-TAG <set>/<read>/<batch>` line in each prompt (replaces C-010's ad-hoc script).
+  `imagery-eval.json` now holds attempt 2 (`protocol: two-reads`); attempt 1's file is in git at
+  403d2af.
+
+Built: `lane_audit.py` additions (`combine_reads`, `evaluate_two_reads`, `read_folders`,
+`analyst_records`; CLI `subset-set`, `prepare-reads`, `collect-reads`, `evaluate-two-reads`;
+`--classes`/`--max-per-road` on sampling, `--set`/`--classes` on `select-audit`; `write-fixes`
+reads the two-read protocol and tallies `reads_disagree`), `tests/test_lane_audit_two_reads.py`
+(9 tests), the attempt-2 section of `docs/lane-audit.md`, A-network-008.
+
+Measured: calibration (50) single-read exact 66 % / 54 %, reads agree 76 %, agreed counts 26/38 =
+68.4 % (motorway 19/23, trunk 7/15). No threshold reaches 80 % on >= 15 kept (0.8 -> 81.8 % on 11).
+Holdout (30) single reads 80 % / 80 %, agree 93 %, agreed 23/28 = 82.1 % (motorway 12/15, trunk
+11/13); 80.0-90.9 % at every cut keeping >= 10. Prince Majid Road (tag 3): 6 of the 12 agreed
+calibration errors; both reads say 4 on five of its ways. Sensitivity (information only, not the
+gate): without it, the calibration threshold is 0.45 (83.3 % on 18) and the holdout at 0.45 is 87.0 %
+on 23. Crops: 247 audit crops in 411 s (1,236 tiles). Ten analyst calls in parallel, about 100 s.
+ruff clean, pytest 74 run (72 passed, 2 skipped).
+
+Not done because of the block: the audit reads, `imagery-lanes.yaml`, `jeddah.lanes.net.xml`, the
+after-smoke. The before-smoke is unchanged (26 teleports = 0.144 %, 22.4 s). `jeddah.net.xml`
+untouched.
+
+Could not verify: Prince Majid Road's real lane count (tag 3, edited 2026-05-17, vs three blind
+passes reading 4); the Esri capture dates.
+
+Next: a person checks Prince Majid Road (3 or 4 through lanes per direction). If it has 4, fix the
+tag or add a reviewed fix and re-run `evaluate-two-reads`. The calibration then reaches 81.6 %
+agreed, and the rule picks 0.75 (exactly 80 % on 15, so only just). Then read the 247 audit crops
+(26 calls) and run `write-fixes`, `rebuild` and the smoke. If it has 3, keep trunk out and consider a
+motorway-only pass. Integration: add `pillow` to pyproject.
+
+LANE_AUDIT_V2: blocked - accuracy
