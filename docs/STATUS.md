@@ -226,9 +226,13 @@ End to end on main (10 % sample, seed 1, synthetic demand, uncalibrated):
 Loop film: `movies/specs/loop.yaml` is now a real spec (3 shots, 34 s): C1 alignment and its 8
 stations over the morning-peak baseline, then difference mode (`loop_recommended` minus the
 baseline) in the morning peak along the corridor and the evening peak across the city. KPIs are copied
-from the docs/loop.md Recommendation table. `make movie FILM=loop`: 1920x1080, 1020 frames, 34.00 s,
-69.6 MB, 0.19 s/frame, 246 s, browser RSS max 1,437 MB, disk max 307 MB. Showreel rebuilt with 8 films:
+from the docs/loop.md Recommendation table. `make movie FILM=loop` (final spec): 1920x1080, 1020 frames, 34.00 s,
+69.7 MB, 0.19 s/frame, 246 s, browser RSS max 1,363 MB, disk max 308 MB. Showreel rebuilt with 8 films:
 171.0 s, 5130 frames; README GIFs and stills re-exported (`loop.gif` 1.05 MB, `loop.jpg`).
+Verifier (independent agent): merge hygiene, register, schema CLI, film numbers against docs/loop.md,
+reproduction of `loop_opt_c1_a0p3`, docs and screenshots PASS; `loop_demo` run twice gives identical
+outputs. Two FAILs fixed: the manifest keys above (I-008) and the stale `spec_sha` note (I-009);
+caption nits fixed (relief KPI says two-seed mean; C8 is an airport test, not a hot-spot pick).
 
 Decisions:
 - I-007 Film source run: Track D's city runs had their edge Parquet pruned (disk rule,
@@ -237,12 +241,15 @@ Decisions:
   173 MB, gitignored), with identical results to `loop_opt_c1_a0p3` (above).
 - I-008 Renderer: two optional layer fields, `line` (open polyline) and `stations` (points), in
   `scripts/movies/spec.py`, `web/src/cinema/{types,scene}.ts` (additive; other specs unchanged, bundle
-  hashes unchanged). Test `test_loop_film_draws_the_recommended_alignment`.
+  manifests unchanged: `bundle.py` leaves the two keys out of `manifest.json` when unset, verifier
+  fix; `city-24h` re-bundled on main has Track E's bundle hashes). Test
+  `test_loop_film_draws_the_recommended_alignment`.
 - I-009 Showreel length: with the 8th film the showreel was 198 s, over the 2-3 min brief, so every
   spec's `showreel:` excerpt is now 20 s (171 s total). The field is read only by `showreel.py`, so
   film frames and bundles are unchanged; the six films rendered in Track E's worktree were cloned
   (`cp -c`) into main's `movies/` rather than re-rendered (their bundle hashes match main's, pass 2);
-  their `movies/<film>.json` `spec_sha` predates this excerpt edit.
+  the recorded `spec_sha` in `movies/<film>.json` of those six and of `tahlia-street` predates this
+  excerpt edit (only the `showreel:` line changed); `loop` was re-rendered after it and matches.
 - I-010 The viewer offers no comparison for Loop runs: it compares only runs on the same network
   hash, and a Loop run uses the tunnel variant network (`8427a6128498c026`). The film's
   difference mode matches edges by id, so it works; a viewer compare across variant networks is a

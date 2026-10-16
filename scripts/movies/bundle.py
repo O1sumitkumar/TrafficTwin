@@ -966,6 +966,9 @@ def build_bundle(
     shots = []
     for shot in film.shots:
         d = shot.model_dump()
+        for key in ("line", "stations"):  # optional layers: absent keeps older manifests identical
+            if d["layers"][key] is None:
+                del d["layers"][key]
         d["hud"]["caption"] = fill_text(shot.hud.caption, facts)
         d["hud"]["detail"] = fill_text(shot.hud.detail, facts)
         shots.append(d)

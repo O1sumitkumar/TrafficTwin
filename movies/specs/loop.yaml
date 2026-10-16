@@ -31,7 +31,7 @@ shots:
       - {t: 10, lon: 39.2000, lat: 21.5470, zoom: 12.9, pitch: 50, bearing: 48, sim_t: 27000, ease: in_out}
     hud:
       caption: "C1: Al-Salamah to King Abdulaziz University, 17.9 km, 8 stations"
-      detail: Picked from 8 candidate tunnels on the delay hot spots; weekday baseline, morning peak (speed against the limit)
+      detail: Best of 8 candidate corridors (7 on the delay hot spots, 1 airport test); weekday baseline, morning peak (speed against the limit)
       legend: speed
       kpis:
         - {label: Tunnel length, value: 17.9, unit: km, decimals: 1}
@@ -55,7 +55,7 @@ shots:
       legend: diff
       kpis:
         - {label: Passengers per day, value: 28820, decimals: 0}
-        - {label: Congestion relief (VHT/day), value: 63349, decimals: 0}
+        - {label: "Congestion relief, two-seed mean (VHT/day)", value: 63349, decimals: 0}
         - {label: Morning-peak road delay, value: -2.85, unit: "%", decimals: 2, sign: true}
   - id: city
     duration_s: 10

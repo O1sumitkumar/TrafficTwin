@@ -235,8 +235,8 @@ simulating in parallel):
 | `strategist` | 1920x1080 | 1200 | 40.00 s | 28.1 MB | 2.43 MB | 0.13 s | 205 s | 1134 MB | 119 MB |
 | `evacuation` | 1920x1080 | 1200 | 40.00 s | 49.0 MB | 2.42 MB | 0.18 s | 269 s | 1216 MB | 195 MB |
 | `policy-lab` | 1920x1080 | 1080 | 36.00 s | 41.2 MB | 2.20 MB | 0.17 s | 234 s | 1475 MB | 241 MB |
-| `loop` | 1920x1080 | 1020 | 34.00 s | 69.6 MB | 2.44 MB | 0.19 s | 246 s | 1437 MB | 307 MB |
-| `showreel` | 1920x1080 | 5130 | 171.0 s | 187.0 MB | 2.60 MB | - | about 3 min | - | - |
+| `loop` | 1920x1080 | 1020 | 34.00 s | 69.7 MB | 2.44 MB | 0.19 s | 246 s | 1363 MB | 308 MB |
+| `showreel` | 1920x1080 | 5130 | 171.0 s | 186.3 MB | 2.60 MB | - | about 3 min | - | - |
 
 "per frame" is draw + screenshot; "total" adds the bundle, chunk encoding, concat and GIF. All
 eight films render in about 30 minutes; the bundles take 1-10 s each (the first build of a

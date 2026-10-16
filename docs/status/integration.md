@@ -34,3 +34,23 @@ trackE worktrees were copied into main's untracked `runs/` (I-006, about 1.1 GB)
 Next: pass 3 for trackD once its status says `LOOP: done`, then render the `loop` film.
 
 INTEGRATE: done
+
+## INTEGRATE pass 3 (Track D Loop) — 2026-10-16
+Merged `trackD` (`LOOP: done`) into `main` with `--no-ff` (b476837). No conflicts: purely additive plus
+the one appended line in `sim/schemas.py`. Track E was not redone.
+Fixes: the 21 A-loop rows merged into `docs/assumptions.md` (the register test failed after the merge);
+`python -m sim.schemas` now validates `loop_*` policies; README "Loop tunnels" section.
+Gates: ruff clean; pytest 316 passed, 1 skipped; tsc and vite build pass.
+End to end (10 % sample, seed 1, synthetic demand, uncalibrated): `loop_demo --demo` 6.8 s, identical
+to Track D's; `loop_recommended` on the city 504 s, reproduces `loop_opt_c1_a0p3` exactly (relief
+57,671 VHT/day, 28,820 passengers/day). Both in the viewer via the API:
+`docs/img/integration-loop{,-demo}.png`.
+Loop film: real spec (C1 line and stations, morning-peak baseline, Loop-minus-baseline morning and
+evening); `make movie FILM=loop` 34.00 s, 1020 frames, 246 s. Nothing copied from
+`.worktrees/trackD/runs/`: its city runs had their edge Parquet pruned, so the film's run was produced
+on main (I-007). Showreel: 8 films, 171.0 s (excerpts 20 s each, I-009). docs/movies.md and the README
+preview updated. Verifier: 2 FAILs (bundle manifest keys, spec_sha note) fixed. Details in
+docs/STATUS.md (Integration pass 3, I-007..I-010).
+Open: viewer comparison across network variants (I-010).
+
+INTEGRATE: done
