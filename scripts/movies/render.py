@@ -275,7 +275,11 @@ def probe(path: Path) -> dict[str, Any]:
 
 
 def make_gif(mp4: Path, gif: Path, start: float, r: dict[str, Any]) -> dict[str, Any]:
-    """Palette GIF of <= gif_seconds; shrinks width/fps until it is under gif_max_bytes."""
+    """Palette GIF of gif_seconds; shrinks the width until it is under gif_max_bytes.
+
+    The frame rate stays fixed: GIF delays are whole hundredths of a second, so 10 fps (0.10 s per
+    frame) gives exactly gif_seconds where 8 or 12 fps would round to a little more.
+    """
     width, fps = int(r["gif_width"]), int(r["gif_fps"])
     for _ in range(6):
         vf = (
@@ -304,7 +308,6 @@ def make_gif(mp4: Path, gif: Path, start: float, r: dict[str, Any]) -> dict[str,
         if gif.stat().st_size <= int(r["gif_max_bytes"]):
             break
         width = int(width * 0.85) // 2 * 2
-        fps = max(8, fps - 2)
     return {"bytes": gif.stat().st_size, "width": width, "fps": fps, "seconds": r["gif_seconds"]}
 
 
@@ -376,7 +379,11 @@ def render_film(
         shutil.rmtree(d, ignore_errors=True)
         d.mkdir(parents=True)
     poster_k = poster_frame(film, fps, a, b)
-    picks = sorted({a, a + (b - a) // 2, b - 1, poster_k})
+    # hash the first, middle and last frames with content (not fully faded to black)
+    fade = json.loads((bundle / "frames.json").read_text())["fade"]
+    content = [k for k in range(a, b) if fade[k] < 1] or list(range(a, b))
+    hash_ks = {content[0], content[len(content) // 2], content[-1]}
+    picks = sorted(hash_ks | {poster_k})
     hashes: dict[str, str] = {}
     poster = out_dir / f"{film.film}.poster.png"
     rss_max = 0.0
@@ -399,7 +406,7 @@ def render_film(
             for k in picks:
                 if c0 <= k < c1:
                     png = frames_dir / f"f_{k:06d}.png"
-                    if k != poster_k or k in (a, a + (b - a) // 2, b - 1):
+                    if k in hash_ks:
                         hashes[str(k)] = sha_png(png)
                     if k == poster_k:
                         shutil.copyfile(png, poster)

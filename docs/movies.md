@@ -109,19 +109,20 @@ flowchart LR
    screenshot scripts) steps frames into `runs/movies/<film>/frames/` in chunks of 150; each chunk
    is encoded with libx264 (CRF 18, yuv420p, bitexact flags) and its PNGs deleted, so at most one
    chunk is on disk; the chunks are joined without re-encoding. Then the poster (middle frame of
-   the shot at the film's midpoint, clear of cuts), a GIF preview (palette, at most 6 s and 3 MB) and `movies/<film>.json` (sizes, frame hashes,
+   the shot at the film's midpoint, clear of cuts), a GIF preview (palette, 10 fps, exactly 6 s, at most 3 MB) and `movies/<film>.json` (sizes, frame hashes,
    peak browser RSS, peak disk, timings, the GPU used).
 6. **Showreel** (`scripts/movies/showreel.py`). Title cards are drawn with Pillow over the blurred
    poster (Homebrew's ffmpeg has no `drawtext`); each film is cut to its `showreel` excerpt; films and
-   cards are joined with `xfade` crossfades. `make movies-docs` exports the README GIFs (360 px,
-   <= 1.2 MB) and JPEG stills to `docs/img/movies/`.
+   cards are joined with `xfade` crossfades. `make movies-docs` exports the README GIFs (10 fps, at
+   most 360 px wide, narrower when needed to stay <= 1.2 MB) and JPEG stills to `docs/img/movies/`.
 
 ### Determinism
 
 Same spec + same runs give the same bundle (`bundle/hashes.json`) and the same frames: the render
-clock is the frame index, the bundle is fixed, layers are a pure function of (bundle, frame). The
-smoke test renders 10 frames of `tahlia-street` twice and compares the SHA-256 of the first,
-middle and last frame. Frames are bit-identical on one machine and GPU; another GPU or Chrome
+clock is the frame index, the bundle is fixed, layers are a pure function of (bundle, frame). Each
+render records the SHA-256 of the first, middle and last frame with content (frames fully faded
+to black are skipped, so the hashes test real pictures); the smoke test renders 10 frames of
+`tahlia-street` twice and compares them. Frames are bit-identical on one machine and GPU; another GPU or Chrome
 version can differ in the last bits of anti-aliasing (not verified).
 
 ## Spec schema
