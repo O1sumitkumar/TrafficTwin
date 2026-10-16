@@ -160,6 +160,7 @@ def run_smoke(
     quiet: bool = False,
     period: float | None = None,
     fcd: bool = False,
+    begin: int | None = None,
 ) -> dict[str, Any]:
     cfg = runner_config()
     smoke = cfg["smoke"]
@@ -170,8 +171,10 @@ def run_smoke(
     net = net or (REPO_ROOT / tier_smoke["net"])
     if not net.exists():
         raise FileNotFoundError(f"{rel(net)} missing; build it first (see README)")
-    begin = int(tier_smoke["begin"])
+    begin = int(begin if begin is not None else tier_smoke["begin"])
     end = int(end if end is not None else tier_smoke["end"])
+    if end <= begin:
+        raise ValueError(f"--end ({end}) must be after --begin ({begin})")
     nhash = content_hash(net)
     run_cfg = {
         "tier": tier,
@@ -315,6 +318,7 @@ def main(
     seed: int = typer.Option(1),
     net: Path | None = typer.Option(None, help="override the network"),
     end: int | None = typer.Option(None, help="override the end time (s)"),
+    begin: int | None = typer.Option(None, help="--smoke: override the begin time (s)"),
     period: float | None = typer.Option(None, help="override the random-trips period (s)"),
     runs_dir: Path = typer.Option(RUNS_DIR),
     fcd: bool = typer.Option(False, "--fcd", help="write FCD (Tier B only) for the viewer"),
@@ -347,7 +351,7 @@ def main(
         return
     if not smoke:
         raise typer.BadParameter("only --smoke is implemented in M1 (baselines arrive in M2)")
-    meta = run_smoke(tier, seed, net, end, runs_dir, period=period, fcd=fcd)
+    meta = run_smoke(tier, seed, net, end, runs_dir, period=period, fcd=fcd, begin=begin)
     if not meta["teleport_ok"]:
         raise typer.Exit(code=2)
 
