@@ -78,10 +78,12 @@ def with_value(pol: Policy, param: str, value: float) -> Policy:
     return Policy.model_validate(data)
 
 
-def _point(args: tuple[dict[str, Any], str, float, int, str]) -> dict[str, Any]:
-    pol_data, daytype, sample, seed, runs_dir = args
+def _point(args: tuple[dict[str, Any], str, float, int, str, str]) -> dict[str, Any]:
+    pol_data, daytype, sample, seed, runs_dir, baselines_dir = args
     pol = Policy.model_validate(pol_data)
-    meta = run_policy(pol, daytype, sample, seed, Path(runs_dir), quiet=True)
+    # baselines come from the main runs directory, never from the sweep directory
+    meta = run_policy(pol, daytype, sample, seed, Path(runs_dir), quiet=True,
+                      baselines_dir=Path(baselines_dir))  # fmt: skip
     report = json.loads((Path(runs_dir) / meta["run_id"] / "policy_report.json").read_text())
     return {"run_id": meta["run_id"], "kpis": report["kpis"]}
 
@@ -104,7 +106,7 @@ def sweep(
     points = [with_value(base, name, v) for v in values]
     workers = workers or int(run_config()["sweep"]["workers"])
     t0 = time.perf_counter()
-    jobs = [(p.model_dump(), daytype, sample, seed, str(out)) for p in points]
+    jobs = [(p.model_dump(), daytype, sample, seed, str(out), str(runs_dir)) for p in points]
     if workers <= 1:
         results = [_point(j) for j in jobs]
     else:

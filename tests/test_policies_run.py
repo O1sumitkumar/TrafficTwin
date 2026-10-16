@@ -189,11 +189,15 @@ def test_sweep_writes_response_curve(penv: dict, tmp_path: Path) -> None:
 
     assert S.parse_grid("share=0.1:0.5:0.1") == ("share", [0.1, 0.2, 0.3, 0.4, 0.5])
     assert S.template("remote_work").id == "remote_work_30"
-    kw = {k: v for k, v in penv["kw"].items() if k not in ("sample", "seed")}
+    kw = {k: v for k, v in penv["kw"].items() if k not in ("sample", "seed", "baselines_dir")}
     real = S.run_policy
+    seen = []
 
-    def point(pol, daytype, sample, seed, runs_dir, quiet=True):  # noqa: ANN001, ANN202
-        return real(pol, daytype, sample, seed, runs_dir, **kw)
+    def point(pol, daytype, sample, seed, runs_dir, quiet=True, baselines_dir=None):  # noqa: ANN001, ANN202
+        seen.append(baselines_dir)
+        return real(
+            pol, daytype, sample, seed, runs_dir, baselines_dir=penv["kw"]["baselines_dir"], **kw
+        )
 
     S.run_policy = point
     try:
@@ -205,6 +209,7 @@ def test_sweep_writes_response_curve(penv: dict, tmp_path: Path) -> None:
     assert list(df["share"]) == [0.2, 0.6]
     assert df["trips_completed"].iloc[1] < df["trips_completed"].iloc[0]
     assert SYNTHETIC_LABEL in (out / "response_curve.csv").read_text().splitlines()[0]
+    assert seen == [tmp_path, tmp_path]  # baselines looked up in the parent runs dir
 
 
 def test_ridehail_keeps_routes_and_placebo(penv: dict, tmp_path: Path) -> None:
