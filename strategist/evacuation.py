@@ -447,8 +447,18 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
                 "explanation": explain(c, cands, results, scores, base_strategy),
             }
         )
-    options = [t for t in table if t["rank"] is not None][:top_n]
     base = next(t for t in table if t["candidate_id"] == NO_STRATEGY)
+    for t in table:
+        t["beats_no_strategy"] = t["rank"] is not None and t["score"] < base["score"]
+    options = [t for t in table if t["rank"] is not None][:top_n]
+    fastest = min(
+        (t for t in table if t["rank"] is not None),
+        key=lambda t: (
+            V.effective(t["clearance"], "t90_s") + V.effective(t["clearance"], "t100_s"),
+            t["candidate_id"],
+        ),  # fmt: skip
+        default=None,
+    )
     best = options[0] if options else None
     beats = bool(best and best["score"] < base["score"])
     beats_t90 = bool(best and best["t90_vs_no_strategy_s"] < -noise["t90_s"])
@@ -484,6 +494,8 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
         "options": options,
         "no_strategy": base,
         "best_beats_no_strategy": beats,
+        "recommended": options[0]["candidate_id"] if beats else NO_STRATEGY,
+        "fastest_clearance": fastest["candidate_id"] if fastest else None,
         "best_beats_no_strategy_t90_beyond_noise": beats_t90,
         "noise": noise,
         "replicate": {k: results[REPLICATE][k] for k in ("clearance", "background", "teleports")},
@@ -575,10 +587,29 @@ def render_md(r: dict[str, Any]) -> str:
             f"{t['signals_retimed']} | "
             f"{t['score']:,.0f} | {t['classification']} |"
         )
-    lines += ["", "## Top options", ""]
+    if r["recommended"] == NO_STRATEGY:
+        rec_line = (
+            "**Recommendation: no strategy.** No option beats the evacuation as written on score; "
+            "the ranked options below are alternatives, each worse than no strategy."
+        )
+    else:
+        rec_line = f"**Recommendation: option 1 (`{r['recommended']}`).**"
+    fast = next((t for t in r["candidates"] if t["candidate_id"] == r["fastest_clearance"]), None)
+    if fast:
+        rec_line += (
+            f" Fastest clearance (T90 + T100): `{fast['candidate_id']}`, T90 "
+            f"{fast['t90_vs_no_strategy_s']:+.0f} s versus no strategy, score "
+            f"{fast['score']:,.0f} versus {r['no_strategy']['score']:,.0f} (penalty terms: "
+            + ", ".join(
+                f"{k} {v:,.0f}" for k, v in fast["terms"].items() if k not in ("t90", "t100") and v
+            )  # fmt: skip
+            + ")."
+        )
+    lines += ["", rec_line, "", "## Top options", ""]
     for o in r["options"]:
         lines.append(
-            f"### {o['rank']}. {o['label']} (`{o['candidate_id']}`, {o['classification']})"
+            f"### {o['rank']}. {o['label']} (`{o['candidate_id']}`, {o['classification']}"
+            f"{'' if o['beats_no_strategy'] else ', worse than no strategy'})"
         )
         lines.append("")
         lines += [f"- {x}" for x in o["explanation"]]

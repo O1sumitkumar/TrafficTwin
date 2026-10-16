@@ -133,6 +133,11 @@ def test_strategist_ranks_options(rec: dict[str, Any]) -> None:
     run_dir = run_dir if run_dir.is_absolute() else Path.cwd() / run_dir
     assert not list((rec["root"] / "runs").rglob("fcd*")), "no FCD in what-if runs"
     assert r["no_strategy"]["clearance"]["vehicles"] == 150
+    assert r["recommended"] in ids and r["fastest_clearance"] in ids
+    if r["recommended"] == S.NO_STRATEGY:
+        assert not any(c["beats_no_strategy"] for c in r["candidates"])
+    md = (run_dir / "recommendation.md").read_text()
+    assert "Recommendation:" in md and "noise" in md
 
 
 def test_strategist_no_strategy_matches_demo_run(rec: dict[str, Any], runs: dict[str, Any]) -> None:
