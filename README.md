@@ -176,6 +176,29 @@ uv run python -m sim.calibrate --counts runs/synthetic-demo/counts.csv --net dat
 ```
 Synthetic counts only exercise the pipeline. See `docs/calibration.md`.
 
+## Movies
+
+Short films rendered from the runs (edge bins, trajectories, event and strategist outputs), one
+per simulation mode, plus a showreel. Needs ffmpeg and Google Chrome; output in `movies/`.
+
+```bash
+make movies                         # all films + movies/showreel.mp4
+make movie FILM=tahlia-street       # one film; MOVIE_FLAGS="--4k --fps 60 --letterbox" optional
+```
+
+| | |
+|---|---|
+| ![city-24h](docs/img/movies/city-24h.gif) | ![tahlia-street](docs/img/movies/tahlia-street.gif) |
+| `city-24h`: the weekday baseline as a 24 h time-lapse | `tahlia-street`: street level, morning peak |
+| ![incident](docs/img/movies/incident.gif) | ![events](docs/img/movies/events.gif) |
+| `incident`: crash run against its baseline | `events`: rain, flood, motorcade |
+| ![strategist](docs/img/movies/strategist.gif) | ![evacuation](docs/img/movies/evacuation.gif) |
+| `strategist`: the top 3 ambulance options | `evacuation`: phased release with contraflow |
+| ![policy-lab](docs/img/movies/policy-lab.gif) | |
+| `policy-lab`: policies in difference mode | |
+
+How it works, the spec schema and the camera-path cookbook: `docs/movies.md`.
+
 ## Lane audit from imagery (blocked)
 
 `sim/network/lane_audit.py` is built but its calibration precision is below the gate, so no

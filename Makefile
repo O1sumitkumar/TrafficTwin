@@ -4,6 +4,8 @@
 #   make city        city network + 10 % weekday 24 h baseline (long: about 2 h uncached)
 #   make test        ruff + pytest (demo window only, about 3 min)
 #   make stop        stop servers started with `./run_app.sh --detach`
+#   make movies      render every film in movies/specs/ + the showreel (needs ffmpeg, Chrome)
+#   make movie FILM=tahlia-street   render one film to movies/<film>.mp4
 #
 # Variables: CITY=0 skips the 243 MB OSM download and the Tier A smoke; SEED=1; SAMPLE=0.10;
 # DETACH=1 leaves the servers running in the background (used by the screenshot proof).
@@ -17,7 +19,8 @@ UV := uv
 CITY_NET := data/jeddah/jeddah.net.xml
 M2_NET := data/jeddah/jeddah.m2.net.xml
 
-.PHONY: demo setup city-net demo-runs ingest serve city city-baseline test screenshots stop clean-demo
+.PHONY: demo setup city-net demo-runs ingest serve city city-baseline test screenshots stop clean-demo \
+	movies movie showreel movies-check movies-docs
 
 demo: setup $(if $(filter 1,$(CITY)),city-net) demo-runs ingest serve
 
@@ -76,3 +79,25 @@ stop:
 
 clean-demo:
 	rm -rf runs/demo-manifest.json data/demo-cache
+
+# Cinematic films of existing runs (Track E, docs/movies.md). One film at a time; frames are
+# deleted after encoding. MOVIE_FLAGS passes options through (e.g. --4k, --fps 60, --letterbox).
+FILM ?= tahlia-street
+MOVIE_FLAGS ?=
+movies-check:
+	@command -v ffmpeg >/dev/null || { \
+	  if command -v brew >/dev/null; then brew install ffmpeg; \
+	  else echo "ffmpeg is required (apt install ffmpeg)"; exit 1; fi; }
+	@$(MAKE) --no-print-directory web/node_modules/.package-lock.json
+movie: movies-check
+	mkdir -p logs
+	set -o pipefail; $(UV) run python -m scripts.movies.render $(FILM) $(MOVIE_FLAGS) 2>&1 | tee logs/movie-$(FILM).log
+movies: movies-check
+	mkdir -p logs
+	set -o pipefail; $(UV) run python -m scripts.movies.render --all $(MOVIE_FLAGS) 2>&1 | tee logs/movies.log
+	$(UV) run python -m scripts.movies.showreel
+	$(UV) run python -m scripts.movies.assets
+showreel:
+	$(UV) run python -m scripts.movies.showreel
+movies-docs:
+	$(UV) run python -m scripts.movies.assets

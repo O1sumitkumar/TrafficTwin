@@ -1,0 +1,7 @@
+# Loop tunnels (Track D): rendered only once docs/loop.md exists on this branch (Track D merged).
+# Until then this stub validates but is skipped by `make movies` and the showreel.
+film: loop
+title: The Loop
+duration_s: 30
+stub: true
+note: "Track D (Loop) is not merged on this branch: no docs/loop.md and no loop runs in runs/"
