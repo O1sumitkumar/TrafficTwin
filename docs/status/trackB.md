@@ -77,7 +77,7 @@ baseline 3,652 inserted, mean delay 97.8 s, 13 teleports (0.34 % of 3,855 loaded
 accident +5.7 %, heavy rain +23.3 %, flood +123.8 %, motorcade -11.2 % (not interpretable),
 emergency +4.8 % with the ambulance at 2.0x free flow. About 190-205 s wall per scenario (emergency 119 s)
 (baseline and scenario in parallel). accident_tahlia run twice (lead and verifier): identical KPIs.
-Tests: 79 pass (about 30-50 s on the shared machine); ruff clean.
+Tests: 79 pass (about 30-60 s on the shared machine); ruff clean.
 Could not verify: rain-effect citations (Agarwal et al. 2005, Rakha et al. 2008, HCM 2010
 Exhibit 10-15) and AASHTO wet deceleration, quoted from memory and marked unverified; flood-site
 locations beyond OSM matching; gridlock detection on a real gridlocked run (unit-tested only).
