@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-16 (integration pass 2: Track E movies merged; Track D still running)
+Last updated: 2026-10-16 (integration pass 3: Track D Loop merged, `loop` film rendered, showreel with 8 films)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -21,8 +21,8 @@ All results: **synthetic demand, uncalibrated**.
 | M8 | Calibration (dormant) | done (Track A) | synthetic round trip GEH<5 100 %; no real counts |
 | M9 | Docs and release | done | `make demo` from a fresh clone: 6 min 23 s, screenshots docs/img/final-*.png; `docker compose up --build` verified; section below |
 | LANE_AUDIT, v2 | Lane counts from imagery | blocked - accuracy (Track C) | held-out precision 60 % < 80 % gate; `jeddah.lanes.net.xml` not written, so not promoted |
-| MOVIES | Cinematic films (Track E) | done (Track E), merged in integration pass 2 | 7 films rebuilt from main with identical bundle hashes; `tahlia-street` full render on main 30.00 s, 155.9 s; docs/movies.md |
-| LOOP | Loop tunnels | not merged (Track D in progress) | trackD status says `LOOP — in progress`; needs a second integration pass |
+| MOVIES | Cinematic films (Track E) | done (Track E), merged in integration pass 2; `loop` film added in pass 3 | 8 films; `loop` rendered on main 34.00 s, 246 s; showreel 171.0 s (8 films); docs/movies.md |
+| LOOP | Loop tunnels | done (Track D), merged in integration pass 3 | recommended C1 + shuttle alpha 0.3 reproduced on main: relief 57,671 VHT/day, 28,820 passengers/day; docs/loop.md |
 
 ## Integration — 2026-10-16
 Merged on `main`: trackC (c5b3203), trackB (46fc412), trackA (13ed16e), in that order. Conflicts only
@@ -197,6 +197,57 @@ Note: in this shell `NODE_ENV=production`, so a bare `npm ci` skips devDependenc
 Open: the `loop` film waits for Track D (next integration pass: merge trackD once `LOOP: done`, then
 `make movie FILM=loop`); incident film has no shockwave (E-D-008); strategist HUD shows raw edge ids.
 
+## Integration pass 3 (Track D Loop) — 2026-10-16
+Merged `trackD` (status `LOOP: done`, verifier PASS at 21:00) with `--no-ff` (b476837). No conflicts:
+the branch is additive (`sim/loop/`, `sim/policies/loop_*.yaml`, `docs/loop.md`,
+`docs/assumptions-trackD.md`, `docs/data-sources-trackD.md`, `docs/img/loop-candidates.png`,
+`tests/test_loop*.py`) plus the one appended line in `sim/schemas.py`. Track E was not redone.
+
+Fixes on main: (1) the merge broke `test_merged_register_holds_every_track_row`: the 21 A-loop rows
+are now in `docs/assumptions.md` (section "Loop tunnels (Track D)"); `docs/data-sources.md` points to
+the two track source lists. (2) `python -m sim.schemas sim/policies/loop_*.yaml` failed: under
+`-m` the module is `__main__` and `app()` ran before the appended Loop import, so `validate_file` now
+validates policies with a `loop_*` transform as `LoopPolicy` (lazy import). (3) README gained a
+"Loop tunnels (Track D)" section and the `loop` GIF in the Movies preview.
+
+Gates: ruff check + format clean; pytest 316 passed, 1 skipped (4 min 30 s); `tsc --noEmit` and
+`vite build` pass.
+
+End to end on main (10 % sample, seed 1, synthetic demand, uncalibrated):
+- `uv run python -m sim.loop.run loop_demo --demo`: 6.8 s; Loop report identical to Track D's
+  (2.26 km, 3 stations, relief 0 VHT/day, net person-h -49). In the viewer through the API
+  (`TT_RUNS_DIR=runs/loop-demo/runs`, the demo's own runs dir): `docs/img/integration-loop-demo.png`.
+- `uv run python -m sim.loop.run loop_recommended`: 504 s (sim 388 s), start/compare baseline
+  `...-65b0f3` (outputs identical to Track D's `...-f124c5`, I-001). Reproduces Track D's
+  `loop_opt_c1_a0p3` exactly: relief 57,671 VHT/day (+2.12 %), 28,820 passengers/day, segment
+  exceedance 0.017, AM-peak road delay -2.85 %, city VHT saved 61,140/day. Listed by `/api/runs` with
+  its baseline: `docs/img/integration-loop.png`.
+
+Loop film: `movies/specs/loop.yaml` is now a real spec (3 shots, 34 s): C1 alignment and its 8
+stations over the morning-peak baseline, then difference mode (`loop_recommended` minus the
+baseline) in the morning peak along the corridor and the evening peak across the city. KPIs are copied
+from the docs/loop.md Recommendation table. `make movie FILM=loop`: 1920x1080, 1020 frames, 34.00 s,
+69.6 MB, 0.19 s/frame, 246 s, browser RSS max 1,437 MB, disk max 307 MB. Showreel rebuilt with 8 films:
+171.0 s, 5130 frames; README GIFs and stills re-exported (`loop.gif` 1.05 MB, `loop.jpg`).
+
+Decisions:
+- I-007 Film source run: Track D's city runs had their edge Parquet pruned (disk rule,
+  `evaluate --prune`), so none of `.worktrees/trackD/runs/` could feed a heat map and **nothing was
+  copied** from it. Instead the recommended policy file was run on main (`runs/loop_recommended`,
+  173 MB, gitignored), with identical results to `loop_opt_c1_a0p3` (above).
+- I-008 Renderer: two optional layer fields, `line` (open polyline) and `stations` (points), in
+  `scripts/movies/spec.py`, `web/src/cinema/{types,scene}.ts` (additive; other specs unchanged, bundle
+  hashes unchanged). Test `test_loop_film_draws_the_recommended_alignment`.
+- I-009 Showreel length: with the 8th film the showreel was 198 s, over the 2-3 min brief, so every
+  spec's `showreel:` excerpt is now 20 s (171 s total). The field is read only by `showreel.py`, so
+  film frames and bundles are unchanged; the six films rendered in Track E's worktree were cloned
+  (`cp -c`) into main's `movies/` rather than re-rendered (their bundle hashes match main's, pass 2);
+  their `movies/<film>.json` `spec_sha` predates this excerpt edit.
+- I-010 The viewer offers no comparison for Loop runs: it compares only runs on the same network
+  hash, and a Loop run uses the tunnel variant network (`8427a6128498c026`). The film's
+  difference mode matches edges by id, so it works; a viewer compare across variant networks is a
+  follow-up.
+
 ## Measured
 - M0: pytest 26 tests, 8.6 s wall (demo window only, offline). Demo window: 939 edges, 401 junctions,
   1 traffic light, 114.36 lane-km. Tier B demo smoke (micro, seed 1, 1 h, 1,800 trips): 0.76 s,
@@ -265,6 +316,8 @@ Open: the `loop` film waits for Track D (next integration pass: merge trackD onc
   junction clusters, ramps), not demand, is the binding issue. Lane audit blocked on accuracy.
 - Assignment of an uncached 10 % baseline takes about 2 h (8 routing threads, not repeatable;
   1 thread is repeatable but slower: TA-013/TA-015). Routes are cached by key.
+- Viewer compare is limited to runs on the same network hash, so Loop (and any network-variant)
+  runs show no baseline comparison in the viewer (I-010); the films compare by edge id.
 - Disk: 80 GB free at the end of integration (was at 99 % mid-day); 10 % city runs are 0.3-0.6 GB
   each with gzip, the bins cache about 0.2 GB per 24 h run.
 
@@ -597,3 +650,15 @@ GIF previews 6.00 s. Determinism: `tahlia-street` rendered three times with iden
 test renders frames 100-110 twice. Display-only assumptions A-mov-001..008; no simulation result changes.
 Not verified: bit-identical frames on another GPU or Chrome; the 4K and 60 fps flags.
 MOVIES: done
+
+### LOOP (Track D)
+Summary (full log in docs/status/trackD.md, decisions TD-001..015): Boring-style Loop tunnels on the
+Tier A model. Desire lines and time-loss corridors pick 8 candidate alignments (C1-C8); each is one
+city run in shuttle mode plus a seed-2 replicate; greedy selection under 25 tunnel-km with a knapsack
+correction picks C1 Al-Salamah - King Abdulaziz University (17.9 km, 8 stations, USD 268-714 M). The
+sweep (mode, speed, toll, alpha, radius, capacity, time-competitive shift) recommends shuttle mode
+capped by the measured capacity (alpha 0.3): relief 63,349 VHT/day two-seed mean (band 23,435 to
+103,263), AM-peak road delay -2.85 %, 141.9 VHT/day per USD M at central capex. Private-EV at
+SAR 10 overloads the tunnel at measured capacity. Noise is about +/- 34,000 VHT/day per comparison.
+Assumptions A-loop-001..020 (merged); sources `docs/data-sources-trackD.md`.
+LOOP: done
