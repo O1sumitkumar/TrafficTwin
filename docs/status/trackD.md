@@ -86,3 +86,22 @@ pruning (run dir 47 MB + 42 MB variant network, now deleted after each run).
   (A-loop-019) moved to YAML and registered; the sweep reads the YAML sweep lists.
   Known limitation kept: `python -m sim.policies.run loop_demo` validates (schema registration)
   but fails at apply; Loop policies run through `python -m sim.loop.run`.
+- TD-011 Seed-2 replicates (14:10-15:40): C1 71.0k / 71.5k and C2 47.4k / 53.2k VHT/day relief
+  agree; C3 (-19.8k / +89.5k), C5 and C6 change sign and are excluded. The seed-2 baseline is
+  itself more congested (+36k VHT) and relief is larger from a more congested start, so seed 2
+  runs systematically higher (gridlock non-linearity). Replicate noise of one comparison:
+  34k VHT/day relief (1.25 %). Greedy (with the knapsack correction) selects C1 alone
+  (17.86 km): C2 is best per km but nothing else fits beside it, and C1 alone relieves more.
+- TD-012 Shuttle speed runs on C1 gave 42.7k / 53.5k / 95.6k relief at 50 / 90 / 160 km/h.
+  Shuttles never use surface roads, so tunnel speed has no causal path to road relief in this
+  model: the spread is simulation noise (a direct empirical noise estimate, larger than the
+  replicate's). The recommendation pools the shuttle speed runs as replicates of one option;
+  speed matters only for riders (and in private mode).
+- TD-013 With the 180 s dispatch window shuttles run less full, so at the measured Vegas
+  throughput (~680 shuttles/h per direction) ~30 % of C1 tunnel-segment traversals are in
+  over-capacity hours. Over-capacity throughput is possible only via jam teleports (120 s
+  teleport time, A-sim-103): vehicles queued at a full tunnel jump through it. The private-EV
+  SAR 10 run reached 3x the tunnel capacity this way (98.7k relief vs its matched control is
+  therefore teleport-assisted). Tunnel segment exceedance is now measured for both modes and
+  gates the recommendation; a private-EV engineering-capacity run was added. Optimiser
+  restarted 16:30 (finished runs reused), ~4.5 h of runs left.
