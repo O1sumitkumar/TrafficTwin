@@ -47,6 +47,7 @@ LEVER_NAMES = {
 AUTO = "auto_eligible"
 APPROVAL = "approval_required"
 NO_STRATEGY = "no_strategy"
+REPLICATE = "no_strategy_replicate"
 WEIGHT_KEYS = ("w_t90", "w_t100", "w_delay", "w_contraflow", "w_signal", "w_order")
 LEVER_LABELS = {
     "phasing": {"near_first": "near-first phased release", "far_first": "far-first phased release"},
@@ -178,22 +179,54 @@ def evaluate(
         }
         for c in cands
     ]
+    # noise replicate (A-evac-035): the no-strategy plan (same evacuees and departure times)
+    # with another SUMO seed, so only the run-to-run randomness of driving differs
+    ids = [c["id"] for c in cands]
+    specs.append(
+        {
+            **common,
+            "seed": sit.seed + int(V.model("replicate_seed_offset")),
+            "run_dir": str(out / "candidates" / REPLICATE),
+            "plans": V.ordered_plans(sit, plans[NO_STRATEGY]),
+        }
+    )
+    ids.append(REPLICATE)
+    plans[REPLICATE] = plans[NO_STRATEGY]
     n = workers or int(V.model("max_workers"))
     results = V.execute(V.simulate, specs, workers=n)
     idx = NetIndex(sit.net)
     return {
-        c["id"]: {
-            **V.summarize_run(sit, plans[c["id"]], r, idx),
+        cid: {
+            **V.summarize_run(sit, plans[cid], r, idx),
             "run_dir": rel(Path(r["run_dir"])),
         }
-        for c, r in zip(cands, results, strict=True)
+        for cid, r in zip(ids, results, strict=True)
+    }
+
+
+def noise_band(results: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    """Absolute differences between the no-strategy run and its replicate (one replicate: a
+    crude estimate of run-to-run noise, A-evac-035)."""
+    a, b = results[NO_STRATEGY], results[REPLICATE]
+
+    def diff(key: str) -> float:
+        return round(abs(V.effective(a["clearance"], key) - V.effective(b["clearance"], key)), 1)
+
+    return {
+        "t90_s": diff("t90_s"),
+        "t100_s": diff("t100_s"),
+        "delay_veh_h": round(
+            abs(a["background"]["delay_veh_h"] - b["background"]["delay_veh_h"]), 3
+        ),
+        "replicate_seed": None,
     }
 
 
 def score(res: dict[str, Any], base: dict[str, Any], cand: dict[str, Any],
-          w: dict[str, float]) -> dict[str, Any]:  # fmt: skip
+          w: dict[str, float], noise: dict[str, Any] | None = None) -> dict[str, Any]:  # fmt: skip
     c = res["clearance"]
     added = round(res["background"]["delay_veh_h"] - base["background"]["delay_veh_h"], 3)
+    excess = round(max(0.0, added - (noise or {}).get("delay_veh_h", 0.0)), 3)
     lane_km = sum(a.get("lane_km", 0.0) for a in cand["actions"] if a["type"] == "contraflow")
     staged = (
         int(V.value("phasing", "sectors")) - 1
@@ -203,13 +236,14 @@ def score(res: dict[str, Any], base: dict[str, Any], cand: dict[str, Any],
     terms = {
         "t90": w["w_t90"] * V.effective(c, "t90_s"),
         "t100": w["w_t100"] * V.effective(c, "t100_s"),
-        "delay": w["w_delay"] * max(0.0, added),  # side-effect penalty only (A-evac-029)
+        "delay": w["w_delay"] * excess,  # penalty only, beyond the noise band (A-evac-029/035)
         "contraflow": w["w_contraflow"] * lane_km,
         "signals": w["w_signal"] * len(res["signals_retimed"]),
         "orders": w["w_order"] * staged,
     }
     return {
         "added_veh_h": added,
+        "added_beyond_noise_veh_h": excess,
         "terms": {k: round(v, 3) for k, v in terms.items()},
         "score": round(sum(terms.values()), 3),
     }
@@ -235,11 +269,12 @@ def classify(cand: dict[str, Any], added: float) -> dict[str, Any]:
 
 
 def rank(cands: list[dict[str, Any]], results: dict[str, dict[str, Any]],
-         w: dict[str, float], top_n: int) -> list[dict[str, Any]]:  # fmt: skip
+         w: dict[str, float], top_n: int,
+         noise: dict[str, Any] | None = None) -> list[dict[str, Any]]:  # fmt: skip
     base = results[NO_STRATEGY]
     rows = []
     for c in cands:
-        s = score(results[c["id"]], base, c, w)
+        s = score(results[c["id"]], base, c, w, noise)
         rows.append({"candidate_id": c["id"], "label": c["label"], **s})
     rows.sort(key=lambda r: (r["score"], r["candidate_id"]))
     pos = 1
@@ -378,7 +413,9 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
     t_eval = time.perf_counter() - t0 - t_sit
     w = weights()
     top_n = int(V.model("top_n"))
-    ranked = rank(cands, results, w, top_n)
+    noise = noise_band(results)
+    noise["replicate_seed"] = seed + int(V.model("replicate_seed_offset"))
+    ranked = rank(cands, results, w, top_n, noise)
     scores = {r["candidate_id"]: r for r in ranked}
     by_id = {c["id"]: c for c in cands}
     base_strategy = sit.strategy()
@@ -386,7 +423,10 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
     for r in ranked:
         c = by_id[r["candidate_id"]]
         res = results[c["id"]]
-        cls = classify(c, r["added_veh_h"])
+        cls = classify(c, r["added_beyond_noise_veh_h"])
+        d90 = V.effective(res["clearance"], "t90_s") - V.effective(
+            results[NO_STRATEGY]["clearance"], "t90_s"
+        )
         table.append(
             {
                 **r,
@@ -395,6 +435,8 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
                 "classification": cls["classification"],
                 "action_classes": cls["actions"],
                 "clearance": res["clearance"],
+                "t90_vs_no_strategy_s": round(d90, 1),
+                "t90_within_noise": abs(d90) <= noise["t90_s"],
                 "background_delay_veh_h": res["background"]["delay_veh_h"],
                 "contraflow_lane_km": sum(a.get("lane_km", 0) for a in c["actions"]),
                 "signals_retimed": len(res["signals_retimed"]),
@@ -409,9 +451,7 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
     base = next(t for t in table if t["candidate_id"] == NO_STRATEGY)
     best = options[0] if options else None
     beats = bool(best and best["score"] < base["score"])
-    beats_t90 = bool(
-        best and V.effective(best["clearance"], "t90_s") < V.effective(base["clearance"], "t90_s")
-    )
+    beats_t90 = bool(best and best["t90_vs_no_strategy_s"] < -noise["t90_s"])
     snapshot_id = f"evac:{sit.scenario.id}:{sit.window}:s{seed}:{key[:16]}"
     report: dict[str, Any] = {
         "kind": "evacuation",
@@ -444,7 +484,9 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
         "options": options,
         "no_strategy": base,
         "best_beats_no_strategy": beats,
-        "best_beats_no_strategy_t90": beats_t90,
+        "best_beats_no_strategy_t90_beyond_noise": beats_t90,
+        "noise": noise,
+        "replicate": {k: results[REPLICATE][k] for k in ("clearance", "background", "teleports")},
         "fingerprint": fingerprint(results),
         "wall_s": {
             "situation": round(t_sit, 1),
@@ -505,17 +547,30 @@ def render_md(r: dict[str, Any]) -> str:
         f"{r['title']}",
         "",
         "Times are seconds after the evacuation order. Score = 0.5 x T90 + 0.5 x T100 + penalties "
-        "(lower is better; weights in sim/scenarios/evac_settings.yaml).",
+        "(lower is better; weights in sim/scenarios/evac_settings.yaml). Noise band from a "
+        "replicate of the no-strategy run with another SUMO seed: "
+        f"T90 +/- {r['noise']['t90_s']:.0f} s, T100 +/- {r['noise']['t100_s']:.0f} s, "
+        f"background delay +/- {r['noise']['delay_veh_h']:.1f} veh-h; delay is penalised only "
+        "beyond it; (~) = T90 within the noise band of no strategy.",
         "",
         "| rank | option | T50 | T90 | T100 | out | teleports | bg delay added (veh-h) "
         "| contraflow lane-km | signals | score | class |",
         "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
-    for t in r["candidates"]:
+    for t in [*r["candidates"], {**r["replicate"], "replicate": True}]:
         c = t["clearance"]
+        if t.get("replicate"):
+            dd = t["background"]["delay_veh_h"] - r["no_strategy"]["background_delay_veh_h"]
+            lines.append(
+                f"| noise | no strategy, SUMO seed {r['noise']['replicate_seed']} | "
+                f"{_s(c['t50_s'])} | {_s(c['t90_s'])} | {_s(c['t100_s'])} | "
+                f"{c['out']}/{c['vehicles']} | {t['teleports']} | {dd:+.2f} | - | - | - | - |"
+            )
+            continue
         lines.append(
             f"| {t['rank'] or '-'} | {t['candidate_id']}: {t['label']} | {_s(c['t50_s'])} | "
-            f"{_s(c['t90_s'])} | {_s(c['t100_s'])} | {c['out']}/{c['vehicles']} | "
+            f"{_s(c['t90_s'])}{' (~)' if t['t90_within_noise'] and t['rank'] else ''} | "
+            f"{_s(c['t100_s'])} | {c['out']}/{c['vehicles']} | "
             f"{t['teleports']} | {t['added_veh_h']:+.2f} | {t['contraflow_lane_km']:.2f} | "
             f"{t['signals_retimed']} | "
             f"{t['score']:,.0f} | {t['classification']} |"
@@ -546,7 +601,8 @@ def render_md(r: dict[str, Any]) -> str:
         "",
         "Best option beats no strategy on score: "
         f"{'yes' if r['best_beats_no_strategy'] else 'no'}; "
-        f"on T90: {'yes' if r['best_beats_no_strategy_t90'] else 'no'}.",
+        "on T90 beyond the noise band: "
+        f"{'yes' if r['best_beats_no_strategy_t90_beyond_noise'] else 'no'}.",
         f"Wall time: situation {r['wall_s']['situation']} s, {len(r['candidates'])} what-ifs "
         f"{r['wall_s']['evaluation']} s ({r['wall_s']['workers']} workers), total "
         f"{r['wall_s']['total']} s. Fingerprint {r['fingerprint']}.",
