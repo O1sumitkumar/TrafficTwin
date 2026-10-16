@@ -289,3 +289,18 @@ def test_edge_table(env: Path) -> None:
     assert df["lon"].between(BBOX[0] - 0.01, BBOX[2] + 0.01).all()
     assert df["passenger"].any() and df["bus"].any() and (df["name"] != "").any()
     assert isinstance(df, pd.DataFrame) and E.load_edges(DEMO_NET).equals(df)  # cached
+
+
+def test_remote_work_share_by_sector(env: Path, tmp_path: Path) -> None:
+    plan = make_plan(env, tmp_path)
+    before = plan.vehicles.copy()
+    seg = plan.trips.drop_duplicates("tour_id").set_index("tour_id")["segment"].astype(str)
+    t = remote(share={"government": 1.0, "private_office": 0.0}, days_per_week=5)
+    eff = T.remote_work(plan, t)
+    gone = set(before["tour_id"]) - set(plan.vehicles["tour_id"])
+    assert eff["remote_today"] > 0 and gone
+    assert set(seg.loc[sorted(gone)]) == {"government"}
+    gov = set(seg.index[seg == "government"]) & set(before["tour_id"])
+    assert gone == gov
+    with pytest.raises(ValidationError, match="not eligible"):
+        remote(share={"health": 0.5}, eligible_sectors=["government"])

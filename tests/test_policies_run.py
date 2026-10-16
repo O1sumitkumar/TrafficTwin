@@ -90,10 +90,12 @@ def test_remote_work_policy_report_and_determinism(penv: dict, tmp_path: Path) -
     for section in ("City KPIs", "Peak spreading", "winners and losers", "most relieved",
                     "most worsened", "Assumptions used", "Caveats"):  # fmt: skip
         assert section in md
-    # same seed again: identical routes and simulation
-    m2 = run_policy("remote_work_30", "weekday", runs_dir=runs, **penv["kw"])
+    # same seed again, in a separate directory: identical routes and simulation
+    first = tripinfo_hash(out)
+    runs2 = tmp_path / "runs2"
+    m2 = run_policy("remote_work_30", "weekday", runs_dir=runs2, **penv["kw"])
     assert m2["routes_hash"] == m1["routes_hash"]
-    assert tripinfo_hash(runs / m2["run_id"]) == tripinfo_hash(out)
+    assert tripinfo_hash(runs2 / m2["run_id"]) == first
 
 
 def test_null_policy_reproduces_the_baseline(penv: dict, tmp_path: Path) -> None:

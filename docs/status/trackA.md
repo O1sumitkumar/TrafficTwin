@@ -165,7 +165,7 @@ lane-audit/network work; README M2 command at integration (`uv run python -m sim
 --daytype weekday --sample 0.10 --seed 1`).
 M2: done
 
-## M4 Policy lab — in progress (2026-10-16)
+## M4 Policy lab (2026-10-16)
 Run estimate before starting the two new city baselines (recorded 08:35): the Friday and Ramadan-weekday
 10 % baselines (`python -m sim.runner --baseline --daytype friday|ramadan_weekday --sample 0.10
 --seed 1`) need their own duaIterate assignment (the whole population is re-timed). With the
@@ -177,7 +177,8 @@ Decisions (M4):
 - TA-014 Incremental routing for policy runs (A-pol-090): unchanged vehicles keep their baseline
   route; new / re-timed / re-moded / affected vehicles get a one-shot duarouter route on the
   starting baseline's congested travel times (edgedata, 900 s). A fresh 3-step assignment per
-  policy would cost 2-5 h each; the incremental run costs ~12 min. A no-change policy reproduces
+  policy would cost 2-5 h each; an incremental run costs 14-17 min end to end, 18-24 min when a
+  matched control is included (`total_s` in each run's meta.json; the control runs inside it). A no-change policy reproduces
   the baseline tripinfo bit for bit (test). One-shot routing on fixed weights is repeatable with
   any thread count (test), so policy runs use 8 routing threads.
 - Policy models live in `sim/schemas.py` (Track A's file since M2; additive) and
@@ -202,9 +203,50 @@ Decisions (M4):
   baseline vehicles (staggered hours, cordon, closure) are therefore compared with a matched
   control run (same vehicles re-routed at their baseline times, no policy); reports show the
   raw-baseline comparison too. Same-class vType changes (car -> ride-hail) now keep their route
-  (the first ride-hail run re-routed ~17k converted vehicles and showed a spurious -12 % delay).
+  (the first ride-hail run re-routed the converted vehicles and showed -12.3 % delay with +3.9 % VKT,
+  per the 10:14 log line; that run was overwritten, so the figure is not reproducible from saved
+  outputs).
 - Noise: re-simulating the weekday baseline with sim seed 2 changes mean delay +1.8 %, VHT +1.3 %.
 - Friday baseline restarted with 8 threads after the Ramadan run (09:50; the 1-thread Friday
   assignment needed ~1.5 h per step under contention). Baseline final runs go through a launcher
   that gzips SUMO outputs (`python -m sim.policies.baseline_launch <daytype> --routing-threads 8 --gzip`, same code as the ad-hoc launcher used for the runs); integration should make
   `sim/population/baseline.py` write `.xml.gz` (metrics already reads it).
+
+### M4 handoff (2026-10-16 13:45)
+Built: policy models in `sim/schemas.py` + `python -m sim.validate`; `sim/policies/`: transforms
+(remote_work with per-sector shares, staggered_hours, daytype, pt_line via ptlines2flows.py,
+road_pricing with elasticity and edge-weight penalty, network_change via netconvert patch,
+ridehail_share), incremental re-routing runner with matched controls, policy report (KPIs, peak
+spreading, district winners/losers, top-10 relieved/worsened corridors, assumption ids, label),
+parallel sweep (CSV + PNG), results summary, baseline launcher; `sim.runner --policy` (additive);
+`sim/metrics.py` reads gzipped outputs. 9 demo policies incl. the composed Ramadan + 30 % remote.
+Measured (10 % sample, seed 1, all "synthetic demand, uncalibrated"; table in docs/policies.md):
+- New city baselines: Ramadan weekday 451,313 vehicle trips (4.51 M city-equivalent), mean delay
+  1,805 s, 0.48 teleports/vehicle; Friday 385,392 (3.85 M), mean delay 1,596 s, peak hour 11:00,
+  0.60 teleports/vehicle; Friday assignment 71 min (8 threads), final runs ~10 min each.
+- Policies vs matching baseline (mean delay / AM-peak delay / VKT / CO2): remote_work_30 -9.3 /
+  -9.4 / -1.6 / -6.9 %; staggered_schools_60 (vs control) -1.1 / -9.1 / +0.2 / -0.6 %, top-hour
+  share -19 %; friday -14.9 / -98.0 / -3.3 / -13.0 %; ramadan_weekday -3.8 / -33.1 / +13.8 /
+  +12.4 %; bus_line_tahlia +2.5 / +0.7 / -0.2 / +1.7 %; cordon_center (vs control) +20.1 / +8.6 /
+  -0.4 / +10.4 %; close_corniche_road (vs control) +1.1 / +0.7 / -0.1 / +0.6 %; ramadan_remote_30
+  (vs Ramadan) -9.8 / -13.9 / -1.2 / -7.2 %; ridehail_plus_10 +1.5 / -0.5 / +2.7 / +4.7 %.
+- Noise replicate (sim seed 2): mean delay +1.8 %, VHT +1.3 % (one replicate). Placebo (8 %
+  re-routed, no trip changed): mean delay -20.1 %, VHT -13.3 % (TA-018).
+- Sweep remote_work share 0.1-0.5: 5 points, 2 processes, 33 min wall; linear, mean delay -3.1 %
+  to -15.4 %, AM-peak -3.5 % to -15.6 %: no tested share halves the morning peak. The 0.3 point
+  reproduces remote_work_30 bit for bit (tripinfo hash 81cd70d69a1a0790).
+- Run cost: 14-17 min per incremental policy run, 18-24 min with its matched control.
+- Tests: ruff clean; pytest 72 passed (demo window, ~1.5 min).
+Commands (README at integration): `uv run python -m sim.runner --policy remote_work_30 --daytype
+weekday --sample 0.10 --seed 1`; `uv run python -m sim.policies.sweep --policy remote_work --param
+share=0.1:0.5:0.1 --sample 0.10`; `uv run python -m sim.validate sim/policies/*.yaml`.
+Could not verify: real-world magnitudes (no counts; uncalibrated); whether the bus-line effect
+exceeds noise (one replicate only); a deterministic 1-thread assignment of any city baseline (all
+three use 8 threads and are reproducible from the route cache only).
+Integration notes: `sim/schemas.py` also changed two existing lines (docstring, typing import);
+`sim/validate.py` and `docs/img/m4-remote-work-sweep.png` are new; fold the `--gzip` option of
+`sim/policies/baseline_launch.py` into baseline.py; the network variant
+`data/jeddah/jeddah.m2.close_corniche_road-8376e92d.net.xml.gz` lives in the shared data dir; run
+provenance stores absolute network paths (runs/ is untracked; make relative before publishing).
+Next: more assignment steps and replicates to shrink the routing-gain and noise bands; README
+commands at integration; network capacity (TA-011) remains the top issue.

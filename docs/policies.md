@@ -105,13 +105,14 @@ delay and VHT, see below):
 - **Ramadan weekday**: 16 % more vehicle trips (late-night activity and iftar visits) and +14 %
   VKT, yet a flatter morning (AM-peak delay -33 %) and slightly lower mean delay.
 - **Bus line on Tahlia** shifts only 11 tours in the 10 % sample (both ends within 500 m of
-  different stops); its effect is within noise. A corridor line moves little city-wide traffic
+  different stops). Its +2.5 % delay is slightly above the one measured replicate (+1.8 %); with a
+  single replicate it cannot be separated from noise (more replicates needed). A corridor line moves little city-wide traffic
   under a fixed 10 % shift; the buses themselves load the road (A-pol-091).
 - **Cordon** (matched control): +20 % delay, +12 % VHT. Suppression is small (9.6 % of 33,718
   charged tours) while the 15-min penalty re-routes ~42,700 crossers onto perimeter roads that are
   already gridlocked. Indicative only: no destination or mode choice, one charge level.
-- **Corniche closure**: 412 vehicles re-routed, 125 unroutable (trip ends cut off by the
-  closure); city-wide effect within noise (+1 % delay), local detours in the corridor tables.
+- **Corniche closure**: 412 vehicles needed a new route; 287 were re-routed and 125 were
+  unroutable (trip ends cut off by the closure); city-wide effect within noise (+1 % delay), local detours in the corridor tables.
 - **Ramadan + 30 % remote** (vs the Ramadan baseline): -10 % delay, -14 % AM-peak delay, close to
   the weekday remote-work effect.
 - **Ride-hail +10 %** (P1): converted tours keep their routes; the 17,729 empty legs add 2.7 %
