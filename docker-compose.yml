@@ -1,5 +1,5 @@
 # One command to run the stack: docker compose up --build
-# api: FastAPI stub (M3 adds runs, policies, streaming). web: Vite dev server for the network viewer.
+# api: file-backed FastAPI over runs/ (docs/contracts/run-outputs.md). web: Vite dev server for the viewer.
 services:
   api:
     build:

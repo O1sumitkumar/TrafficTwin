@@ -17,7 +17,7 @@ brew install osmium-tool        # Linux: apt install osmium-tool
 SUMO binaries and tools are found through the `eclipse-sumo` wheel; `SUMO_HOME` is set
 automatically by `sim/common.py` (or honoured if already set).
 
-## Tests (demo window only, offline, about 15 s)
+## Tests (demo window only, offline, about 3 min)
 
 ```bash
 uv run ruff check . && uv run ruff format --check . && uv run pytest -q
@@ -57,21 +57,41 @@ uv run python -m sim.runner --smoke --tier B --seed 1
 Each run writes `runs/<run_id>/` with `meta.json` (seed, config hash, network hash, population
 hash, SUMO version, results), `stats.xml`, `tripinfo.xml`, `edgedata.xml` and `sumo.log`.
 
-## Network viewer (M1 stub)
+## Population and 24 h city baseline (M2)
 
 ```bash
-cd web && npm install --include=dev && npm run dev   # http://localhost:5173
+# synthetic population (10 % sample), weekday activity chains, duaIterate assignment (cached by
+# network/population/day type/seed), final 24 h meso run, KPIs and plots (~2 h uncached, ~15 min cached)
+nohup uv run python -m sim.runner --baseline --daytype weekday --sample 0.10 --seed 1 --gzip > logs/baseline.log 2>&1 &
+uv run python -m sim.fidelity --window demo --seed 1   # meso vs micro on a window (PROJECT.md 9.4)
 ```
+`--routing-threads 8` speeds up assignment but makes routes reproducible from the cache only
+(TA-013/TA-015). Method and measured numbers: `docs/population.md`, `docs/fidelity.md`.
 
-## Stack
+## Policy lab (M4)
 
-`docker compose up --build` starts the API stub (port 8000, `/health`) and the viewer (port 5173).
+```bash
+uv run python -m sim.runner --policy remote_work_30 --daytype weekday --sample 0.10 --seed 1
+uv run python -m sim.policies.sweep --policy remote_work --param share=0.1:0.5:0.1 --sample 0.10
+uv run python -m sim.validate sim/policies/*.yaml
+```
+Each policy run writes `runs/<policy>/policy_report.{json,md}` against the matching baseline.
+Results, matched controls and noise checks: `docs/policies.md`.
+
+## Viewer and API (M3)
+
+```bash
+uv run uvicorn api.main:app --port 8000                              # file-backed API over runs/
+cd web && npm install --include=dev && npm run dev                   # http://localhost:5173
+```
+`docker compose up --build` starts both (API on 8000, viewer on 5173). Data contract:
+`docs/contracts/run-outputs.md`; viewer guide: `docs/viewer.md`.
 
 ## Layout
 
 `sim/` simulation (network, population, day types, policies, events, runner), `strategist/`
 decision logic, `api/` + `web/` presentation, `docs/` status, assumptions and data sources,
-`tests/` demo-window tests. Packages marked with a README placeholder arrive in later milestones.
+`tests/` demo-window tests.
 
 ## Licence
 
@@ -93,3 +113,38 @@ Create the source route set first: `uv run python -m sim.runner --smoke --tier A
 `mkdir -p runs/source-smoke-A && cp runs/smoke-A-s1-*/routes.rou.xml runs/source-smoke-A/`. Demo
 scenarios: `sim/scenarios/{accident,rain,flood,motorcade,emergency}_tahlia.yaml` (fictional).
 Results and caveats: `docs/events.md`.
+
+## Emergency strategist (M6)
+
+```bash
+uv run python -m strategist.run --scenario emergency_tahlia_0830 --window tahlia --seed 1
+uv run python -m strategist.approve <recommendation_id> [--option 1] [--actor name] [--reject]
+uv run python -m strategist.log verify      # hash-chained, append-only decision log
+```
+Pipeline, actions and measured runs: `docs/strategist.md`.
+
+## Evacuation (M7)
+
+```bash
+uv run python -m sim.runner --scenario evac_demo --seed 1             # demo window, ~15 s
+uv run python -m sim.runner --scenario evac_corniche_hamra --seed 1   # Al Hamra (tahlia window)
+uv run python -m strategist.evacuation run --scenario evac_corniche_hamra --seed 1
+```
+`sim.runner --scenario evac_*` dispatches to `sim.events.evacuation run`. Method and results:
+`docs/evacuation.md`.
+
+## Calibration (M8, dormant until counts exist)
+
+```bash
+uv run python -m sim.adapters.synthetic --net data/demo/demo.net.xml --out runs/synthetic-demo --seed 1
+uv run python -m sim.calibrate --counts runs/synthetic-demo/counts.csv --net data/demo/demo.net.xml \
+  --routes runs/synthetic-demo/candidates.rou.xml --sample 1.0 \
+  --travel-times runs/synthetic-demo/traveltimes.csv --counts-source synthetic --before
+```
+Synthetic counts only exercise the pipeline. See `docs/calibration.md`.
+
+## Lane audit from imagery (blocked)
+
+`sim/network/lane_audit.py` is built but its calibration precision is below the gate, so no
+imagery-derived lanes are applied and `data/jeddah/jeddah.net.xml` stays the default network.
+See `docs/lane-audit.md`.
