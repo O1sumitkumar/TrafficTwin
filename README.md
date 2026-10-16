@@ -77,3 +77,19 @@ decision logic, `api/` + `web/` presentation, `docs/` status, assumptions and da
 
 Code: Apache-2.0 (`LICENSE`). Data derived from OpenStreetMap is (c) OpenStreetMap contributors,
 ODbL; SUMO is EPL-2.0 (dependency, not vendored); GASTAT open data with attribution. See `NOTICE`.
+
+## Focus windows and events (M5)
+
+```bash
+# Tahlia window with service roads, Tier A exit times, cut routes + Webster signals, flow check
+uv run python -m sim.link window --name tahlia
+uv run python -m sim.link tier-a --routes runs/source-smoke-A/routes.rou.xml --seed 1
+uv run python -m sim.link cut --window tahlia --tier-a runs/tierA-exit-<hash>/
+uv run python -m sim.link check --window tahlia --tier-a runs/tierA-exit-<hash>/ --seed 1
+# a scenario against the window baseline (same seed): runs/<id>/scenario_report.{json,md}
+uv run python -m sim.runner --scenario accident_tahlia --window tahlia --seed 1
+```
+Create the source route set first: `uv run python -m sim.runner --smoke --tier A --seed 1`, then
+`mkdir -p runs/source-smoke-A && cp runs/smoke-A-s1-*/routes.rou.xml runs/source-smoke-A/`. Demo
+scenarios: `sim/scenarios/{accident,rain,flood,motorcade,emergency}_tahlia.yaml` (fictional).
+Results and caveats: `docs/events.md`.
