@@ -51,7 +51,7 @@ Decisions (taken without questions, per prompts/_common.md):
   trip without the incident (emergency_tahlia: 94 s vs 70 s baseline vs 47.3 s free flow).
 - B-D-013 Gridlock rules: jam teleports count only as >= 10 in one 300 s bin (A-kpi-004), and the
   sustained-halt share is a halted majority (A-kpi-001 raised 0.3 -> 0.5), because the tahlia baseline
-  (a normal loaded hour) already reaches 0.44 halted at signals and queues. No demo scenario trips
+  (a normal loaded hour) already reaches 0.44 halted at signals and queues (highest single reading). No demo scenario trips
   it; the flood peaks at 0.49. Detector margin is small; revisit with population demand.
 - B-D-014 Motorcade closures are junction holds (all other movements disallowed except vip and
   emergency) from convoy ETA - 120 s to last vehicle + 30 s; closing route edges trapped vehicles
@@ -73,9 +73,9 @@ speed, VKT, VHT, queues, gridlock, emergency TT vs free flow and vs baseline, co
 `docs/events.md`; register `docs/assumptions-trackB.md` (114 rows).
 Measured: flow check pass on all four windows (tahlia GEH<5 90.2 % of 420 edges, total ratio 0.910;
 others 100 %, 0.99+). Tahlia window 10,074 edges / 3,888 junctions / 7 TLS, 4,597 cut vehicles;
-baseline 3,652 inserted, mean delay 97.8 s, 13 teleports (0.36 %). Scenario mean delay deltas:
+baseline 3,652 inserted, mean delay 97.8 s, 13 teleports (0.34 % of 3,855 loaded). Scenario mean delay deltas:
 accident +5.7 %, heavy rain +23.3 %, flood +123.8 %, motorcade -11.2 % (not interpretable),
-emergency +4.8 % with the ambulance at 2.0x free flow. About 190 s wall per scenario
+emergency +4.8 % with the ambulance at 2.0x free flow. About 190-205 s wall per scenario (emergency 119 s)
 (baseline and scenario in parallel). accident_tahlia run twice (lead and verifier): identical KPIs.
 Tests: 79 pass (about 30-50 s on the shared machine); ruff clean.
 Could not verify: rain-effect citations (Agarwal et al. 2005, Rakha et al. 2008, HCM 2010

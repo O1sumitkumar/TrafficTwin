@@ -1,6 +1,6 @@
 """Motorcade: a convoy of N `convoy` (vClass vip) vehicles along a route, with rolling closures.
 
-Closure mechanism (decision B-D-008). Closing the route edges themselves with lane permissions
+Closure mechanism (decision B-D-014). Closing the route edges themselves with lane permissions
 traps every normal vehicle already on the corridor ahead of the convoy (its next edge is closed),
 which deadlocks in front of the convoy. The closure is therefore applied at the junctions: for
 route edge k, every other movement through its from-node (mode `all_other_movements`,

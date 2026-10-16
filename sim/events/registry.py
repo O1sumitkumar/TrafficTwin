@@ -18,7 +18,7 @@ from sim.scenarios.schema import (
 )
 from sim.vtypes.schema import VTypeLibrary
 
-PROBE_TYPES = {"emergency_trip"}  # events kept in the baseline (B-D-007)
+PROBE_TYPES = {"emergency_trip"}  # events kept in the baseline (B-D-012)
 
 EVENT_CLASSES: dict[str, type[Event]] = {
     "accident": accident.AccidentEvent,

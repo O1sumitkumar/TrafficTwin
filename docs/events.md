@@ -68,8 +68,8 @@ Baseline = same demand, vType mix, seed and step loop, with probe events (emerge
 ## Results on the Tahlia window (seed 1, 0-3600 s, measured 2026-10-16)
 
 Window baseline: 3,652 vehicles inserted, mean delay 97.8 s, mean speed 44.7 km/h, VHT 247.2 h,
-longest queue 161.8 m (p95 152.4 m), 13 teleports (8 jam, 0.36 %), no gridlock. Each run (baseline
-and scenario in parallel) takes about 190 s wall; the same command twice gives identical KPIs.
+longest queue 161.8 m (p95 152.4 m), 13 teleports (8 jam, 0.34 % of loaded vehicles), no gridlock. Each run (baseline
+and scenario in parallel) takes about 190-205 s wall (emergency 119 s); the same command twice gives identical KPIs.
 
 | scenario | event | mean delay s (base -> scen) | mean speed km/h | VHT h | queue max / p95 m | teleports (jam) | gridlock | specific |
 |---|---|---|---|---|---|---|---|---|

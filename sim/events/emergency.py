@@ -1,7 +1,7 @@
 """Emergency trip: emergency vehicle(s) (vType `emergency`, bluelight device) from A to B at T.
 
 Probe event: it also runs in the window baseline, so its travel time can be compared with and
-without the other events (decision B-D-007). The route is fixed when the plan is resolved
+without the other events (decision B-D-012). The route is fixed when the plan is resolved
 (sumolib fastest path for vClass emergency), identical in baseline and scenario; a full closure
 on it triggers the normal reroute logic. Free-flow reference = sum over route edges of
 length / min(speed limit x vType speedFactor, vType maxSpeed), i.e. SUMO's allowed vehicle

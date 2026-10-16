@@ -4,7 +4,7 @@
     python -m sim.scenarios run sim/scenarios/accident_tahlia.yaml --window demo
 
 Baseline = same demand, same vType mix, same seed, same step loop, with only the probe events
-(emergency trips) and none of the disruptive ones (decision B-D-007). Outputs:
+(emergency trips) and none of the disruptive ones (decision B-D-012). Outputs:
 runs/<id>-<window>-s<seed>-<config hash>/{baseline,scenario}/ plus meta.json and
 scenario_report.{json,md}; the report and meta are copied to the stable runs/<id>/ (or
 runs/<id>-<window>/ when --window overrides the scenario's window).
