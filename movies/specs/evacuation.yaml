@@ -5,6 +5,7 @@ film: evacuation
 title: Evacuating the Al Hamra waterfront
 subtitle: Tier B window, phased release with contraflow (fictional scenario)
 duration_s: 40
+showreel: [6, 30]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
 sources:
@@ -32,8 +33,9 @@ shots:
       detail: Bands light up as their evacuees leave (yellow, orange, red); amber corridors run outbound on both carriageways
       legend: class
       kpis:
-        - {label: Evacuees still in the window, series: running, source: evac}
-        - {label: Stopped vehicles, series: halted, source: evac}
+        - {label: Evacuees on the road, series: evacuees_running, source: evac}
+        - {label: Evacuees out of the window, series: evacuees_out, source: evac}
+        - {label: "Stopped vehicles, all traffic", series: halted, source: evac}
   - id: clearance
     duration_s: 12
     layers: {trips: evac, color_by: class, overlays: [zone, exits, phases, contraflow]}

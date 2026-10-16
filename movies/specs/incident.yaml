@@ -7,6 +7,7 @@ film: incident
 title: A crash on the corridor into Madinah Road
 subtitle: Tier B window, crash run against its baseline (fictional scenario)
 duration_s: 32
+showreel: [6, 30]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
 sources:
@@ -28,8 +29,8 @@ shots:
       legend: speed
       split_labels: [Baseline, Crash (lanes closed 08:10 to 08:30)]
       kpis:
-        - {label: "Stopped vehicles, crash run", series: halted, source: crash}
         - {label: "Stopped vehicles, baseline", series: halted, source: base}
+        - {label: "Stopped vehicles, crash run", series: halted, source: crash}
   - id: difference
     duration_s: 12
     layers:

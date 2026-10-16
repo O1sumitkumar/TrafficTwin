@@ -29,9 +29,9 @@ the screenshot scripts use; `CHROME_PATH` overrides) and the runs named in the s
 | `evacuation` | Al Hamra waterfront evacuation with a near-first phased release (three bands lighting up), balanced exits, evacuation signal plan and contraflow on three corridors; clearance times from the run | `evac_corniche_hamra_film-tahlia-s1-99ab2558` (run for the film, see below) | 40 s |
 | `policy-lab` | Difference mode (blue = faster, red = slower): 30 % remote work against the baseline, staggered schools and the central cordon against their matched controls; KPI values from docs/policies.md | `remote_work_30`, `staggered_schools_60` (+ `--control`), `cordon_center` (+ `--control`), the weekday baseline | 36 s |
 | `loop` | Stub: Track D (Loop) is not merged on this branch (no `docs/loop.md`) | - | - |
-| `showreel` | All rendered films in order, each after a title card, joined with 0.6 s crossfades | the films above | about 4 min |
+| `showreel` | All rendered films in order, each after a title card, cut to the spec's `showreel: [start, end]` excerpt, joined with 0.6 s crossfades | the films above | 2 min 55 s |
 
-Stills (poster frames, the middle frame of each film):
+Stills (poster frames, from the middle of each film):
 
 | | |
 |---|---|
@@ -108,11 +108,13 @@ flowchart LR
 5. **Encode** (`scripts/movies/render.py`). `web/scripts/cinema.mjs` (puppeteer-core, as the
    screenshot scripts) steps frames into `runs/movies/<film>/frames/` in chunks of 150; each chunk
    is encoded with libx264 (CRF 18, yuv420p, bitexact flags) and its PNGs deleted, so at most one
-   chunk is on disk; the chunks are joined without re-encoding. Then the poster (middle frame), a
-   GIF preview (palette, at most 6 s and 3 MB) and `movies/<film>.json` (sizes, frame hashes,
+   chunk is on disk; the chunks are joined without re-encoding. Then the poster (middle frame of
+   the shot at the film's midpoint, clear of cuts), a GIF preview (palette, at most 6 s and 3 MB) and `movies/<film>.json` (sizes, frame hashes,
    peak browser RSS, peak disk, timings, the GPU used).
-6. **Showreel** (`scripts/movies/showreel.py`). Title cards are drawn with ffmpeg over the blurred
-   poster; films and cards are joined with `xfade` crossfades.
+6. **Showreel** (`scripts/movies/showreel.py`). Title cards are drawn with Pillow over the blurred
+   poster (Homebrew's ffmpeg has no `drawtext`); each film is cut to its `showreel` excerpt; films and
+   cards are joined with `xfade` crossfades. `make movies-docs` exports the README GIFs (360 px,
+   <= 1.2 MB) and JPEG stills to `docs/img/movies/`.
 
 ### Determinism
 
@@ -133,6 +135,7 @@ date: 2026-10-18             # sun model date (default)
 clock_t0: "08:00"            # local time of sim t = 0 (Tier B windows); omit for Tier A (t = seconds of day)
 tier: B                      # A (city, meso) | B (window, micro): HUD tier line
 title_card_s: 2.5            # title card over the first seconds (0 = none)
+showreel: [2.5, 24.5]        # excerpt used in the showreel
 basemap: {bbox: null, margin_deg: 0.01, buildings: true, water: true, road_classes: all}
 sources:                     # named data sources used by the shots
   base: {run: "accident_tahlia-tahlia-s1-257eae8d~baseline"}         # any run id the API lists
@@ -204,9 +207,25 @@ is constant within a segment: rate = (sim_t1 - sim_t0) / (t1 - t0).
 
 ## Performance (M3 Pro, 1920x1080, 30 fps)
 
-Measured on the full render (`movies/<film>.json`); see docs/status/trackE.md for the numbers of
-the last render. Budgets: browser at most 2 GB RSS, at most 1 GB per film on disk during the render
-(bundle plus one chunk of 150 PNG frames), no frames left behind.
+Budgets: browser at most 2 GB RSS, at most 1 GB per film on disk during the render (bundle plus one
+chunk of 150 PNG frames), no frames left behind. Measured on the full render of 16 Oct 2026
+(`movies/<film>.json`; hardware WebGL, ANGLE Metal on the Apple M3 Pro; another agent was
+simulating in parallel):
+
+| film | size | frames | duration | MP4 | GIF | per frame | total | browser RSS max | disk max |
+|---|---|---|---|---|---|---|---|---|---|
+| `city-24h` | 1920x1080 | 1200 | 40.00 s | 85.4 MB | 2.49 MB | 0.17 s | 257 s | 1188 MB | 278 MB |
+| `tahlia-street` | 1920x1080 | 900 | 30.00 s | 21.6 MB | 2.19 MB | 0.12 s | 156 s | 1230 MB | 177 MB |
+| `incident` | 1920x1080 | 960 | 32.00 s | 30.1 MB | 2.25 MB | 0.14 s | 182 s | 1171 MB | 152 MB |
+| `events` | 1920x1080 | 1080 | 36.00 s | 37.0 MB | 1.81 MB | 0.13 s | 203 s | 1063 MB | 158 MB |
+| `strategist` | 1920x1080 | 1200 | 40.00 s | 28.1 MB | 2.43 MB | 0.13 s | 215 s | 1004 MB | 119 MB |
+| `evacuation` | 1920x1080 | 1200 | 40.00 s | 49.0 MB | 2.79 MB | 0.18 s | 270 s | 1216 MB | 195 MB |
+| `policy-lab` | 1920x1080 | 1080 | 36.00 s | 41.2 MB | 2.57 MB | 0.17 s | 236 s | 1163 MB | 241 MB |
+| `showreel` | 1920x1080 | 5241 | 174.7 s | 173.5 MB | 2.92 MB | - | about 3 min | - | - |
+
+"per frame" is draw + screenshot; "total" adds the bundle, chunk encoding, concat and GIF. All
+seven films render in about 25 minutes; the bundles take 1-10 s each (the first build of a
+policy run's edge bins takes longer). `--4k` quadruples the pixels (not measured).
 
 ## Licences and credits
 

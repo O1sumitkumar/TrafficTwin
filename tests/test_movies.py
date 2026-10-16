@@ -271,8 +271,15 @@ def _render_ready() -> str | None:
 
 
 @pytest.mark.skipif(_render_ready() is not None, reason=str(_render_ready()))
-def test_render_smoke_ten_frames_deterministic(tmp_path: Path) -> None:
+def test_render_smoke_ten_frames_deterministic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     from scripts.movies.render import render_film
+
+    # the API tests point TT_RUNS_DIR at a temporary directory for the whole session
+    monkeypatch.setenv("TT_RUNS_DIR", str(REPO_ROOT / "runs"))
+    monkeypatch.delenv("TT_CACHE_DIR", raising=False)
+    monkeypatch.setenv("TT_RUNS_READONLY", "1")
 
     metas = []
     for k in range(2):

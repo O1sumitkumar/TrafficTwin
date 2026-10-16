@@ -35,7 +35,7 @@ const CSS = `
 .cin-title-h { font-size: calc(var(--u) * 76px); font-weight: 700; margin-top: calc(var(--u) * 12px); text-align: center; line-height: 1.05; }
 .cin-title-s { font-size: calc(var(--u) * 26px); color: #cfd6e2; margin-top: calc(var(--u) * 18px); text-align: center; }
 .cin-title-f { font-size: calc(var(--u) * 17px); color: #f0c46a; margin-top: calc(var(--u) * 40px); }
-.cin-split { position: absolute; top: calc(var(--u) * 150px); width: 50%; text-align: center; font-size: calc(var(--u) * 24px); font-weight: 600; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+.cin-split { position: absolute; top: calc(var(--u) * 232px); width: 50%; text-align: center; font-size: calc(var(--u) * 24px); font-weight: 600; text-shadow: 0 2px 10px rgba(0,0,0,0.8); }
 .cin-divider { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: rgba(240,244,250,0.7); }
 .cin-fade { position: absolute; inset: 0; background: #000; }
 .cin-bars { position: absolute; left: 0; right: 0; background: #000; }

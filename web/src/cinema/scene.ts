@@ -347,10 +347,11 @@ export class Scene {
 
   // ------------------------------------------------------------------ overlays
 
-  private overlayLayers(shot: ShotSpec, t: number, frame: number, suffix: string): Layer[] {
+  private overlayLayers(shot: ShotSpec, t: number, frame: number, suffix: string, side: string | null): Layer[] {
     const out: Layer[] = [];
     const want = new Set(shot.layers.overlays);
-    const sids = [shot.layers.heat, shot.layers.trips, shot.layers.route_source, ...(shot.layers.split ?? [])].filter(
+    // split screen: each half shows only its own source's overlays
+    const sids = (side ? [side] : [shot.layers.heat, shot.layers.trips, shot.layers.route_source]).filter(
       (x): x is string => !!x,
     );
     const pulse = 0.5 + 0.5 * Math.sin((frame / 12) * Math.PI);
@@ -578,7 +579,7 @@ export class Scene {
       out.push(...this.glowPaths("outline@both", [ring], [255, 236, 170], 30, 0.75));
     }
     for (const [, trips, suffix] of sides) {
-      out.push(...this.overlayLayers(shot, t, i, suffix));
+      out.push(...this.overlayLayers(shot, t, i, suffix, L.mode === "split" ? trips : null));
       if (trips) out.push(...this.tripLayers(trips, t, L.color_by, night, i, suffix));
     }
     return out;

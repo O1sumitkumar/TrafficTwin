@@ -4,6 +4,7 @@ film: tahlia-street
 title: Tahlia Street, morning peak
 subtitle: Tier B microscopic window, every vehicle simulated at 1 s
 duration_s: 30
+showreel: [2.5, 24.5]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
 sources:
@@ -22,7 +23,7 @@ shots:
       - {t: 30, lon: 39.1713, lat: 21.5596, zoom: 17.5, pitch: 64, bearing: 340, sim_t: 2880, ease: in_out}
     hud:
       caption: Tahlia Street to the corridor into Madinah Road
-      detail: Colour = vehicle speed; trails = last 40 simulated seconds
+      detail: Roads coloured by speed against the limit, vehicles by their own speed; trails = last 40 simulated seconds
       legend: speed
       kpis:
         - {label: Vehicles in the window, series: running, source: base}

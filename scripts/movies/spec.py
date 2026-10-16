@@ -64,7 +64,12 @@ class Kpi(Strict):
     decimals: int = Field(default=0, ge=0, le=3)
     count_s: float = Field(default=3.0, ge=0)  # count-up duration from the shot start
     sign: bool = False  # show "+" on positive values
-    series: Literal["running", "arrived", "halted", "mean_speed_kmh"] | None = None
+    series: (
+        Literal[
+            "running", "arrived", "halted", "mean_speed_kmh", "evacuees_running", "evacuees_out"
+        ]
+        | None
+    ) = None
     source: str | None = None  # source id for a series or fact KPI
     fact: str | None = None  # dotted path into the source's facts, e.g. "mean_delay_s.delta_pct"
     scale: float = 1.0  # multiplies a fact (e.g. 1/60 for minutes)
@@ -157,6 +162,7 @@ class Film(Strict):
     sources: dict[str, Source] = Field(default_factory=dict)
     basemap: Basemap = Field(default_factory=Basemap)
     title_card_s: float = Field(default=2.5, ge=0, le=10)
+    showreel: tuple[float, float] | None = None  # excerpt [start_s, end_s] used in the showreel
     stub: bool = False  # placeholder spec: validated but not rendered
     note: str = ""
     shots: list[Shot] = Field(default_factory=list)
@@ -173,6 +179,12 @@ class Film(Strict):
         total = sum(s.duration_s for s in self.shots)
         if abs(total - self.duration_s) > 1e-6:
             raise ValueError(f"duration_s {self.duration_s} != sum of shot durations {total}")
+        if self.showreel is not None:
+            a, b = self.showreel
+            if not 0 <= a < b <= self.duration_s:
+                raise ValueError(
+                    f"showreel excerpt {self.showreel} not within 0..{self.duration_s}"
+                )
         for shot in self.shots:
             lay = shot.layers
             refs = [lay.heat, lay.compare, lay.trips, lay.route_source, *(lay.split or ())]

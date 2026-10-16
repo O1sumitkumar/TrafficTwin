@@ -315,6 +315,18 @@ def sha_png(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
 
 
+def poster_frame(film: Any, fps: int, a: int, b: int) -> int:
+    """Middle of the shot holding the film's midpoint (clear of title card and cut fades)."""
+    mid = (a + b) / 2 / fps
+    start = 0.0
+    for shot in film.shots:
+        if mid < start + shot.duration_s:
+            k = round((start + shot.duration_s / 2) * fps)
+            return k if a <= k < b else a + (b - a) // 2
+        start += shot.duration_s
+    return a + (b - a) // 2
+
+
 def _dir_mb(path: Path) -> float:
     return (
         sum(p.stat().st_size for p in path.rglob("*") if p.is_file()) / 1e6
@@ -363,7 +375,8 @@ def render_film(
     for d in (frames_dir, seg_dir):
         shutil.rmtree(d, ignore_errors=True)
         d.mkdir(parents=True)
-    picks = sorted({a, a + (b - a) // 2, b - 1})
+    poster_k = poster_frame(film, fps, a, b)
+    picks = sorted({a, a + (b - a) // 2, b - 1, poster_k})
     hashes: dict[str, str] = {}
     poster = out_dir / f"{film.film}.poster.png"
     rss_max = 0.0
@@ -386,8 +399,9 @@ def render_film(
             for k in picks:
                 if c0 <= k < c1:
                     png = frames_dir / f"f_{k:06d}.png"
-                    hashes[str(k)] = sha_png(png)
-                    if k == a + (b - a) // 2:
+                    if k != poster_k or k in (a, a + (b - a) // 2, b - 1):
+                        hashes[str(k)] = sha_png(png)
+                    if k == poster_k:
                         shutil.copyfile(png, poster)
             disk_max = max(disk_max, _dir_mb(work))
             seg = seg_dir / f"seg_{c0:06d}.mp4"
@@ -413,12 +427,13 @@ def render_film(
     shutil.rmtree(seg_dir, ignore_errors=True)
     shutil.rmtree(frames_dir, ignore_errors=True)
     info = probe(mp4)
-    gif = make_gif(
-        mp4,
-        out_dir / f"{film.film}.gif",
-        max(0.0, min(info["duration_s"] - float(r["gif_seconds"]), film.title_card_s + 0.5)),
-        r,
-    )
+    gif_start = max(0.0, min(info["duration_s"] - float(r["gif_seconds"]), film.title_card_s + 0.5))
+    try:
+        gif: dict[str, Any] = make_gif(mp4, out_dir / f"{film.film}.gif", gif_start, r)
+        gif["start_s"] = round(gif_start, 3)
+    except subprocess.CalledProcessError as exc:  # e.g. a one-frame partial render
+        gif = {"error": f"gif not made: {exc.returncode}"}
+        log(f"{name}: GIF preview not made ({exc.returncode})")
     meta = {
         "film": film.film,
         "label": SYNTHETIC_LABEL,

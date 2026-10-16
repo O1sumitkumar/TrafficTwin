@@ -3,8 +3,9 @@
     python -m scripts.movies.showreel            # movies/showreel.mp4 (+ .poster.png, .gif, .json)
 
 Inputs are movies/<film>.mp4 in the order of movies/specs/order.yaml (stub specs and films not
-rendered yet are skipped and listed). Title cards are rendered with ffmpeg (drawtext over the
-film's poster, blurred and darkened) at the films' size and frame rate; transitions are ffmpeg
+rendered yet are skipped and listed), each cut to its spec's `showreel: [start, end]` excerpt so the
+reel stays at 2-3 minutes. Title cards are drawn with Pillow (over the film's poster,
+blurred and darkened) at the films' size and frame rate; transitions are ffmpeg
 `xfade` crossfades, audio-free, H.264 yuv420p CRF 18 like the films.
 """
 
@@ -39,26 +40,33 @@ def font() -> str:
     raise FileNotFoundError("no TTF font found for the title cards")
 
 
-def _esc(text: str) -> str:
-    return text.replace("\\", "\\\\").replace(":", r"\:").replace("'", "’").replace("%", r"\%")
+def card_image(film: Any, poster: Path, out: Path, w: int, h: int) -> None:
+    """Title card still: the film's poster blurred and darkened, title text centred (Pillow)."""
+    from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
+
+    u = h / 1080
+    img = Image.open(poster).convert("RGB").resize((w, h))
+    img = img.filter(ImageFilter.GaussianBlur(round(14 * u)))
+    img = ImageEnhance.Brightness(img).enhance(0.35)
+    draw = ImageDraw.Draw(img)
+    lines = [
+        ("TrafficTwin Jeddah", 22, (231, 183, 95), -110),
+        (film.title, 72, (255, 255, 255), -60),
+        (film.subtitle, 28, (207, 214, 226), 40),
+        (SYNTHETIC_LABEL, 20, (240, 196, 106), 110),
+    ]
+    for text, size, color, dy in lines:
+        f = ImageFont.truetype(font(), round(size * u))
+        tw = draw.textlength(text, font=f)
+        draw.text(((w - tw) / 2, h / 2 + dy * u), text, font=f, fill=color)
+    img.save(out)
 
 
 def title_card(
     film: Any, poster: Path, out: Path, w: int, h: int, fps: int, r: dict[str, Any]
 ) -> None:
-    f = font()
-    u = h / 1080
-    draw = (
-        f"drawtext=fontfile={f}:text='{_esc('TrafficTwin Jeddah')}':fontcolor=0xE7B75F:"
-        f"fontsize={round(22 * u)}:x=(w-text_w)/2:y=h/2-{round(110 * u)},"
-        f"drawtext=fontfile={f}:text='{_esc(film.title)}':fontcolor=white:fontsize={round(72 * u)}:"
-        f"x=(w-text_w)/2:y=h/2-{round(60 * u)},"
-        f"drawtext=fontfile={f}:text='{_esc(film.subtitle)}':fontcolor=0xCFD6E2:"
-        f"fontsize={round(28 * u)}:x=(w-text_w)/2:y=h/2+{round(40 * u)},"
-        f"drawtext=fontfile={f}:text='{_esc(SYNTHETIC_LABEL)}':fontcolor=0xF0C46A:"
-        f"fontsize={round(20 * u)}:x=(w-text_w)/2:y=h/2+{round(110 * u)}"
-    )
-    vf = f"scale={w}:{h},boxblur=12:2,eq=brightness=-0.32:saturation=0.6,{draw},format=yuv420p"
+    still = out.with_suffix(".png")
+    card_image(film, poster, still, w, h)
     subprocess.run(
         [
             ffmpeg(),
@@ -72,9 +80,9 @@ def title_card(
             "-t",
             str(CARD_S),
             "-i",
-            str(poster),
+            str(still),
             "-vf",
-            vf,
+            "format=yuv420p",
             "-c:v",
             "libx264",
             "-preset",
@@ -89,6 +97,38 @@ def title_card(
         ],
         check=True,
     )
+
+
+def excerpt(film: Any, mp4: Path, out: Path, fps: int, r: dict[str, Any]) -> Path:
+    """The `showreel: [start, end]` excerpt of a film (frame-accurate re-encode), or all of it."""
+    if film.showreel is None:
+        return mp4
+    a, b = film.showreel
+    subprocess.run(
+        [
+            ffmpeg(),
+            "-y",
+            "-loglevel",
+            "error",
+            "-i",
+            str(mp4),
+            "-vf",
+            f"trim=start_frame={round(a * fps)}:end_frame={round(b * fps)},setpts=PTS-STARTPTS",
+            "-c:v",
+            "libx264",
+            "-preset",
+            str(r["preset"]),
+            "-crf",
+            str(r["crf"]),
+            "-pix_fmt",
+            str(r["pix_fmt"]),
+            "-r",
+            str(fps),
+            str(out),
+        ],
+        check=True,
+    )
+    return out
 
 
 def build(out_dir: Path = MOVIES_DIR) -> dict[str, Any]:
@@ -113,9 +153,10 @@ def build(out_dir: Path = MOVIES_DIR) -> dict[str, Any]:
             info = probe(mp4)
             if (info["width"], info["height"], round(info["fps"])) != (w, h, fps):
                 raise ValueError(f"{name}: size/fps differ from {clips[0][0]}; render all alike")
+            film = load_film(name)
             card = tmp / f"{name}.card.mp4"
-            title_card(load_film(name), out_dir / f"{name}.poster.png", card, w, h, fps, r)
-            parts += [card, mp4]
+            title_card(film, out_dir / f"{name}.poster.png", card, w, h, fps, r)
+            parts += [card, excerpt(film, mp4, tmp / f"{name}.cut.mp4", fps, r)]
         durations = [probe(p)["duration_s"] for p in parts]
         inputs: list[str] = []
         for p in parts:

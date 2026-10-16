@@ -6,6 +6,7 @@ film: strategist
 title: Getting the ambulance through
 subtitle: Strategist, top three options tested from the 08:30 snapshot (fictional situation)
 duration_s: 40
+showreel: [8, 32]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
 sources:

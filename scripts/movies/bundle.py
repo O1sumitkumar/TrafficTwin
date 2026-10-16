@@ -528,33 +528,35 @@ def write_trips(trips: Trips, origin: tuple[float, float], out: Path) -> dict[st
 
 
 def fcd_series(run: Any, kind: str, times: list[float]) -> list[float]:
-    """Per-frame value of a series KPI from the run's FCD (1 s samples)."""
+    """Per-frame value of a series KPI from the run's FCD (1 s samples).
+
+    running / halted / mean_speed_kmh: vehicles with a sample in that second; arrived: vehicles
+    whose last sample is before t (left the window or finished). The evacuees_* variants count
+    only event vehicles (`ev.` ids: evacuees in an evacuation run).
+    """
     from api.ingest import ensure_fcd
 
     fcd = ensure_fcd(run.data_dir, run_id=run.run_id, tier="B")
+    where = f"WHERE vehicle_id LIKE '{EVACUEE_PREFIX}%'" if kind.startswith("evacuees_") else ""
+    base = kind.removeprefix("evacuees_")
     con = duckdb.connect()
     try:
-        if kind == "arrived":
+        if base in ("arrived", "out"):
             last = con.execute(
-                f"SELECT max(time_s) FROM read_parquet('{fcd}') GROUP BY vehicle_id"
+                f"SELECT max(time_s) FROM read_parquet('{fcd}') {where} GROUP BY vehicle_id"
             ).fetchnumpy()
             arr = np.sort(next(iter(last.values())))
             end = arr.max() if len(arr) else 0
-            return [
-                float(np.searchsorted(arr, t, side="left"))
-                if t < end
-                else float(np.searchsorted(arr, end, side="left"))
-                for t in times
-            ]
+            return [float(np.searchsorted(arr, min(t, end), side="left")) for t in times]
         rows = con.execute(
             f"SELECT floor(time_s) AS s, count(*) AS n, "
             f"sum(CASE WHEN speed_ms < 0.1 THEN 1 ELSE 0 END) AS halted, "
-            f"avg(speed_ms) AS v FROM read_parquet('{fcd}') GROUP BY 1 ORDER BY 1"
+            f"avg(speed_ms) AS v FROM read_parquet('{fcd}') {where} GROUP BY 1 ORDER BY 1"
         ).fetchnumpy()
     finally:
         con.close()
     secs = rows["s"].astype(np.int64)
-    col = {"running": rows["n"], "halted": rows["halted"], "mean_speed_kmh": rows["v"] * 3.6}[kind]
+    col = {"running": rows["n"], "halted": rows["halted"], "mean_speed_kmh": rows["v"] * 3.6}[base]
     lut = dict(zip(secs.tolist(), np.asarray(col, dtype=np.float64).tolist(), strict=True))
     return [float(lut.get(math.floor(t), 0.0)) for t in times]
 

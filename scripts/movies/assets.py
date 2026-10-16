@@ -2,25 +2,27 @@
 
     python -m scripts.movies.assets          # (make movies-docs)
 
-For every rendered film: the GIF preview (<= 6 s, <= 3 MB, made by the render) and a 1280 px JPEG
-still from the poster frame. movies/ stays git-ignored; these small previews are committed.
+For every rendered film: a light README GIF (the same 6 s as the render's preview, 360 px, 10 fps,
+<= 1.2 MB) and a 1280 px JPEG still from the poster frame. movies/ stays git-ignored (with the
+full <= 3 MB GIFs); these small previews are committed.
 """
 
 from __future__ import annotations
 
-import shutil
+import json
 import subprocess
 from pathlib import Path
 
 import typer
 
-from scripts.movies.render import MOVIES_DIR, ffmpeg
-from scripts.movies.spec import film_names
+from scripts.movies.render import MOVIES_DIR, ffmpeg, make_gif
+from scripts.movies.spec import film_names, load_settings
 from sim.common import REPO_ROOT
 
 DOCS_IMG = REPO_ROOT / "docs" / "img" / "movies"
 STILL_WIDTH = 1280
 STILL_QSCALE = 4  # ffmpeg mjpeg quality (2 best .. 31 worst)
+README_GIF = {"gif_width": 360, "gif_fps": 10, "gif_max_bytes": 1_200_000}
 
 
 def export(out: Path = DOCS_IMG) -> list[str]:
@@ -47,8 +49,11 @@ def export(out: Path = DOCS_IMG) -> list[str]:
             ],
             check=True,
         )
-        if gif.exists() and name != "showreel":
-            shutil.copyfile(gif, out / f"{name}.gif")
+        meta = MOVIES_DIR / f"{name}.json"
+        if gif.exists() and name != "showreel" and meta.exists():
+            r = {**load_settings()["render"], **README_GIF}
+            start = json.loads(meta.read_text()).get("gif", {}).get("start_s", 3.0)
+            make_gif(MOVIES_DIR / f"{name}.mp4", out / f"{name}.gif", float(start), r)
         done.append(name)
     return done
 
