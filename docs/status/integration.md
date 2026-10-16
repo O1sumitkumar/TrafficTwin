@@ -20,3 +20,17 @@ Next: second pass to merge trackD once `LOOP: done`; re-link windows to the M2 b
 network capacity (TA-011, 50 % teleports); chunked Tier B trajectories; M9 docs and release.
 
 INTEGRATE: done
+
+## INTEGRATE pass 2 (Track E movies) — 2026-10-16
+Merged `trackE` (MOVIES: done) into `main` with `--no-ff`. No conflicts: it was cut from main at cb98f6d.
+Carried the specs, `scripts/movies/`, `web/src/cinema/`, tests, docs/movies.md, the README section and the
+`docs/img/movies/` stills/GIFs. Nothing rendered under `movies/` went into git; only `movies/specs/` is tracked.
+Track D was not merged or touched (still running).
+Gates: ruff clean; pytest 292 passed, 1 skipped; tsc and vite build pass.
+Film source runs: 11 runs that were reachable only through trackE's symlinks into the trackA, trackB and
+trackE worktrees were copied into main's untracked `runs/` (I-006, about 1.1 GB). Main then rebuilt all
+7 film bundles with hashes identical to Track E's; `tahlia-street` rendered in full on main (30.00 s,
+155.9 s wall, same frame hashes).
+Next: pass 3 for trackD once its status says `LOOP: done`, then render the `loop` film.
+
+INTEGRATE: done

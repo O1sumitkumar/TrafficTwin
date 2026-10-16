@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-16 (M9 release: runnable app from a clean clone)
+Last updated: 2026-10-16 (integration pass 2: Track E movies merged; Track D still running)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -21,6 +21,7 @@ All results: **synthetic demand, uncalibrated**.
 | M8 | Calibration (dormant) | done (Track A) | synthetic round trip GEH<5 100 %; no real counts |
 | M9 | Docs and release | done | `make demo` from a fresh clone: 6 min 23 s, screenshots docs/img/final-*.png; `docker compose up --build` verified; section below |
 | LANE_AUDIT, v2 | Lane counts from imagery | blocked - accuracy (Track C) | held-out precision 60 % < 80 % gate; `jeddah.lanes.net.xml` not written, so not promoted |
+| MOVIES | Cinematic films (Track E) | done (Track E), merged in integration pass 2 | 7 films rebuilt from main with identical bundle hashes; `tahlia-street` full render on main 30.00 s, 155.9 s; docs/movies.md |
 | LOOP | Loop tunnels | not merged (Track D in progress) | trackD status says `LOOP — in progress`; needs a second integration pass |
 
 ## Integration — 2026-10-16
@@ -162,6 +163,39 @@ Open (M9): demo population hash differs between macOS and the Linux container
 bits (0.825160229218671 vs 0.8251602292184539 km2). Runs are bit-identical per platform; to make
 them identical across platforms, round geometry-derived floats in `sim/population/zones.py` at the
 next baseline regeneration (it changes every population hash and invalidates the 2 h route cache).
+
+## Integration pass 2 (Track E movies) — 2026-10-16
+Merged `trackE` (cut from main at cb98f6d, so no conflicts) with `--no-ff`. Carried: `scripts/movies/`,
+`movies/specs/` (the only tracked path under the ignored `movies/`: `.gitignore` is now
+`movies/*` + `!movies/specs/`), `web/src/cinema/`, the `?cinema=` branch in `web/src/main.tsx`,
+`web/scripts/cinema.mjs`, Makefile targets `movies`, `movie`, `showreel`, `movies-docs`,
+`docs/movies.md`, the README "Movies" section, the `docs/img/movies/` stills and GIF previews
+(7 GIFs + 8 JPGs, about 8 MB), `tests/test_movies.py`, the A-mov-001..008 register rows (already in
+`docs/assumptions.md` on the branch, E-D-014). No MP4, frame or rendered output from `movies/` is in git.
+Track D (`.worktrees/trackD`, Loop tunnels) was neither merged nor touched; the `loop` spec stays a stub.
+
+Gates on merged main (logs/integrate-e-gates.log, logs/integrate-e-pytest.log): ruff check + format clean;
+pytest 292 passed, 1 skipped (incl. the 20 movie tests and the render smoke test); `tsc --noEmit` and
+`vite build` pass. Fix found by the verifier: the render smoke test wrote its 640x360 bundle into the
+real `runs/movies/` cache; `movies_runs_dir()` now honours `TT_MOVIES_DIR` and the test uses a temp dir.
+
+Decision I-006 (film source runs): the films read 11 runs that existed only in other worktrees (Track A
+`cordon_center`, `staggered_schools_60` and their `--control` runs; Track B rain, flood, motorcade,
+emergency and `evac_flood_balad` window runs; Track E's `evac_corniche_hamra_film` scenario and run,
+E-D-007), reached through symlinks in `.worktrees/trackE/runs/`. They were copied (rsync, about 1.1 GB,
+real directories, sources untouched) into main's untracked `runs/`, so the films rebuild from main
+alone. Bundle caches (`runs/movies/`) and `_viewer-cache` were not copied (both regenerate).
+
+End to end on main: `python -m scripts.movies.render tahlia-street` gave 1920x1080, 30.00 s, 21.6 MB,
+900 frames at 0.12-0.15 s each, 155.9 s wall, browser RSS max 1,256 MB; bundle hashes and the
+fade-free frame hashes are identical to Track E's render (only timing and RSS differ). The other six
+films (`city-24h`, `incident`, `events`, `strategist`, `evacuation`, `policy-lab`) were rendered as
+frames 100-101 (2 frames each) to a scratch directory: all bundle hashes identical to Track E's. Full `make movies`
+(about 25 min) was not repeated on main.
+Note: in this shell `NODE_ENV=production`, so a bare `npm ci` skips devDependencies (no `tsc`/`vite`);
+`make setup` already passes `--include=dev`.
+Open: the `loop` film waits for Track D (next integration pass: merge trackD once `LOOP: done`, then
+`make movie FILM=loop`); incident film has no shockwave (E-D-008); strategist HUD shows raw edge ids.
 
 ## Measured
 - M0: pytest 26 tests, 8.6 s wall (demo window only, offline). Demo window: 939 edges, 401 junctions,
@@ -553,3 +587,13 @@ threshold and a missing assumption id in outputs; all fixed (B-D-038), city demo
 rerun with unchanged fingerprints; second pass PASS on all items except one stale register range
 in this block, fixed in the same commit as this line.
 M7: done
+
+### MOVIES (Track E)
+Summary (full log in docs/status/trackE.md, decisions E-D-001..015): a film pipeline over existing runs.
+Python plans each frame (camera keyframes, NOAA sun, KPIs, fades, bundles in `runs/movies/<film>/bundle/`),
+the deck.gl renderer at `?cinema=<film>` draws it, headless Chrome steps frames, chunked H.264 encode keeps
+disk under 0.3 GB per film. 7 films at 1080p30 (30-40 s each, about 25 min in all), showreel 174.7 s,
+GIF previews 6.00 s. Determinism: `tahlia-street` rendered three times with identical hashes; the smoke
+test renders frames 100-110 twice. Display-only assumptions A-mov-001..008; no simulation result changes.
+Not verified: bit-identical frames on another GPU or Chrome; the 4K and 60 fps flags.
+MOVIES: done
