@@ -235,8 +235,11 @@ def greedy(
                 elif r["candidate"] == best:
                     r["decision"] = "selected (relieves more alone than the per-km greedy set)"
             chosen = [best]
+            km0 = float(evals[best]["tunnel_km"])
             for r in log:
-                r["cumulative_km"] = round(float(evals[best]["tunnel_km"]), 2)
+                r["cumulative_km"] = round(km0, 2) if r["candidate"] == best else None
+                if r["decision"].startswith(("over budget", "selected")) and r["candidate"] != best:
+                    r["decision"] = f"over budget with {best} ({km0 + r['km']:.1f} > {budget:g} km)"
     return chosen, log
 
 
@@ -284,7 +287,9 @@ def passes(rep: dict[str, Any], cfg: dict[str, Any], tele_tol: float) -> tuple[b
     if seg > lim:
         return False, f"tunnel segment exceedance {seg:.1%}"
     util = f.get("segment_peak_utilisation") or 0.0
-    if f.get("segment_exceedance_share") is None and util > 1.05:
+    if f.get("segment_exceedance_share") is None and util > float(
+        cfg["quality"]["segment_utilisation_fallback"]
+    ):
         return False, f"tunnel segment peak utilisation {util:.2f} (teleport-assisted)"
     t, t0 = f.get("teleport_share"), f.get("teleport_share_compare")
     if t is not None and t0 is not None and t > t0 + tele_tol:
@@ -478,7 +483,9 @@ def optimise(run: bool = True, budget: float | None = None, quiet: bool = False)
     }
     reports: dict[str, dict[str, Any]] = {}
     plan = sweep_plan(cfg)
-    tele_tol = max(abs(noise["teleport_share_delta"]), 0.01)
+    tele_tol = max(
+        abs(noise["teleport_share_delta"]), float(cfg["quality"]["teleport_tolerance_min"])
+    )
     for suffix, mode, params, role, desc in plan if chosen else []:
         pol = sweep_policy(suffix, mode, params, chosen, tag)
         rep_path = runs_dir / pol.id / "loop_report.json"
@@ -499,13 +506,15 @@ def optimise(run: bool = True, budget: float | None = None, quiet: bool = False)
     best = recommend(result["sweep"], cfg)
     result["recommended"] = best
     if best is not None:
-        result["band"] = band(best, reports, noise)
         suffix, mode, params = next((s, m, p) for s, m, p, _, _ in plan if s == best["suffix"])
         pol = sweep_policy(suffix, mode, params, chosen, tag)
+        rp = prev.get("replicate") or {}
         if run:
-            result["replicate"] = replicate(pol, runs_dir, quiet)
-        else:
-            result["replicate"] = prev.get("replicate")
+            rp = replicate(pol, runs_dir, quiet)
+        elif not str(rp.get("run", "")).startswith(pol.id):
+            rp = {}
+        result["replicate"] = rp or None
+        result["band"] = band(best, reports, noise, rp.get("relief_vs_seed2_baseline"))
         write_policy_yaml(pol, RECOMMENDED, best)
     prev_path.write_text(json.dumps(result, indent=2, default=float))
     render(result, cands, evals)
@@ -605,32 +614,29 @@ def recommend(sweep: list[dict[str, Any]], cfg: dict[str, Any] | None = None) ->
     return best
 
 
-def band(
-    best: dict[str, Any], reports: dict[str, dict[str, Any]], noise: dict[str, Any]
-) -> dict[str, Any]:
-    """Band of the recommended option's relief (and per USD M): its pooled runs, for shuttle the
-    uncertainty runs (alpha, radius, capacity, time-competitive), the noise and the capex range."""
+def band(best: dict[str, Any], reports: dict[str, dict[str, Any]], noise: dict[str, Any],
+         replicate_relief: float | None = None) -> dict[str, Any]:  # fmt: skip
+    """Band of the recommended option's relief: its own runs (pooled speed runs for the shuttle
+    option) and its seed-2 replicate, widened by the noise of one comparison (baseline
+    replicate); per USD M additionally over the capex range. Behavioural and capacity
+    uncertainties (alpha, radius, engineering capacity, time-competitive shift) are reported as
+    separate sweep rows, not folded in."""
     vals = list(best["pooled_values"])
-    if best["suffix"] == "":
-        vals += [
-            r["relief_vht_per_day"]
-            for s, r in reports.items()
-            if s.startswith(("_a", "_r", "_cap", "_comp"))
-        ]
+    if replicate_relief is not None:
+        vals.append(replicate_relief)
     lo = min(vals) - noise["noise_relief"]
     hi = max(vals) + noise["noise_relief"]
     cx = reports[best["suffix"]]["capex_usd_m"]
-    rel = best["relief_used"]
+    rel = round(float(np.mean(vals)))
     return {
         "relief_vht_per_day": rel,
+        "relief_values": vals,
         "relief_range": [round(lo), round(hi)],
         "per_usd_m_central": round(rel / cx["central"], 2),
-        "per_usd_m_range": [
-            round(lo / cx["high"] if lo > 0 else lo / cx["low"], 2),
-            round(hi / cx["low"], 2),
-        ],
+        "per_usd_m_range": [round(lo / cx["high"] if lo > 0 else lo / cx["low"], 2),
+                            round(hi / cx["low"], 2)],
         "capex_usd_m": cx,
-    }
+    }  # fmt: skip
 
 
 def replicate(pol: Any, runs_dir: Path, quiet: bool) -> dict[str, Any]:
@@ -733,11 +739,8 @@ def render(
     best = res.get("recommended")
     if best:
         b = res["band"]
-        vals = best["pooled_values"]
-        pooled = (
-            f" (mean of {len(vals)} runs: {', '.join(f'{v:,}' for v in vals)})"
-            if len(vals) > 1
-            else ""
+        pooled = f"{len(best['pooled_values'])} seed-1 run(s)" + (
+            " and the seed-2 replicate" if res.get("replicate") else ""
         )
         sel = " + ".join(
             f"{c} ({cands[c]['name']}, {cands[c]['tunnel_km']} km)" for c in res["selected"]
@@ -747,10 +750,13 @@ def render(
             f"budget.\n\n**Policy:** {best['config']} (run `runs/{best['run']}`; policy file "
             f"`sim/policies/loop_recommended.yaml`).\n\n"
             f"| item | value |\n|---|---|\n"
-            f"| congestion relief, VHT/day | {b['relief_vht_per_day']:,}{pooled} "
-            f"(band {b['relief_range'][0]:,} to {b['relief_range'][1]:,}) |\n"
+            f"| congestion relief, VHT/day | {b['relief_vht_per_day']:,} (mean of "
+            f"{', '.join(f'{v:,}' for v in b['relief_values'])}: {pooled}; "
+            f"band {b['relief_range'][0]:,} to {b['relief_range'][1]:,} with the replicate "
+            f"noise) |\n"
             f"| relief per day per USD M | {b['per_usd_m_central']:.1f} at central capex "
-            f"(band {b['per_usd_m_range'][0]:.1f} to {b['per_usd_m_range'][1]:.1f}) |\n"
+            f"(band {b['per_usd_m_range'][0]:.1f} to {b['per_usd_m_range'][1]:.1f} with noise and "
+            f"capex range) |\n"
             f"| capex USD M (low / central / high) | {b['capex_usd_m']['low']:,.0f} / "
             f"{b['capex_usd_m']['central']:,.0f} / {b['capex_usd_m']['high']:,.0f} |\n"
             f"| AM-peak road delay change | {fmt(best['am'], 2)} % |\n"

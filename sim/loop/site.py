@@ -276,7 +276,8 @@ def place_stations(a: pd.Series, b: pd.Series, sites: pd.DataFrame, cfg: dict[st
         nx, ny = sx.copy(), sy.copy()
         nx[k], ny[k] = px[j], py[j]
         sp = np.hypot(np.diff(nx), np.diff(ny))
-        if (sp >= lo_sp * 0.95).all() and (sp <= hi_sp * 1.05).all():
+        tol = float(s["spacing_tolerance"])
+        if (sp >= lo_sp * (1 - tol)).all() and (sp <= hi_sp * (1 + tol)).all():
             sx, sy, ids[k] = nx, ny, int(j)
     return sx, sy, ids
 

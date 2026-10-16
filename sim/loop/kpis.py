@@ -227,7 +227,7 @@ def write_loop_report(
         "vht_saved_per_usd_m": {k: round(saved / v, 2) for k, v in cx.items() if v},
         "passengers_per_day": eff.get("passengers_per_day"),
         "car_vehicles_removed_per_day": round(eff.get("car_vehicles_removed", 0) / sample),
-        "cars_rerouted": eff.get("cars_rerouted"),
+        "cars_rerouted": round(eff["cars_rerouted"] / sample) if eff.get("cars_rerouted") else None,
         "flags": {
             "teleport_share": tele.get("policy"),
             "teleport_share_compare": tele.get("baseline"),

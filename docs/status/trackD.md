@@ -134,3 +134,12 @@ cannot be enforced in Tier A meso (gate instead).
 Next: intermediate tolls (SAR 12-20) for private-EV at measured capacity; more sim seeds for the
 top four corridors; integration to add the README command and fold the Loop transforms into
 `sim.schemas.Transform` directly.
+- TD-015 Final verifier (19:55) FAILs and fixes: (F1) TD-010(b) was wrong: the dispatch window
+  does change road results (C1: 71,047 -> 53,476 VHT/day relief with identical demand; the same
+  chaotic meso noise as the speed runs), so the seed-1 candidate column mixed two model versions.
+  The 8 seed-1 candidate runs are re-run with the current model (`evaluate --force`, from 19:58,
+  ~1.5 h). (F2) The recommendation band now says what it contains: the option's runs and its
+  seed-2 replicate, widened by the replicate noise, and the capex range for per USD M; alpha,
+  radius and capacity stay separate sweep rows. (F3) Private-mode "cars re-routed" is now
+  city-equivalent (x 1/sample). (F5-F9) stale register ranges, pooled-option label, greedy table
+  after the knapsack correction, gate tolerances registered (A-loop-014), doc wording.

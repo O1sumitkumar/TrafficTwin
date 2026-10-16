@@ -55,7 +55,7 @@ def make_policy(pid: str, title: str, alignments: list[dict[str, Any]], mode: st
             {"id": a["id"], "name": a.get("name", ""), "stations": a["stations"]}
             for a in alignments
         ],  # fmt: skip
-        "assumption": "A-loop-001..015: parameters from sim/loop/config/loop.yaml unless set here",
+        "assumption": "A-loop-001..020: parameters from sim/loop/config/loop.yaml unless set here",
         **{k: v for k, v in params.items() if v is not None},
     }
     return LoopPolicy.model_validate({"id": pid, "kind": "policy", "title": title,
@@ -222,6 +222,7 @@ def main(
     keep_outputs: bool = typer.Option(False, help="keep edge/emission Parquet of each run"),
     sim_seed: int | None = typer.Option(None, help="replicate: re-simulate with this sim seed"),
     rebuild: bool = typer.Option(False, "--rebuild", help="recompute reports of finished runs"),
+    force: bool = typer.Option(False, "--force", help="re-run even if a matching run exists"),
     results: Path = typer.Option(RESULTS / "evaluation.json"),
 ) -> None:
     if rebuild:
@@ -252,10 +253,11 @@ def main(
         typer.echo(f"[{pid}] {c['name']}, {c['tunnel_km']} km; {free_gb():.1f} GB free")
         try:
             if rep_base is None:
-                rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs)
+                rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs, force=force)
             else:
                 rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs,
-                              sim_seed=sim_seed, run_id=f"{pid}-sim{sim_seed}")  # fmt: skip
+                              sim_seed=sim_seed, run_id=f"{pid}-sim{sim_seed}",
+                              force=force)  # fmt: skip
         except DiskFull as e:
             blocked("disk")
             raise typer.Exit(f"stopped: {e}") from e

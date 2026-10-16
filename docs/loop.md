@@ -244,7 +244,7 @@ headway; vendor speed claims do not change road relief at all.
    the Al Naseem / As Sulimaniyah / Al Faiha'a belt east of the centre (each 8,000-11,000 delay
    hours/day), plus Al-Salamah - Al Naseem and KAIA - Ar Rughamah. The top time-loss corridors are
    Al Haramain Road, Madinah Road and Prince Majid Road, then King Abdullah, King Fahd, Al Lith and
-   King Abdulaziz roads (table below; `sim/loop/results/corridors.csv`).
+   King Abdulaziz roads (see the corridor list above; `sim/loop/results/corridors.csv`).
 2. **Which corridors.** Five candidates are positive in both seeds with a two-seed mean above the
    noise: C1 Al-Salamah - KAU (71,293 VHT/day mean, 17.9 km; the two seeds agree within 1 %), C8
    KAIA - KAU (62,362, 23.3 km), C4 Al Bawadi - Al Balad (60,132, 16.2 km; seeds 30,000 / 90,000),
@@ -300,5 +300,5 @@ headway; vendor speed claims do not change road relief at all.
 - **Untested:** intermediate tolls (SAR 10-25), private-EV at measured capacity with a ramp
   metering rule, transfers between lines, more than one corridor within the budget.
 
-Assumptions: `docs/assumptions-trackD.md` (A-loop-001..016). Sources:
+Assumptions: `docs/assumptions-trackD.md` (A-loop-001..020). Sources:
 `docs/data-sources-trackD.md`. Decisions: `docs/status/trackD.md` (TD-001..).

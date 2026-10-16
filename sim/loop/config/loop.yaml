@@ -91,6 +91,7 @@ siting:
   stations: [4, 8]
   length_km: [6, 25]
   snap_m: 700
+  spacing_tolerance: 0.05
   n_candidates: 8
   max_shared_stations: 1
   capture_floor_quantile: 0.5
@@ -113,7 +114,9 @@ budget_source: "A-loop-018: brief: greedy corridor selection under a 25 km budge
 quality:
   max_capacity_exceedance: 0.10
   min_daily_trips: 5000
-  assumption: "A-loop-014: a configuration is recommendable only if at most 10 % of shifted trips exceed the station-pair capacity (else the road relief assumes riders the Loop cannot carry); judgement, 5-20 %. A-loop-020: an option whose Loop carries fewer than 5,000 trips/day is not credited with city-scale relief (its measured relief is simulation noise); for scale, the Dubai Loop pilot plans about 13,000 passengers/day (Dubai Media Office, 3 Feb 2026)."
+  teleport_tolerance_min: 0.01
+  segment_utilisation_fallback: 1.05
+  assumption: "A-loop-014: a configuration is recommendable only if at most 10 % of shifted trips exceed the station-pair capacity (else the road relief assumes riders the Loop cannot carry); judgement, 5-20 %; the same 10 % applies to tunnel-segment exceedance (traversals in hours above the headway capacity); where only the peak utilisation is known (runs reported before that metric) a peak above 1.05 fails. Teleports per vehicle may exceed the comparison by at most the baseline replicate's change, and at least 0.01. A-loop-020: an option whose Loop carries fewer than 5,000 trips/day is not credited with city-scale relief (its measured relief is simulation noise); for scale, the Dubai Loop pilot plans about 13,000 passengers/day (Dubai Media Office, 3 Feb 2026)."
 
 # Days per year used to annualise daily VHT savings (weekday model).
 annual_days: 250

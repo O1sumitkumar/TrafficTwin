@@ -256,6 +256,7 @@ def test_quality_gate_and_render(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
                      "teleport_share": 0.5, "teleport_share_delta": 0.001},
            "recommended": best,
            "band": {"relief_vht_per_day": 5000, "relief_range": [4000, 6000],
+                    "relief_values": [5000],
                     "per_usd_m_central": 20.0, "per_usd_m_range": [10.0, 40.0],
                     "capex_usd_m": ev["A"]["capex_usd_m"]}}  # fmt: skip
     O.render(res, cands, ev)
