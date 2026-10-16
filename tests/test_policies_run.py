@@ -129,6 +129,13 @@ def test_reroute_threads_repeatable(penv: dict, tmp_path: Path) -> None:
     meta = run_policy("staggered_schools_60", "weekday", runs_dir=tmp_path, **penv["kw"])
     out = tmp_path / meta["run_id"]
     assert meta["routing"]["rerouted"] > 0
+    # re-timed baseline vehicles were re-routed, so the report compares with a matched control
+    assert meta["control_run"] == f"{meta['run_id']}--control"
+    ctrl = json.loads((tmp_path / meta["control_run"] / "meta.json").read_text())
+    assert ctrl["routing"]["to_route"] == meta["control_rerouted"] > 0
+    r = report(tmp_path, meta)
+    assert r["compare_baseline"] == meta["control_run"] and r["control"]["kpis_vs_raw_baseline"]
+    assert "matched control" in (out / "policy_report.md").read_text()
     base = penv["kw"]["baselines_dir"] / meta["start_baseline"]
     edges = E.load_edges(DEMO_NET)
     cong = R.congested_weights(base / "edgedata.parquet", edges, 900, 1.0)

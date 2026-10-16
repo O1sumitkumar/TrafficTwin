@@ -211,9 +211,14 @@ def write_policy_report(
     plan: Any,
     cfg: dict[str, Any],
     policy_path: Path | None,
+    raw_ref_dir: Path | None = None,
 ) -> dict[str, Any]:
     ref = json.loads((ref_dir / "metrics.json").read_text())
     kpis = kpi_table(ref["summary"], report["summary"])
+    raw_kpis = None
+    if raw_ref_dir is not None:
+        raw = json.loads((raw_ref_dir / "metrics.json").read_text())
+        raw_kpis = kpi_table(raw["summary"], report["summary"])
     base_h = pd.read_parquet(ref_dir / "metrics_hourly.parquet")
     pol_h = pd.read_parquet(out / "metrics_hourly.parquet")
     spread = peak_spreading(base_h, pol_h, cfg)
@@ -237,6 +242,13 @@ def write_policy_report(
         "sample": meta["sample"],
         "seed": meta["seed"],
         "kpis": kpis,
+        "control": None if raw_ref_dir is None else {
+            "control_run": meta.get("control_run"),
+            "vehicles_rerouted_in_control": meta.get("control_rerouted"),
+            "raw_baseline": raw_ref_dir.name,
+            "kpis_vs_raw_baseline": raw_kpis,
+            "headline_vs_raw_baseline": headline(meta, raw_kpis or []),
+        },
         "peak_spreading": spread,
         "districts": dist,
         "corridors": corr,
@@ -252,6 +264,30 @@ def write_policy_report(
     (out / "policy_report.json").write_text(json.dumps(result, indent=2, default=str))
     (out / "policy_report.md").write_text(render_md(result, meta))
     return result
+
+
+CONTROL_KPIS = ("mean_delay_s", "am_peak_mean_delay_s", "vkt", "vht", "co2_t")
+
+
+def control_md(r: dict[str, Any]) -> str:
+    c = r.get("control")
+    if not c:
+        return ""
+    rows = [{"KPI": k["label"], "raw baseline": fmt(k["baseline"]), "policy": fmt(k["policy"]),
+             "delta %": "" if k["delta_pct"] is None else f"{k['delta_pct']:+.1f}"}
+            for k in c["kpis_vs_raw_baseline"] or [] if k["kpi"] in CONTROL_KPIS]  # fmt: skip
+    return f"""
+> **Compared with a matched control** (TA-018): `{c["control_run"]}` is the baseline with the same
+> {fmt(c["vehicles_rerouted_in_control"])} baseline vehicles re-routed (one-shot, at their baseline
+> times, no policy). One-shot routes beat the baseline's 3-step assignment, so comparing with the
+> raw baseline would credit the policy with that routing gain.
+
+<details><summary>Against the raw baseline (includes the routing gain)</summary>
+
+{md_table(rows)}
+
+</details>
+"""
 
 
 def render_md(r: dict[str, Any], meta: dict[str, Any]) -> str:
@@ -299,6 +335,7 @@ def render_md(r: dict[str, Any], meta: dict[str, Any]) -> str:
 
 **{r["headline"]}**
 
+{control_md(r)}
 ## What the policy changed
 {eff}
 

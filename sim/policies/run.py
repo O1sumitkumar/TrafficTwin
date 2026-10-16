@@ -177,9 +177,17 @@ def run_policy(
     sim_seed: int | None = None,
     run_id: str | None = None,
     placebo_reroute_share: float = 0.0,
+    control_ids: set[str] | None = None,
+    with_control: bool = True,
 ) -> dict[str, Any]:
     """`sim_seed` (default: `seed`) re-seeds only the final simulation: a no-change policy with
-    another sim seed measures the run-to-run noise of the meso run (replicate)."""
+    another sim seed measures the run-to-run noise of the meso run (replicate).
+
+    Matched control (TA-018): one-shot routes are better than the baseline's 3-step assignment
+    (re-routing 8 % of unchanged vehicles cuts city delay by ~20 %), so when a policy re-routes
+    vehicles that exist in the baseline, a control run re-routes the same vehicles at their
+    baseline times without the policy, and the report compares the policy with that control.
+    `control_ids` makes this run such a control."""
     from sim import metrics
     from sim.common import sumo_bin, sumo_version
     from sim.metrics import xml_content_hash
@@ -253,6 +261,8 @@ def run_policy(
         ids = np.sort(m.loc[same.to_numpy(), "veh_id"].to_numpy().astype(str))
         u = np.random.default_rng(seed).random(len(ids))
         plan.force_reroute |= set(ids[u < placebo_reroute_share])
+    if control_ids:
+        plan.force_reroute |= set(control_ids)
     reuse = set(m.loc[same.to_numpy(), "veh_id"]) - plan.force_reroute
     need = veh[~veh["veh_id"].isin(reuse)]
     unchanged = (
@@ -388,7 +398,31 @@ def run_policy(
         "timings": timings,
     }
     report = metrics.process_run(out, meta)
-    policy_report = write_policy_report(out, meta, report, ref_dir, pol, plan, rcfg, pol_path)
+    # matched control for re-routed baseline vehicles (not for controls, placebos, other days)
+    rerouted_existing = set(need["veh_id"]) & set(base_v["veh_id"])
+    raw_ref = None
+    if (with_control and rerouted_existing and control_ids is None and not placebo_reroute_share
+            and start_day == compare_day):  # fmt: skip
+        say(f"[{run_id}] matched control: {len(rerouted_existing):,} baseline vehicles re-routed")
+        null = Policy.model_validate({
+            "id": "matched_control", "kind": "policy", "daytype": compare_day,
+            "title": f"Matched control for {pol.id} (same vehicles re-routed, no policy)",
+            "transforms": [{"type": "remote_work", "share": 0.0, "days_per_week": 1,
+                            "eligible_sectors": ["government"],
+                            "assumption": "no-op transform: control run (TA-018)"}]})  # fmt: skip
+        del plan.trips, plan.vehicles  # free memory before the control builds its own plan
+        ctrl = run_policy(
+            null, compare_day, sample, seed, runs_dir, net, zone_dir, baselines_dir, iterations,
+            quiet, force_simulate=True, sim_seed=sim_seed, run_id=f"{run_id}--control",
+            control_ids=rerouted_existing,
+        )  # fmt: skip
+        raw_ref, ref_dir = ref_dir, runs_dir / ctrl["run_id"]
+        meta["control_run"] = ctrl["run_id"]
+        meta["control_rerouted"] = len(rerouted_existing)
+        meta["compare_baseline"] = ctrl["run_id"]
+        meta["raw_baseline"] = raw_ref.name
+    policy_report = write_policy_report(out, meta, report, ref_dir, pol, plan, rcfg, pol_path,
+                                        raw_ref)  # fmt: skip
     timings["report_s"] = round(time.perf_counter() - t3, 1)
     timings["total_s"] = round(time.perf_counter() - t0, 1)
     meta["result"] = report["summary"]
