@@ -51,6 +51,11 @@ Access date for every entry: **2026-10-15** unless stated. Status values: used /
 - **GASTAT labour table URL at governorate level: not found**; region level only.
 - **Primary GASTAT census table: unverified** (portal unreachable on the access date).
 
+## Track source lists
+
+- `docs/data-sources-trackA.md`: demand, day types, policies and calibration sources (Track A).
+- `docs/data-sources-trackD.md`: Loop tunnel sources (Las Vegas, Music City, Dubai: capacity, speed, cost), with the verified / not-verified status per figure (Track D).
+
 ## Licence obligations
 
 - **OpenStreetMap (ODbL 1.0).** Show "(c) OpenStreetMap contributors" with a link to https://www.openstreetmap.org/copyright in `NOTICE`, the README, the viewer map and any published figure. Network files, district GeoJSON, building layers and fix lists are derived databases: if we publicly share them (e.g. `data/demo/*.net.xml`), they must be offered under ODbL (share-alike), and the changes we made must be documented. Simulation outputs and images are Produced Works: attribution required, the works themselves may stay Apache-2.0.

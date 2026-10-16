@@ -444,6 +444,11 @@ def validate_file(path: Path) -> BaseModel:
     if kind == "daytype":
         return DayType.model_validate(data)
     if kind == "policy":
+        types = {t.get("type") for t in data.get("transforms") or [] if isinstance(t, dict)}
+        if types & {"loop_shuttle", "loop_private"}:
+            from sim.loop.schema import LoopPolicy  # Track D transforms
+
+            return LoopPolicy.model_validate(data)
         return Policy.model_validate(data)
     raise ValueError(f"{path}: unknown kind {kind!r}")
 

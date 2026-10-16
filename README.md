@@ -166,6 +166,16 @@ uv run python -m strategist.evacuation run --scenario evac_corniche_hamra --seed
 `sim.runner --scenario evac_*` dispatches to `sim.events.evacuation run`. Method and results:
 `docs/evacuation.md`.
 
+## Loop tunnels (Track D)
+
+```bash
+uv run python -m sim.loop.run loop_demo --demo          # demo policy on the demo window, ~10 s
+uv run python -m sim.loop.site                          # candidate corridors + map
+uv run python -m sim.loop.run loop_recommended          # recommended corridor C1, city 10 %, ~10 min
+```
+Siting, candidate ranking, the policy sweep and the recommendation (C1 Al-Salamah - King Abdulaziz
+University, shuttle mode capped at measured capacity): `docs/loop.md`.
+
 ## Calibration (M8, dormant until counts exist)
 
 ```bash
