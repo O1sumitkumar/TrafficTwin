@@ -467,3 +467,5 @@ def main(files: list[Path]) -> None:
 
 if __name__ == "__main__":
     app()
+
+import sim.loop.schema  # noqa: E402, F401  Track D: registers loop_shuttle / loop_private
