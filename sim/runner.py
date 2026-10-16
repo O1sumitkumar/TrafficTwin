@@ -288,6 +288,13 @@ def run_scenario_cli(
     run_scenario(scenario, window, seed, runs_dir, parallel=not serial)
 
 
+def run_policy_cli(policy: str, daytype: str, sample: float, seed: int, runs_dir: Path) -> None:
+    """Policy at Tier A vs the matching baseline (M4); logic in sim/policies/run.py."""
+    from sim.policies.run import run_policy
+
+    run_policy(policy, daytype, sample, seed, runs_dir)
+
+
 app = typer.Typer(add_completion=False, help=__doc__)
 
 
@@ -304,11 +311,23 @@ def main(
     scenario: str | None = typer.Option(None, help="scenario id or YAML path (Tier B window)"),
     window: str | None = typer.Option(None, help="focus window; overrides the scenario's"),
     serial: bool = typer.Option(False, help="scenario runs: baseline and scenario in sequence"),
+    baseline: bool = typer.Option(False, "--baseline", help="24 h Tier A baseline (M2)"),
+    daytype: str = typer.Option("weekday", help="day type for --baseline"),
+    sample: float = typer.Option(0.10, help="population sample for --baseline"),
+    iterations: int | None = typer.Option(None, help="override duaIterate steps (--baseline)"),
+    policy: str | None = typer.Option(None, help="policy id or YAML path (Tier A, M4)"),
 ) -> None:
     if scenario is not None:
         return run_scenario_cli(scenario, window, seed, runs_dir, serial)
+    if policy is not None:
+        return run_policy_cli(policy, daytype, sample, seed, runs_dir)
     if tier not in ("A", "B"):
         raise typer.BadParameter("tier must be A or B")
+    if baseline:
+        from sim.population.baseline import run_baseline
+
+        run_baseline(daytype, seed, sample, net, runs_dir, iterations, end)
+        return
     if not smoke:
         raise typer.BadParameter("only --smoke is implemented in M1 (baselines arrive in M2)")
     meta = run_smoke(tier, seed, net, end, runs_dir, period=period, fcd=fcd)
