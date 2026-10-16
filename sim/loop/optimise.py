@@ -518,6 +518,12 @@ def write_policy_yaml(pol: Any, path: Path, best: dict[str, Any]) -> None:
 
     doc = pol.model_dump(exclude_none=True, exclude={"report"})
     doc["id"] = path.stem
+    doc["title"] = f"Recommended Loop: {best['config']} ({SYNTHETIC_LABEL})"
+    for t in doc["transforms"]:
+        t["assumption"] = (
+            "A-loop-001..020 (docs/assumptions-trackD.md); parameters from "
+            "sim/loop/config/loop.yaml unless set here"
+        )
     head = (
         f"# Recommended Loop configuration (python -m sim.loop.optimise; run {best['run']}).\n"
         f"# {SYNTHETIC_LABEL}. Run: uv run python -m sim.loop.run {path.stem}\n"
@@ -727,7 +733,12 @@ def render(
     best = res.get("recommended")
     if best:
         b = res["band"]
-        pooled = ", ".join(f"{v:,}" for v in best["pooled_values"])
+        vals = best["pooled_values"]
+        pooled = (
+            f" (mean of {len(vals)} runs: {', '.join(f'{v:,}' for v in vals)})"
+            if len(vals) > 1
+            else ""
+        )
         sel = " + ".join(
             f"{c} ({cands[c]['name']}, {cands[c]['tunnel_km']} km)" for c in res["selected"]
         )
@@ -736,8 +747,7 @@ def render(
             f"budget.\n\n**Policy:** {best['config']} (run `runs/{best['run']}`; policy file "
             f"`sim/policies/loop_recommended.yaml`).\n\n"
             f"| item | value |\n|---|---|\n"
-            f"| congestion relief, VHT/day | {b['relief_vht_per_day']:,} (mean of "
-            f"{len(best['pooled_from'])} run(s): {pooled}) "
+            f"| congestion relief, VHT/day | {b['relief_vht_per_day']:,}{pooled} "
             f"(band {b['relief_range'][0]:,} to {b['relief_range'][1]:,}) |\n"
             f"| relief per day per USD M | {b['per_usd_m_central']:.1f} at central capex "
             f"(band {b['per_usd_m_range'][0]:.1f} to {b['per_usd_m_range'][1]:.1f}) |\n"
