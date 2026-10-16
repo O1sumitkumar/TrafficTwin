@@ -276,6 +276,15 @@ def print_report(meta: dict[str, Any], out: Path) -> None:
     typer.echo("\n".join(lines))
 
 
+def run_scenario_cli(
+    scenario: str, window: str | None, seed: int, runs_dir: Path, serial: bool = False
+) -> None:
+    """Scenario on a focus window vs its baseline (M5); logic in sim/scenarios/run.py."""
+    from sim.scenarios.run import run_scenario
+
+    run_scenario(scenario, window, seed, runs_dir, parallel=not serial)
+
+
 app = typer.Typer(add_completion=False, help=__doc__)
 
 
@@ -288,7 +297,12 @@ def main(
     end: int | None = typer.Option(None, help="override the end time (s)"),
     period: float | None = typer.Option(None, help="override the random-trips period (s)"),
     runs_dir: Path = typer.Option(RUNS_DIR),
+    scenario: str | None = typer.Option(None, help="scenario id or YAML path (Tier B window)"),
+    window: str | None = typer.Option(None, help="focus window; overrides the scenario's"),
+    serial: bool = typer.Option(False, help="scenario runs: baseline and scenario in sequence"),
 ) -> None:
+    if scenario is not None:
+        return run_scenario_cli(scenario, window, seed, runs_dir, serial)
     if tier not in ("A", "B"):
         raise typer.BadParameter("tier must be A or B")
     if not smoke:
