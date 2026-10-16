@@ -4,11 +4,14 @@ Pipeline (each step is skipped when its output is newer than its input, unless -
   1. download the Geofabrik extract (only with --download, or if missing and allowed)
   2. clip it to data/osm/jeddah.poly with osmium
   3. convert the clip to OSM XML (netconvert does not read PBF)
+  3b. (network v2) pre-pass: tag untagged major ways with the measured Jeddah lane/speed defaults
+     (sim/network/lane_defaults.py, A-net-301/302) -> a separate OSM XML
   4. netconvert with the options in sim/network/config/city.yaml -> <net>.raw.net.xml
   5. apply the reviewed fix list (data/osm/fixes/*.yaml) -> data/jeddah/jeddah.net.xml
   6. side outputs: districts.geojson, buildings.geojson, viewer edges, build.json
 
-    python -m sim.network.build_city                       # full city build
+    python -m sim.network.build_city                       # full city build, profile v2 (default)
+    python -m sim.network.build_city --network-profile v1 --out /tmp/v1.net.xml   # M1 settings
     python -m sim.network.build_city --osm data/demo/demo.osm.xml.gz --out /tmp/demo.net.xml \
         --no-side-outputs                                  # same builder on a small extract
 """
@@ -38,9 +41,18 @@ from sim.common import (
 )
 from sim.network import geo
 from sim.network.fixes import apply_fixes, load_fixes
+from sim.network.lane_defaults import tag_osm
 from sim.network.netinfo import edges_geojson, net_stats
 
-DEFAULT_CONFIG = REPO_ROOT / "sim" / "network" / "config" / "city.yaml"
+# Network profiles: v1 = M1 build (data/jeddah/jeddah.net.xml), m2 = Track A variant with the
+# judgement overlay (A-net-201), v2 = measured lane defaults + junction/ramp settings (Track F).
+PROFILES = {
+    "v1": REPO_ROOT / "sim" / "network" / "config" / "city.yaml",
+    "m2": REPO_ROOT / "sim" / "population" / "config" / "network-m2.yaml",
+    "v2": REPO_ROOT / "sim" / "network" / "config" / "city-v2.yaml",
+}
+DEFAULT_PROFILE = "v2"
+DEFAULT_CONFIG = PROFILES[DEFAULT_PROFILE]
 
 
 def _p(path: str) -> Path:
@@ -106,9 +118,41 @@ def build_net(
 app = typer.Typer(add_completion=False, help=__doc__)
 
 
+def profile_of(config: Path) -> str | None:
+    """Profile name of a config file, or None for a custom config."""
+    return next((k for k, v in PROFILES.items() if v.resolve() == Path(config).resolve()), None)
+
+
+def lane_prepass(osm: Path, cfg: dict[str, Any], log: Path, force: bool) -> tuple[Path, dict]:
+    """Network v2 pre-pass: OSM XML with measured default tags on untagged ways (if configured)."""
+    pre = cfg.get("lane_defaults")
+    if not pre:
+        return osm, {}
+    stats = _p(pre["stats"])
+    out = _p(pre["osm_out"]) if "osm_out" in pre else osm.with_name(f"{osm.stem}.lanes.osm.gz")
+    defaults = json.loads(stats.read_text())["defaults"]
+    counts: dict[str, Any] = {}
+    if force or not _fresh(out, osm, stats):
+        counts = tag_osm(osm, out, defaults)
+        with log.open("a") as fh:
+            fh.write(f"lane_defaults pre-pass {rel(osm)} -> {rel(out)}: {json.dumps(counts)}\n")
+    return out, {
+        "stats": rel(stats),
+        "stats_hash": file_hash(stats),
+        "osm_out": rel(out),
+        "osm_out_hash": file_hash(out),
+        **({"counts": counts} if counts else {}),
+    }
+
+
 @app.command()
 def main(
-    config: Path = typer.Option(DEFAULT_CONFIG, help="build configuration YAML"),
+    config: Path | None = typer.Option(
+        None, help="build configuration YAML (overrides --network-profile)"
+    ),
+    network_profile: str = typer.Option(
+        DEFAULT_PROFILE, help=f"one of {', '.join(PROFILES)} (default {DEFAULT_PROFILE})"
+    ),
     osm: Path | None = typer.Option(None, help="use this OSM XML instead of the city clip"),
     out: Path | None = typer.Option(None, help="output .net.xml (default from config)"),
     fixes_dir: Path | None = typer.Option(None, help="fix list directory (default from config)"),
@@ -117,15 +161,21 @@ def main(
     force: bool = typer.Option(False, help="rebuild every step"),
     strict_fixes: bool = typer.Option(True, help="fail if a fix matches no edge"),
 ) -> None:
+    if config is None:
+        if network_profile not in PROFILES:
+            raise typer.BadParameter(f"unknown profile {network_profile!r}; use {list(PROFILES)}")
+        config = PROFILES[network_profile]
     cfg = load_yaml(config)
     net = out or _p(cfg["net"])
     fixes = fixes_dir or _p(cfg["fixes_dir"])
     # custom outputs (tests, experiments) log next to the output; the city build logs to logs/
+    # (named after the full output stem, so a variant never appends to another network's log)
     log_dir = net.parent if out is not None else REPO_ROOT / "logs"
-    log = log_dir / f"build_city-{net.stem.split('.')[0]}.log"
+    log = log_dir / f"build_city-{net.name.removesuffix('.net.xml')}.log"
     t0 = time.perf_counter()
     meta: dict[str, Any] = {
         "config": rel(config),
+        "profile": profile_of(config),
         "sumo_version": sumo_version(),
         "sumo_home": str(sumo_home()),
     }
@@ -161,6 +211,10 @@ def main(
         )
     meta["osm_input"] = rel(osm)
     meta["osm_hash"] = file_hash(osm)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    osm, pre_meta = lane_prepass(osm, cfg, log, force)
+    if pre_meta:
+        meta["lane_defaults"] = pre_meta
 
     resolved = build_net(osm, net, cfg, fixes, log, strict_fixes=strict_fixes)
     meta["fixes"] = {f.id: resolved.get(f.id, []) for f in load_fixes(fixes)}
