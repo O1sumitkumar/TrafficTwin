@@ -4,6 +4,7 @@
 # the host ports). Synthetic demand, uncalibrated.
 services:
   demo:
+    image: traffictwin-sim
     build:
       context: .
       dockerfile: Dockerfile.api
@@ -21,9 +22,7 @@ services:
       - ./data:/app/data
       - ./runs:/app/runs
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
+    image: traffictwin-sim  # same image as demo (built once)
     ports:
       - "${TT_API_PORT:-8000}:8000"
     environment:

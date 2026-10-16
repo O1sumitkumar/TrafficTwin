@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-16 (integration of tracks A, B, C)
+Last updated: 2026-10-16 (M9 release: runnable app from a clean clone)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -13,13 +13,13 @@ All results: **synthetic demand, uncalibrated**.
 | M0 | Skeleton | done | verifier 2026-10-15; 26 tests then |
 | M1 | Jeddah network | done | smoke-A-s1-5b8a19d3-ab76d081: 0.144 % teleports; docs/network-qa.md |
 | M2 | Population and baseline | done (Track A) | 10 % weekday baseline 389,289 vehicles; reproduced on main: integration run below |
-| M3 | Viewer and API | done (Track C) | contract v1.1 `docs/contracts/run-outputs.md`; docs/img/integration-*.png; `docker compose up` unverified |
+| M3 | Viewer and API | done (Track C) | contract v1.1 `docs/contracts/run-outputs.md`; docs/img/integration-*.png; `docker compose up` verified in M9 |
 | M4 | Policy lab | done (Track A) | remote_work_30 reproduced on main: mean delay -9.3 %, AM peak -9.4 %, VKT -1.6 %, CO2 -6.9 % |
 | M5 | Focus windows and events | done (Track B) | accident_tahlia on main: mean delay +5.7 % vs window baseline, 130 s wall |
 | M6 | Emergency strategist | done (Track B) | top 3 in 11.6 s on main; best (68 s) beats no strategy (173 s) |
 | M7 | Evacuation | done (Track B) | evac_corniche_hamra via `sim.runner --scenario`: T50/T90/T100 1,264/2,399/3,004 s |
 | M8 | Calibration (dormant) | done (Track A) | synthetic round trip GEH<5 100 %; no real counts |
-| M9 | Docs and release | not started | README now carries the M2-M8 commands |
+| M9 | Docs and release | done | `make demo` from a fresh clone: 6 min 23 s, screenshots docs/img/final-*.png; `docker compose up --build` verified; section below |
 | LANE_AUDIT, v2 | Lane counts from imagery | blocked - accuracy (Track C) | held-out precision 60 % < 80 % gate; `jeddah.lanes.net.xml` not written, so not promoted |
 | LOOP | Loop tunnels | not merged (Track D in progress) | trackD status says `LOOP — in progress`; needs a second integration pass |
 
@@ -84,12 +84,68 @@ point at docs/assumptions.md; three STATUS wording fixes.
   flood sites (press and papers, B-D-005/007) that the brief asks for. Scenario files that pair sites
   with timings stay fictional. Reverse by untracking it if the owner treats the list as private.
 
-Could not verify: `docker compose up --build` (Docker Desktop needs someone at the Mac); a fresh,
+Could not verify at integration (verified in M9): `docker compose up --build`. Not verified: a fresh,
 uncached 2 h assignment on the merged code (the cache path was exercised instead).
 Open: network capacity (TA-011: 50 % teleports in the city baseline) is the top realism issue; the
 windows are linked to the M1 smoke route set, not to the M2 baseline (B-D-002), so re-link them to
 the baseline routes; Tier B trajectory loading should be chunked (p5 30 fps on 1 h windows);
 strategist-only runs have no edge bins; one noise replicate per policy and strategist.
+
+## M9 Docs and release — 2026-10-16
+One command from a clean clone: `make demo` (or `make setup city-net demo-runs ingest serve`).
+Built: `Makefile` (demo, setup, city-net, demo-runs, ingest, serve, city, test, screenshots, stop),
+`run_app.sh` (API + Vite, port checks, `--detach`, `TT_API_PORT`/`TT_WEB_PORT`/`TT_NO_OPEN`),
+`python -m sim.demo` + `sim/config/demo.yaml` (six steps, skipped when done, manifest
+`runs/demo-manifest.json`), `sim/scenarios/demo_events.yaml`, `sim.runner --smoke --begin`,
+`web/scripts/final-shots.mjs`, a `demo` service in `docker-compose.yml`, `.dockerignore`, and the
+docs: README quickstart, `docs/architecture.md` (Mermaid), `docs/demo-script.md`, `CONTRIBUTING.md`,
+`CHANGELOG.md`; register row A-demo-001.
+
+Clean-clone proof (`git clone` of b6e11e8 into /tmp, `TT_API_PORT=8010 TT_NO_OPEN=1 make demo
+DETACH=1`, port 8000 was held by a stale Track C uvicorn): passed first time, **6 min 23 s** wall
+including the 243 MB Geofabrik download (latest extract, 2026-10-16), `build_city` 145 s (156,126
+edges, 72 traffic lights, net hash 79f35c9a: same size as main's 5b8a19d3, newer OSM data), and the
+demo steps:
+| step | run | wall | result |
+|---|---|---|---|
+| tier-b | smoke-B-s1-25c06763-9cfa755f | 2.9 s | 1,800 trips, 0 teleports |
+| events | demo_events-demo-s1-342c09a8 | 8.0 s | mean delay 30.8 -> 54.4 s, max queue 13.5 -> 133 m, 15 re-routed |
+| strategist | strategist~emergency_demo-demo-s1 | 1.9 s | Route B 65 s, Route A + rescue lane 69 s, Route C 108 s; no strategy 72 s |
+| evacuation | evac_demo-demo-s1-ed042153 | 6.2 s | 150/150 out; T50/T90/T100 383/642/733 s |
+| policy | demo-remote_work_30 vs baseline-weekday-f1-s1-25c06763-32b0cbf8-1ea5e5 | 10.1 s | demo scale (8,000 residents): VKT -1.6 %, VHT -1.4 % |
+| tier-a | smoke-A-s1-79f35c9a-1f109fdd | 170 s | 12:00-13:00, 3,600 random trips, 0 teleports, RTF 253 |
+
+Screenshots from that clone (`make screenshots`, headless Chrome): `docs/img/final-city.png`,
+`final-tierA-midday.png` (slider 12:30), `final-tierB-scenario.png` (vehicles + accident),
+`final-strategist.png` (three ranked options), `final-policy.png` (difference mode + report).
+(f) Loop: **not present** (Track D not merged), so no `final-loop.png`.
+
+Docker (`docker compose up --build` in a second fresh clone): the first attempt failed: the
+eclipse-sumo Linux binaries need `libatomic1`, `libx11-6`, `libxext6`, `libxrender1` and `libgl1`
+even headless (never seen before because compose had never been run). Fixed in `Dockerfile.api`;
+then the `demo` job built the same network hash (79f35c9a) and the same Tier B, scenario,
+strategist and evacuation run ids as macOS and the same Tier A run id (smoke-A-s1-79f35c9a-1f109fdd,
+289 s in the container vs 170 s native); `api` turned healthy, `web` served the viewer, and
+`/api/runs` through the Vite proxy listed all 9 runs (host ports 8020/5180 via `TT_API_PORT` /
+`TT_WEB_PORT`); a headless screenshot of the containerised viewer matched final-city.png. The
+download path ran in the failed attempt; the second attempt reused the downloaded extract.
+
+Decisions:
+- F-001 `make demo` builds the city network by default (the brief asks for the city view);
+  `CITY=0` skips the download and the Tier A step.
+- F-002 The policy comparison in the demo runs on a demo-scale population of the demo window
+  (four rectangular quadrant "districts", A-demo-001), because a city policy needs the 2 h
+  baseline. The city result (remote_work_30: mean delay -9.3 %) is quoted from M4.
+- F-003 The Tier A demo is a one-hour random-trip smoke at 12:00 (`--begin`, additive) so the
+  slider opens at mid-day; behavioural 24 h demand is `make city`.
+- F-004 Demo runs are skipped when their outputs exist (manifest), so `make demo` restarts in
+  seconds.
+
+Open (M9): demo population hash differs between macOS and the Linux container
+(`baseline-...-32b0cbf8-...` vs `-0d65c7fc-`): PROJ/shapely zone areas differ in the last float
+bits (0.825160229218671 vs 0.8251602292184539 km2). Runs are bit-identical per platform; to make
+them identical across platforms, round geometry-derived floats in `sim/population/zones.py` at the
+next baseline regeneration (it changes every population hash and invalidates the 2 h route cache).
 
 ## Measured
 - M0: pytest 26 tests, 8.6 s wall (demo window only, offline). Demo window: 939 edges, 401 junctions,
