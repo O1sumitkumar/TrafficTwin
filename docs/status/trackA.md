@@ -1,3 +1,10 @@
+> **MONITOR NOTE (2026-10-16 07:35, written by the overnight orchestrator, not by Track A):** the 25 % baseline
+> was deliberately KILLED by the monitor at 06:27 (not an OOM): the Mac's disk is at 99 % (≈7 GB free) and swap was
+> full. Do NOT re-run the 25 % (or 100 %) baseline in this session. Treat the 10 % weekday baseline as the M2 result,
+> record the 25 % attempt as "stopped by the monitor for disk/memory pressure; step-0 routing exceeded 45 min under
+> contention", finish M2 (metrics, plots, fidelity report, tests, verifier, `M2: done`) and move on to M4. See
+> logs/INTERVENTION.md.
+
 # Track A status
 
 ## M2 Population and baseline — in progress (2026-10-16)
@@ -58,3 +65,74 @@ Findings and decisions:
   A-mode-001). Result: top-hour share 9.6 %, 1.05 vehicle trips per resident (3.9 M/day).
 - Capacity scaling kept consistent (flow and storage, A-sim-101): storage-light variants (H, I) are
   no better on the old demand, and only consistent scaling keeps queues comparable across samples.
+
+### Second 10 % attempt (03:16-03:58): step 0 too slow, switched to incremental loading
+With the de-peaked demand, m2 network and limited junction control, routing step 0 took ~12 min,
+but the step-0 meso simulation (free-flow routes, full-equivalent load) reached only 07:30 after 30
+min (real-time factor 1.4 in the peak, 23k teleports). Stopped. Tests on its routes, 05:00-08:00:
+`--meso-recheck 10` is 8x faster but 5x the teleports; the rerouting device (period 300 s) was far
+slower (05:50 after 9 min). TA-010: duaIterate incremental loading (`--inc-base 3`: steps at 1/3,
+2/3 and full demand) so routes adapt before the full load.
+
+### Third 10 % attempt (from 03:58, incremental loading) and the 25 % start
+Step 0 (1/3 load): ~16 min, 206 teleports. Step 1 (2/3 load): simulation fast (24 h in ~10 min)
+but ~21k teleports, on motorway off-ramps (`ramps.guess` one-lane `AddedOffRampEdge`, Al Harameen
+Road ramps) in both peaks. Incident: while freeing disk (6.6 GB free machine-wide) I deleted the
+running baseline's run directory and population cache by mistake; both were regenerated
+deterministically from the same seed/config (population hash 65fac195, 389,289 vehicles, identical
+to the routed set) so the run continued.
+25 % estimate recorded before starting (04:50): ~970k vehicle trips; routing ~30 min per step x 3,
+simulations 15-40 min each, final run and post-processing: 2.5-3.5 h, run in parallel with the
+end of the 10 % run. The 10 % result is the smaller-sample result.
+
+### Overload diagnosis (05:00-05:55) and bounded baselines
+Step 1 of the incremental 10 % run gridlocked in the PM peak (18:21 -> 19:11 simulated in 27 min).
+Tests on its routes, 16:00-19:00, 10-min caps:
+- S: true full demand (`--scale 10`, normal vehicles): 168.6k running at 17:25 and rising.
+- T: the 10 % sample with capacity scaling: 111k equivalent running at 17:25 and rising, so the
+  scaled sample is, if anything, optimistic; capacity scaling is not the cause.
+- T2: T without junction control: same growth. 32-41 % of teleports are inside junction clusters,
+  the rest on primary/secondary roads and motorway ramps.
+- PM 15:00-21:00 at full equivalent load: 300 s teleport time 366 s wall for 2.7 h simulated;
+  `--meso-recheck 10` 115 s / 200k teleports; teleport time 120 s 221 s / 90k teleports.
+TA-011 Finding: at the expected demand (3.9 M vehicle trips/day; consistent with the 2014 "6 M
+trips/day" anchor and the brief's 4.5-5.5 M sizing) the M1/m2 network overloads in both peaks in
+meso with 3 assignment steps. Network capacity (untagged lanes, junction clusters, ramps) is the
+binding issue: handed to the network/lane-audit work as the top open issue. Decision: city
+baselines use a 120 s teleport time (A-sim-103) so a 24 h run is bounded, and every report shows
+the teleport share as the quality flag. Results are gridlock-affected and must be read as such.
+25 % started again at 05:57 in parallel (estimate 2.5-3.5 h).
+- 06:25 the parallel 25 % run died silently during step-0 routing (empty log; machine load average ~99 from Track B multiprocessing; likely killed under memory pressure). 25 % to re-run alone after the 10 % run.
+
+### Result: 10 % weekday baseline completed (05:40-07:49)
+Run `runs/baseline-weekday-f0.1-s1-e5f1906a-65fac195-f124c5` from the one command
+`uv run python -m sim.runner --baseline --daytype weekday --sample 0.10 --seed 1` (m2 network, meso,
+limited junction control, capacity x10, 3 incremental duaIterate steps, 120 s teleport time).
+- Runtime: assignment 118 min (routing 24 / 29 / 47 min under heavy machine contention from other
+  tracks; sims 2 / 5 / 11 min), final 24 h meso run 9 min (real-time factor 175), post-processing
+  1.3 min; 129 min total. Peak RSS 3.7 GB (duarouter), 3.1 GB (sumo).
+- Demand: 371,450 persons, 1,006,762 person trips (2.69/person), 389,289 vehicle trips (3.89 M
+  city-equivalent, 1.05 per resident), top-hour share 9.6 % (06:00).
+- KPIs (city-equivalent): 3.85 M trips completed (99.2 %), VKT 56.1 M, VHT 2.74 M (2.01 M delay),
+  mean trip 14.6 km / 42.7 min, mean delay 31.3 min, mean speed 20.5 km/h, CO2 26,185 t, NOx 16,217 kg.
+- Quality flag: 196,721 jam teleports (0.51 per loaded vehicle), concentrated on motorway ramps
+  (`AddedOffRampEdge`) and in both peaks; evening speeds 13-15 km/h. The baseline is
+  gridlock-affected (TA-011: network capacity), labelled synthetic demand, uncalibrated. The top open
+  issue for integration is network capacity (untagged lanes, ramps, junction clusters), not demand.
+- Outputs: meta.json, metrics.json, report.md (with the fidelity caveats), tripinfo/edgedata/
+  emissions/metrics_hourly/metrics_district Parquet, plots/ (departures, trip length, trips per
+  person). Raw XML is deleted after conversion (disk).
+
+### 25 % sample: runtime measured as a lower bound, not completed
+Attempt 1 (05:57, parallel to the 10 % run) died silently in step-0 routing under memory pressure.
+Attempt 2 was stopped by the overnight monitor at 06:27 for disk and memory pressure (data volume
+99 % full, swap 8.3/9.2 GB, load ~46); step-0 routing exceeded 45 min under contention (10 %: 24
+min). Per logs/INTERVENTION.md it is not re-run in this session; the machine needs ~15 GB free first.
+Estimate for an uncontended 25 % run: 3-4 h (routing scales ~linearly with trips, ~970k).
+
+### Sampling decision (default `--sample`)
+TA-012 Default for Tier A baselines and policy runs: `--sample 0.10` with consistent capacity
+scaling (`--scale` equivalent: length+minGap and meso tau x10, A-sim-101). Reason: the 10 % run is the
+only sample that fits the 18 GB machine alongside other work within ~2 h; the 25 % run needs ~2x the
+routing time and memory. Use 0.25 for final reported comparisons once disk/memory allow; 1.0 is not
+planned on this machine.

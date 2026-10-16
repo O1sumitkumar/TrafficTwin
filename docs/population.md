@@ -68,7 +68,30 @@ ride-hail/taxi, school-escort cars with the driver's empty legs, school and comp
 per person trip). Walk, passenger and city-bus trips are not vehicles in M2 (bus lines: M4).
 
 ## Measured: weekday, seed 1, 10 % sample
-FILLED-IN-BELOW
+Run `baseline-weekday-f0.1-s1-e5f1906a-65fac195-f124c5` (population hash 65fac195), one command
+(`python -m sim.runner --baseline --daytype weekday --sample 0.10 --seed 1`), m2 network, meso,
+capacity scaling x10, 3 incremental duaIterate steps, 120 s teleport time. Gridlock-affected: read
+every KPI together with the teleport share.
+
+| quantity | value |
+|---|---|
+| persons (sample) / person trips | 371k / 1,006,762 (2.69 per person) |
+| vehicle trips loaded (sample / city-equivalent) | 389,289 / 3.89 M (1.05 per resident) |
+| completed (share) | 385,153 (0.992) |
+| teleports (jam) | 196,721 = 0.51 per loaded vehicle (quality flag: high) |
+| mean trip length / duration / delay | 14.6 km / 42.7 min / 31.3 min |
+| mean speed | 20.5 km/h (night 70-74, 06-08 h 17-19, 18-23 h 13-15) |
+| VKT / VHT (city-equivalent) | 56.1 M km / 2.74 M h (2.01 M h delay) |
+| top hour, share of departures | 06:00-07:00, 9.6 % |
+| CO2 / NOx (HBEFA defaults) | 26,185 t / 16,217 kg per day |
+| runtime | assignment 118 min (routing 24/29/47 min, sims 2/5/11 min), final sim 9 min, post 1.3 min; 129 min total |
+| peak memory (RSS, largest process) | 3.7 GB (duarouter), 3.1 GB (sumo) |
+
+25 % sample: started twice, not completed. The first attempt (05:57, in parallel with the 10 % run)
+died during step-0 routing under memory pressure; the second was stopped by the overnight monitor at
+06:27 for disk (99 % full) and swap pressure after more than 45 min in step-0 routing under
+contention. Measured lower bound: step-0 routing > 45 min (10 %: 24 min); see docs/status/trackA.md.
+Plots: `runs/<id>/plots/` (departures, trip length, trips per person).
 
 ## Sanity ranges (published Saudi figures or stated assumptions)
 
@@ -80,10 +103,10 @@ FILLED-IN-BELOW
 | age shares | within 0.01 of targets (60+ Saudi 0.062 vs 0.056) | +/-0.02 | GASTAT 2022 bands |
 | workers / population | 0.50 | 0.40-0.55 | KSA employed ~45 % of residents (LMS 2025 + civil service) |
 | person trips per resident (incl. children) | 2.70 | 1.7-2.8 | Jeddah 2014: 6 M trips/day (~1.7/person); data-scout range 2.0-2.8 for Saudis |
-| vehicle trips per resident | 1.14 | 1.0-1.5 | PROJECT.md section 2 sizing: 1.2-1.5 |
+| vehicle trips per resident | 1.05 | 1.0-1.5 | PROJECT.md section 2 sizing: 1.2-1.5 |
 | car-type modes (car + chauffeured + escort + passenger) share of person trips | 0.74 | 0.70-0.90 | Riyadh ~85 % car (2021) |
 | public transport share | 0.02 (buses incl. school/company) / 0.0003 city bus | 0.01-0.03 | Jeddah 2014: 1.2 %; 2025 ridership ~12k/day |
 | ride-hail + taxi share | 0.084 | 0.03-0.10 | TGA 2024 app trips ~1 % + street/informal taxis |
 | mean commute (home-work) distance | 15.5 km | 10-20 km | data-scout: 20-35 min one way |
 | mean home-school distance | 3.7 km | 2-5 km | assumption (local schools) |
-| share of vehicle departures in the top hour | see run | 0.08-0.15 | assumption: early school + government starts make a sharp AM peak |
+| share of vehicle departures in the top hour | 0.096 | 0.08-0.15 | assumption: early school + government starts make a sharp AM peak |
