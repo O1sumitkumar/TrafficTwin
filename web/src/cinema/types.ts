@@ -23,6 +23,8 @@ export interface ShotSpec {
     buildings: boolean;
     outline: [number, number][] | null;
     outline_label: string;
+    line?: [number, number][] | null;
+    stations?: [number, number][] | null;
   };
   hud: {
     caption: string;

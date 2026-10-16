@@ -7,7 +7,7 @@ film: incident
 title: A crash on the corridor into Madinah Road
 subtitle: Tier B window, crash run against its baseline (fictional scenario)
 duration_s: 32
-showreel: [6, 30]           # excerpt in the showreel (2-3 min total)
+showreel: [6, 26]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
 sources:

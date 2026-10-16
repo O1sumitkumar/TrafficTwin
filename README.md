@@ -204,8 +204,8 @@ make movie FILM=tahlia-street       # one film; MOVIE_FLAGS="--4k --fps 60 --let
 | `incident`: crash run against its baseline | `events`: rain, flood, motorcade |
 | ![strategist](docs/img/movies/strategist.gif) | ![evacuation](docs/img/movies/evacuation.gif) |
 | `strategist`: the top 3 ambulance options | `evacuation`: phased release with contraflow |
-| ![policy-lab](docs/img/movies/policy-lab.gif) | |
-| `policy-lab`: policies in difference mode | |
+| ![policy-lab](docs/img/movies/policy-lab.gif) | ![loop](docs/img/movies/loop.gif) |
+| `policy-lab`: policies in difference mode | `loop`: the recommended Loop tunnel C1 against the baseline |
 
 How it works, the spec schema and the camera-path cookbook: `docs/movies.md`.
 

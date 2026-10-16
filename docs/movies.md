@@ -29,8 +29,8 @@ frames are cached in `runs/movies/` (`TT_MOVIES_DIR` overrides; the render smoke
 | `strategist` | The 08:30 ambulance situation: no strategy, then the top 3 ranked options one after another, with the strategist's own reasons and ETAs on the HUD | `runs/strategist/rec-20261016T114454Z-22d13986` (emergency_tahlia_0830); cars around the ambulance from the window baseline | 40 s |
 | `evacuation` | Al Hamra waterfront evacuation with a near-first phased release (three bands lighting up), balanced exits, evacuation signal plan and contraflow on three corridors; clearance times from the run | `evac_corniche_hamra_film-tahlia-s1-99ab2558` (run for the film, see below) | 40 s |
 | `policy-lab` | Difference mode (blue = faster, red = slower): 30 % remote work against the baseline, staggered schools and the central cordon against their matched controls; KPI values from docs/policies.md | `remote_work_30`, `staggered_schools_60` (+ `--control`), `cordon_center` (+ `--control`), the weekday baseline | 36 s |
-| `loop` | Stub: Track D (Loop) is not merged on this branch (no `docs/loop.md`) | - | - |
-| `showreel` | All rendered films in order, each after a title card, cut to the spec's `showreel: [start, end]` excerpt, joined with 0.6 s crossfades | the films above | 2 min 55 s |
+| `loop` | The recommended Loop tunnel from docs/loop.md: corridor C1 Al-Salamah - King Abdulaziz University (17.9 km, 8 stations, cyan line and stations) over the morning-peak baseline, then difference mode (Loop minus baseline) in the morning peak along the corridor and the evening peak across the city; KPIs from the docs/loop.md recommendation table | `loop_recommended` (shuttle, alpha 0.3, measured capacity; run for the film, see below) against `baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` | 34 s |
+| `showreel` | All eight films in order, each after a title card, cut to the spec's `showreel: [start, end]` excerpt (20 s each), joined with 0.6 s crossfades | the films above | 2 min 51 s |
 
 Stills (poster frames, from the middle of each film):
 
@@ -39,7 +39,7 @@ Stills (poster frames, from the middle of each film):
 | ![city-24h](img/movies/city-24h.jpg) | ![tahlia-street](img/movies/tahlia-street.jpg) |
 | ![incident](img/movies/incident.jpg) | ![events](img/movies/events.jpg) |
 | ![strategist](img/movies/strategist.jpg) | ![evacuation](img/movies/evacuation.jpg) |
-| ![policy-lab](img/movies/policy-lab.jpg) | |
+| ![policy-lab](img/movies/policy-lab.jpg) | ![loop](img/movies/loop.jpg) |
 
 ### What the films do and do not show
 
@@ -61,6 +61,16 @@ Stills (poster frames, from the middle of each film):
 - **Policy lab.** Edge colours are the policy run minus its comparison run, per 5-minute bin. The
   KPI numbers are copied from the docs/policies.md results table (matched controls where the
   policy re-routes baseline vehicles, TA-018), never the raw unmatched deltas.
+- **Loop.** Track D's city runs (`loop_opt_c1_a0p3` and the sweep) were pruned of their edge
+  Parquet to save disk, so the film's run was produced on main with the recommended policy file:
+  `uv run python -m sim.loop.run loop_recommended` (city 10 %, seed 1, about 10 min; same transform
+  as `loop_opt_c1_a0p3`: 28,820 passengers/day, segment exceedance 0.017). The tunnel line joins the
+  stations of `sim/policies/loop_recommended.yaml` straight, as the model's tunnel edges do (length
+  = crow distance x 1.15). Shuttles run in the tunnel, not on the roads, so the coloured roads show
+  only the surface effect. Relief, relief per USD M and the riders' figures are copied from the
+  docs/loop.md Recommendation table (relief is the two-seed mean); the film does not recompute them.
+  Near gridlock the difference map is noisy (docs/loop.md: one comparison is uncertain by about
+  +/- 34,000 VHT/day), so isolated red and blue roads far from the corridor are noise, not effect.
 - **Tier B clock.** Window runs start at t = 0; the HUD shows t = 0 as 08:00 (A-mov-007), as the
   strategist scenario does.
 
@@ -156,6 +166,8 @@ shots:
       overlays: []           # events, closures, zone, exits, phases, contraflow, routes
       route_source: null     # strategist source whose route glows
       outline: null          # extra polygon, e.g. a policy cordon
+      line: null             # extra open polyline [[lon, lat], ...], e.g. a Loop tunnel alignment
+      stations: null         # points [[lon, lat], ...] drawn as station markers
       buildings: true
     camera:                  # keyframes; t = 0 first, strictly increasing
       - {t: 0,  lon: 39.148, lat: 21.549, zoom: 16.9, pitch: 58, bearing: 74, sim_t: 2700}
@@ -210,7 +222,7 @@ is constant within a segment: rate = (sim_t1 - sim_t0) / (t1 - t0).
 ## Performance (M3 Pro, 1920x1080, 30 fps)
 
 Budgets: browser at most 2 GB RSS, at most 1 GB per film on disk during the render (bundle plus one
-chunk of 150 PNG frames), no frames left behind. Measured on the final full render of 16 Oct 2026 (`make movies`)
+chunk of 150 PNG frames), no frames left behind. Measured on the final full render of 16 Oct 2026 (`make movies`; `loop` and the 8-film showreel rendered on main after the Track D merge, the showreel excerpts trimmed to 20 s each to stay within 3 min)
 (`movies/<film>.json`; hardware WebGL, ANGLE Metal on the Apple M3 Pro; another agent was
 simulating in parallel):
 
@@ -223,10 +235,11 @@ simulating in parallel):
 | `strategist` | 1920x1080 | 1200 | 40.00 s | 28.1 MB | 2.43 MB | 0.13 s | 205 s | 1134 MB | 119 MB |
 | `evacuation` | 1920x1080 | 1200 | 40.00 s | 49.0 MB | 2.42 MB | 0.18 s | 269 s | 1216 MB | 195 MB |
 | `policy-lab` | 1920x1080 | 1080 | 36.00 s | 41.2 MB | 2.20 MB | 0.17 s | 234 s | 1475 MB | 241 MB |
-| `showreel` | 1920x1080 | 5241 | 174.7 s | 173.5 MB | 2.60 MB | - | about 3 min | - | - |
+| `loop` | 1920x1080 | 1020 | 34.00 s | 69.6 MB | 2.44 MB | 0.19 s | 246 s | 1437 MB | 307 MB |
+| `showreel` | 1920x1080 | 5130 | 171.0 s | 187.0 MB | 2.60 MB | - | about 3 min | - | - |
 
 "per frame" is draw + screenshot; "total" adds the bundle, chunk encoding, concat and GIF. All
-seven films render in about 25 minutes; the bundles take 1-10 s each (the first build of a
+eight films render in about 30 minutes; the bundles take 1-10 s each (the first build of a
 policy run's edge bins takes longer). `--4k` quadruples the pixels (not measured).
 
 ## Licences and credits

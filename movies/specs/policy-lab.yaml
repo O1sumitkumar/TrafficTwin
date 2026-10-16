@@ -6,7 +6,7 @@ film: policy-lab
 title: Policy lab
 subtitle: Tier A city, policy runs against their comparison runs
 duration_s: 36
-showreel: [2.5, 26.5]           # excerpt in the showreel (2-3 min total)
+showreel: [2.5, 22.5]           # excerpt in the showreel (2-3 min total)
 tier: A
 sources:
   base: {run: baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3}

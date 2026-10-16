@@ -578,6 +578,25 @@ export class Scene {
       const ring = [...L.outline, L.outline[0]!].map((p) => [p[0], p[1]]);
       out.push(...this.glowPaths("outline@both", [ring], [255, 236, 170], 30, 0.75));
     }
+    if (L.line && L.line.length > 1) {
+      const path = L.line.map((p) => [p[0], p[1]]);
+      out.push(...this.glowPaths("line@both", [path], [120, 230, 255], 40, 0.9));
+    }
+    if (L.stations && L.stations.length)
+      out.push(
+        new ScatterplotLayer({
+          id: "stations@both",
+          data: L.stations,
+          getPosition: (p: [number, number]) => p,
+          getFillColor: [235, 252, 255, 255],
+          getLineColor: [20, 120, 160, 255],
+          stroked: true,
+          lineWidthMinPixels: 2,
+          radiusUnits: "meters",
+          getRadius: 90,
+          radiusMinPixels: 4,
+        }) as unknown as Layer,
+      );
     for (const [, trips, suffix] of sides) {
       out.push(...this.overlayLayers(shot, t, i, suffix, L.mode === "split" ? trips : null));
       if (trips) out.push(...this.tripLayers(trips, t, L.color_by, night, i, suffix));

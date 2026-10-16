@@ -5,7 +5,7 @@ film: evacuation
 title: Evacuating the Al Hamra waterfront
 subtitle: Tier B window, phased release with contraflow (fictional scenario)
 duration_s: 40
-showreel: [6, 30]           # excerpt in the showreel (2-3 min total)
+showreel: [8, 28]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
 sources:

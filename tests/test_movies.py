@@ -316,3 +316,12 @@ def test_settings_assumptions_are_registered() -> None:
             for v in block.values():
                 if isinstance(v, dict) and "id" in v:
                     assert "source" in v or "assumption" in v, v["id"]
+
+
+def test_loop_film_draws_the_recommended_alignment() -> None:
+    film = load_film("loop")
+    if film.stub:
+        pytest.skip("Track D not merged")
+    for shot in film.shots:
+        assert shot.layers.line is not None and len(shot.layers.line) == 8
+        assert shot.layers.stations == shot.layers.line

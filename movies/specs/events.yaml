@@ -4,7 +4,7 @@ film: events
 title: Rain, flood, motorcade
 subtitle: Tier B window, event scenarios against their baselines (fictional)
 duration_s: 36
-showreel: [12, 35]           # excerpt in the showreel (2-3 min total)
+showreel: [14, 34]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
 sources:

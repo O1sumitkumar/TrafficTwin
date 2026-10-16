@@ -107,6 +107,8 @@ class Layers(Strict):
     buildings: bool = True
     outline: list[tuple[float, float]] | None = None  # extra polygon (e.g. a policy cordon)
     outline_label: str = ""
+    line: list[tuple[float, float]] | None = None  # open polyline (e.g. a Loop tunnel)
+    stations: list[tuple[float, float]] | None = None  # points drawn on `line` (e.g. Loop stations)
 
     @model_validator(mode="after")
     def _mode(self) -> Layers:
