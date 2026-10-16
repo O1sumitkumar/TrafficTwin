@@ -152,3 +152,6 @@ top four corridors; integration to add the README command and fold the Loop tran
   C1 sweep stands. `optimise --no-run` now never simulates (it had silently re-run the placebo
   because the generated policies' assumption text changed their hash; a future `optimise` run
   re-simulates the sweep for the same reason).
+
+Verifier (final, 21:00): all criteria PASS after the TD-015 fixes (ruff, pytest 94, demo, optimise --no-run reproduces the committed doc, numbers spot-checked against runs and results JSON, ownership clean). Non-blocking: demo report path printed by Track A code; selection evidence is weak (stated in docs/loop.md).
+LOOP: done
