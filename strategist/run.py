@@ -64,6 +64,30 @@ def fingerprint(results: dict[str, dict[str, Any]]) -> str:
     return config_hash({k: {m: r[m] for m in MEASURED_KEYS} for k, r in sorted(results.items())})
 
 
+def without_runs(
+    cand: dict[str, Any], cands: list[dict[str, Any]], results: dict[str, dict[str, Any]]
+) -> dict[str, dict[str, Any] | None]:
+    """For each preempt / rescue_lane action of `cand`: the measured result of the candidate on
+    the same route with exactly that action removed (the no-strategy run for the default route),
+    or None if no such run was evaluated."""
+    types = {a["type"] for a in cand["actions"]}
+    out: dict[str, dict[str, Any] | None] = {}
+    for kind in ("preempt", "rescue_lane"):
+        if kind not in types:
+            continue
+        want = types - {kind}
+        match = next(
+            (
+                o
+                for o in cands
+                if o["route"] == cand["route"] and {a["type"] for a in o["actions"]} == want
+            ),
+            None,
+        )
+        out[kind] = results.get(match["id"]) if match else None
+    return out
+
+
 def recommend(
     scenario: str,
     window: str | None = None,
@@ -117,7 +141,16 @@ def recommend(
     for s in ranked["top"]:
         c, r = by_id[s["candidate_id"]], results[s["candidate_id"]]
         cls = classify_option(c["actions"], r, s["added_veh_h"])
-        ex = explain(c, r, ns_cand, ns_res, s["added_veh_h"], horizon, halted_t)
+        ex = explain(
+            c,
+            r,
+            ns_cand,
+            ns_res,
+            s["added_veh_h"],
+            horizon,
+            halted_t,
+            without_runs(c, cands, results),
+        )
         tt, ns_tt = r["travel_time_s"], ns_res["travel_time_s"]
         options.append(
             {

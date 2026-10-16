@@ -33,8 +33,13 @@ def explain(
     added_veh_h: float,
     horizon_s: float,
     halted_at_t: dict[str, int],
+    without: dict[str, dict[str, Any] | None] | None = None,
 ) -> dict[str, Any]:
+    """`without[action type]` = measured result of the same route with that action removed
+    (None if that run does not exist). An action is named as a cause only if that run was
+    measured slower; otherwise it is stated as a plain fact."""
     f = Facts()
+    without = without or {}
     label = cand["label"]
     faster = False
     hz = f.add("horizon_s", horizon_s, ".0f", "settings.evaluation.horizon_s")
@@ -88,20 +93,41 @@ def explain(
                 "opt_edge_s", res["ambulance_edge_s"][e], ".0f", f"option.ambulance_edge_s[{e}]"
             )
             reasons.append(f"it spends {oe} s on `{e}` instead of {se} s")
-    if res["signals_preempted"]:
-        n = f.add("signals", res["signals_preempted"], "d", "option.signals_preempted")
-        reasons.append(f"it preempts {n} {_plural(res['signals_preempted'], 'signal')}")
-    if res["rescue_lane_edges"]:
-        m = f.add("rescue_edges", res["rescue_lane_edges"], "d", "option.rescue_lane_edges")
-        reasons.append(
-            f"it reserves a rescue lane on {m} {_plural(res['rescue_lane_edges'], 'edge')}"
+    side_facts = []
+    for kind, field, key, what in (
+        ("preempt", "signals_preempted", "signals", "signal"),
+        ("rescue_lane", "rescue_lane_edges", "rescue_edges", "edge"),
+    ):
+        if not res[field]:
+            continue
+        n = f.add(key, res[field], "d", f"option.{field}")
+        noun = f"{n} {_plural(res[field], what)}"
+        if kind == "preempt":
+            phrase, fact = f"preempting {noun}", f"preempts {noun}"
+        else:
+            phrase, fact = f"the rescue lane on {noun}", f"reserves a rescue lane on {noun}"
+        alt = without.get(kind)
+        own = (
+            alt["travel_time_s"] - res["travel_time_s"]
+            if alt and alt["arrived"] and res["arrived"]
+            else None
         )
+        if own is not None and own > 0:
+            o = f.add(
+                f"{key}_own_s", own, ".0f", f"without[{kind}].travel_time_s - option.travel_time_s"
+            )
+            reasons.append(f"{phrase} saves {o} s against the same route without it")
+        else:
+            side_facts.append(fact)
     if reasons:
         joined = (
             reasons[0] if len(reasons) == 1 else ", ".join(reasons[:-1]) + " and " + reasons[-1]
         )
         # causal wording only when the option is measured faster; otherwise facts only
         s1 += f" because {joined}" if faster else f"; {joined}"
+    if side_facts:
+        # no measured gain of its own (or no run without it): stated, not claimed as a cause
+        s1 += "; it also " + " and ".join(side_facts)
     d = f.add(
         "added_veh_h",
         abs(added_veh_h),

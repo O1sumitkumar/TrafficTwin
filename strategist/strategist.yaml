@@ -9,7 +9,7 @@ snapshot:
   congestion_ratio_max: {id: A-strat-002, value: 20.0, unit: "x free flow", range: [5, 50], assumption: "Cap on measured / free-flow travel time per edge, so an edge with one stopped car (mean speed near 0) does not get an unbounded cost"}
 
 candidates:
-  k_routes: {id: A-strat-003, value: 3, unit: routes, range: [1, 5], assumption: "Three diverse routes give the operator real alternatives; with 3 variants each plus the no-strategy run and the closure option this is 11 what-if runs, fitting the 11 cores of the M3 Pro in one parallel wave"}
+  k_routes: {id: A-strat-003, value: 3, unit: routes, range: [1, 5], assumption: "Three diverse routes give the operator real alternatives; with up to 3 variants each (the default route has no separate route-only run) plus the no-strategy run and the closure option this is at most 11 what-if runs (9 on tahlia), fitting the 11 cores of the M3 Pro in one parallel wave"}
   yen_max_paths: {id: A-strat-004, value: 40, unit: paths, range: [10, 100], assumption: "Yen's loopless k-shortest paths examined before the diversity filter; window nets have many near-duplicate paths (0 m split parts, ramps), so more paths than routes are needed"}
   max_overlap: {id: A-strat-005, value: 0.6, unit: "share of route length", range: [0.4, 0.9], assumption: "A path is a distinct alternative only if at most 60 % of its length is shared with each route already chosen"}
   max_cost_ratio: {id: A-strat-006, value: 3.0, unit: "x best route cost", range: [1.5, 5], assumption: "Alternatives whose measured cost exceeds 3x the best route are not worth simulating for an ambulance"}

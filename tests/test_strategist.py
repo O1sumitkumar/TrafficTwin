@@ -277,3 +277,19 @@ def test_register_block_current_and_ids_unique() -> None:
     text = reg.DOC.read_text()
     for pid in ids:
         assert f"| {pid} |" in text
+
+
+def test_action_named_as_cause_only_with_measured_own_gain() -> None:
+    ns_cand = {"route": ["a", "x"], "edge_ff_s": {"a": 5, "x": 4}}
+    cand = {"label": "Route A + rescue lane", "route": ["a", "y"]}
+    ns_res = _res(173, 27.5, ambulance_edge_s={"a": 6.0, "x": 77.0})
+    res = _res(68, 27.2, rescue_lane_edges=7)
+    # route without the lane measured 70 s: the lane's own 2 s is a measured cause
+    ex = explain(cand, res, ns_cand, ns_res, 0.0, 300, {}, {"rescue_lane": _res(70, 27.2)})
+    assert "the rescue lane on 7 edges saves 2 s" in ex["text"]
+    assert ex["facts"]["rescue_edges_own_s"]["value"] == 2
+    # same route without the lane was as fast: stated, not claimed as a cause
+    ex = explain(cand, res, ns_cand, ns_res, 0.0, 300, {}, {"rescue_lane": _res(68, 27.2)})
+    assert "it also reserves a rescue lane on 7 edges" in ex["text"]
+    assert "saves 2 s" not in ex["text"]
+    assert set(numbers_outside_ids(ex["text"])) <= {f["text"] for f in ex["facts"].values()}

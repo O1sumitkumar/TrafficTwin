@@ -185,20 +185,26 @@ dispatch 900 s): 94 s.
 | 2 | Route B + preemption (1 signal) + rescue lane (27 edges) | auto_eligible | 89 s | -84 s | 47.4 s (+42 s) | -0.05 | 89.5 |
 | 3 | Route C only | auto_eligible | 95 s | -78 s | 66.8 s (+28 s) | -0.10 | 94.0 |
 
-Reasons as printed:
+Reasons as printed (final run after the attribution fix: an action is named as a cause only when
+the same route without it was measured slower, with its own measured saving; otherwise it is stated
+as a fact):
 1. Route A + rescue lane gets the ambulance there in 68 s, 105 s faster than no strategy (173 s)
-   because it avoids `444771953#1`, where the no-strategy ambulance spent 77 s and it reserves a
-   rescue lane on 7 edges. Over the 300 s horizon it saves 0.03 vehicle-hours of background
-   delay versus no strategy.
+   because it avoids `444771953#1`, where the no-strategy ambulance spent 77 s and the rescue lane
+   on 7 edges saves 2 s against the same route without it. Over the 300 s horizon it saves 0.03
+   vehicle-hours of background delay versus no strategy.
 2. Route B + preemption + rescue lane gets the ambulance there in 89 s, 84 s faster than no
-   strategy (173 s) because it spends 8 s on `444771953#1` instead of 77 s, it preempts 1
-   signal and it reserves a rescue lane on 27 edges. Over the 300 s horizon it saves 0.05
-   vehicle-hours of background delay versus no strategy; the longest queue on its route was 11
-   halted vehicles on `44795819#35-AddedOffRampEdge`.
+   strategy (173 s) because it spends 8 s on `444771953#1` instead of 77 s and the rescue lane on
+   27 edges saves 8 s against the same route without it; it also preempts 1 signal. Over the
+   300 s horizon it saves 0.05 vehicle-hours of background delay versus no strategy; the longest
+   queue on its route was 11 halted vehicles on `44795819#35-AddedOffRampEdge`.
 3. Route C only gets the ambulance there in 95 s, 78 s faster than no strategy (173 s) because
    it also uses `444771953#1` but spends 4 s there instead of 77 s. Over the 300 s horizon it
    saves 0.10 vehicle-hours of background delay versus no strategy; the longest queue on its
    route was 9 halted vehicles on `44795819#35-AddedOffRampEdge`.
+
+Final acceptance run (2026-10-16 03:04 UTC, load average ~55 from other tracks): evaluation
+6.6 s, total 10.1 s from the saved state (11.1 s process wall); approve reproduced 68.0 s;
+`strategist.log verify` OK.
 
 All 9 what-ifs (background veh-h over 1800-2100 s; no-strategy 27.679 veh-h):
 
@@ -262,7 +268,7 @@ register); integration can add `strategist/strategist.yaml` and `strategist/weig
 |---|---|---|---|---|---|---|---|
 | A-strat-001 | snapshot.edge_tt_window_s | 300 | s | 60-900 | Routing cost of an edge = SUMO edgeData mean travel time over the 5 min before dispatch (what a live probe feed would show at T); no forecast of how the queue evolves during the trip | assumed | strategist/strategist.yaml |
 | A-strat-002 | snapshot.congestion_ratio_max | 20.0 | x free flow | 5-50 | Cap on measured / free-flow travel time per edge, so an edge with one stopped car (mean speed near 0) does not get an unbounded cost | assumed | strategist/strategist.yaml |
-| A-strat-003 | candidates.k_routes | 3 | routes | 1-5 | Three diverse routes give the operator real alternatives; with 3 variants each plus the no-strategy run and the closure option this is 11 what-if runs, fitting the 11 cores of the M3 Pro in one parallel wave | assumed | strategist/strategist.yaml |
+| A-strat-003 | candidates.k_routes | 3 | routes | 1-5 | Three diverse routes give the operator real alternatives; with up to 3 variants each (the default route has no separate route-only run) plus the no-strategy run and the closure option this is at most 11 what-if runs (9 on tahlia), fitting the 11 cores of the M3 Pro in one parallel wave | assumed | strategist/strategist.yaml |
 | A-strat-004 | candidates.yen_max_paths | 40 | paths | 10-100 | Yen's loopless k-shortest paths examined before the diversity filter; window nets have many near-duplicate paths (0 m split parts, ramps), so more paths than routes are needed | assumed | strategist/strategist.yaml |
 | A-strat-005 | candidates.max_overlap | 0.6 | share of route length | 0.4-0.9 | A path is a distinct alternative only if at most 60 % of its length is shared with each route already chosen | assumed | strategist/strategist.yaml |
 | A-strat-006 | candidates.max_cost_ratio | 3.0 | x best route cost | 1.5-5 | Alternatives whose measured cost exceeds 3x the best route are not worth simulating for an ambulance | assumed | strategist/strategist.yaml |
