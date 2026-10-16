@@ -253,3 +253,62 @@ commands at integration; network capacity (TA-011) remains the top issue.
 
 Verifier: PASS on all 11 criteria after two fix rounds (per-sector share test, status accuracy).
 M4: done
+
+## M8 Calibration scaffolding (dormant) — 2026-10-16
+Scope: PROJECT.md 9.12 and M8 without real data. No Jeddah counts exist; the path is built, proven
+on synthetic counts and left dormant. All results stay "synthetic demand, uncalibrated".
+
+Built:
+- `sim/adapters/counts.py`: count CSV (`detector_id, edge_id, hour, count`) reader with validation,
+  duplicate handling (A-cal-003), edge-id check against a network, edgeData writer for
+  routeSampler (scaled to the population sample); CLI `python -m sim.adapters.counts check|to-edgedata`.
+- `sim/adapters/traveltimes.py`: travel-time CSV (`segment_id, edge_ids, hour, travel_time_s,
+  samples`) reader and comparison with simulated edge travel times (A-cal-002); CLI `check`.
+- `sim/adapters/commercial.py`: `CountSource` / `TravelTimeSource` protocols and interface-only
+  stubs for Google Routes, TomTom, HERE (raise NotImplementedError; key from env; data never
+  committed).
+- `sim/calibrate.py`: `python -m sim.calibrate --counts <csv> --daytype weekday` -> edgeData targets
+  -> SUMO `routeSampler.py` over the day type's newest baseline routes (or `--net/--routes`) ->
+  meso re-simulation with the baseline capacity scaling -> GEH per (edge, hour), per-hour table,
+  optional travel-time check and `--before` reference; writes report.md, meta.json (seed, config,
+  counts, network, routes hashes, SUMO version), geh.csv, mismatch.xml; exit code 2 on a miss.
+- `sim/adapters/synthetic.py`: synthetic truth counts + unrelated candidate routes for the round trip.
+- Config `sim/adapters/config/calibrate.yaml`; assumptions A-cal-001..004 in
+  docs/assumptions-trackA.md; docs/calibration.md (pipeline, results, limits, partner data request).
+
+Measured (all synthetic):
+- Demo round trip (meso, seed 1; 40 detectors x 2 h = 80 counts; 14,400 candidate vehicles from
+  another seed): GEH < 5 on 100 % (mean 0.32, max 0.74); candidates unchanged 0 % (mean 18.8);
+  2,802 vehicles sampled; travel times 20/20 within 15 % (mean abs error 1.8 %). Also 100 % with
+  `--sample 0.5` and with `--mode micro`. About 3 s per calibration. Same seed twice: identical
+  calibrated routes hash and report.
+- City check (weekday 10 % baseline as candidates, 389,289 vehicles; counts from the baseline's own
+  edgeData, 50 edges): hours 10-11 only 72.0 % (FAIL: first hour has no warm-up traffic, 52 %;
+  second hour 92 %), 97 s; full day 0-23, 1,200 counts: 87.7 % PASS (hourly 62-96 %, mean GEH 2.48),
+  101,578 vehicles sampled, 397 s, routeSampler peak RSS about 4.1 GB.
+- Tests: ruff clean; pytest 84 passed (12 new in tests/test_calibrate.py), about 1.6 min.
+
+Decisions:
+- TA-030 Counts are measured in a re-simulation of the sampled routes (edge `entered` per hour), not
+  taken from routeSampler's own estimate, so the GEH includes congestion and hour-boundary effects.
+- TA-031 routeSampler runs greedy (no `--optimize`): the LP optimiser needs scipy, not a project
+  dependency. Add it if real counts leave large mismatch.
+- TA-032 No `--keep-attributes`: it restores each candidate's original depart time and breaks the
+  hourly placement. Sampled vehicles take one vType (`car`, copied from the candidates); the
+  baseline mode mix is not preserved in a fit.
+- TA-033 Partner counts must cover the whole day: a fit window that starts mid-day misses in its
+  first hour (city check above). The data request asks for 24 hours.
+- TA-034 The label never changes automatically: calibration runs record `calibration_status:
+  fitted, not reviewed` and keep "synthetic demand, uncalibrated" until a human reviews a fit
+  against real counts.
+- TA-035 Duplicate detectors on one edge and hour are averaged (A-cal-003).
+
+Commands: `uv run python -m sim.adapters.synthetic --out runs/synthetic-demo` then
+`uv run python -m sim.calibrate --counts runs/synthetic-demo/counts.csv --net data/demo/demo.net.xml
+--routes runs/synthetic-demo/candidates.rou.xml --sample 1.0 --travel-times
+runs/synthetic-demo/traveltimes.csv --counts-source synthetic --before` (README at integration).
+Could not verify: any real-world fit (no counts); behaviour with real detector noise, missing hours
+or detectors that do not map one-to-one to SUMO edges; whether the GEH target holds when the
+baseline network capacity issue (TA-011) is fixed.
+Integration notes: new files only (no shared file touched); README demo commands to add at
+integration; `docs/calibration.md` is the page to link from the README.
