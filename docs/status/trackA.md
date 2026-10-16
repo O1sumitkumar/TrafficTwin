@@ -164,3 +164,11 @@ routing thread when ~15 GB are free (closes TA-013 for the reported run); 25 % r
 lane-audit/network work; README M2 command at integration (`uv run python -m sim.runner --baseline
 --daytype weekday --sample 0.10 --seed 1`).
 M2: done
+
+## M4 Policy lab — in progress (2026-10-16)
+Run estimate before starting the two new city baselines (recorded 08:35): the Friday and Ramadan-weekday
+10 % baselines (`python -m sim.runner --baseline --daytype friday|ramadan_weekday --sample 0.10
+--seed 1`) need their own duaIterate assignment (the whole population is re-timed). With the
+deterministic 1-thread default (TA-013) routing is ~4x slower than the 8-thread M2 run: estimate
+2.5-4 h each, run in parallel (2 routing cores, ~3-4 GB RAM each). The 10 % sample is the smallest
+city sample; the weekday 10 % baseline from M2 is the result already available.
