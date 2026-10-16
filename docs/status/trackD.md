@@ -105,3 +105,32 @@ pruning (run dir 47 MB + 42 MB variant network, now deleted after each run).
   therefore teleport-assisted). Tunnel segment exceedance is now measured for both modes and
   gates the recommendation; a private-EV engineering-capacity run was added. Optimiser
   restarted 16:30 (finished runs reused), ~4.5 h of runs left.
+- TD-014 Recommendation rule (after the sweep): an option is credited only if it passes the
+  capacity gate and its Loop carries >= 5,000 trips/day (A-loop-020; SAR 25 private-EV drew 750
+  cars/day and its 44,913 VHT/day is noise). The alpha 0.3 shuttle run is treated as shuttle
+  ridership capped by the measured capacity. Engineering-capacity runs are reported as the
+  vendor case, not recommended.
+
+### LOOP handoff (2026-10-16 19:45)
+Built: `sim/loop/` (schema + registration, tunnel network builder, shuttle and private-EV
+transforms, runner, KPIs with congestion relief, siting, evaluation, optimisation, demo env),
+`sim/policies/loop_demo.yaml`, `loop_demo_private.yaml`, `loop_recommended.yaml`,
+`docs/loop.md` (map, ranking, greedy, sweep, recommendation, noise, vendor vs measured, caveats),
+`docs/img/loop-candidates.png`, `docs/assumptions-trackD.md` (A-loop-001..020),
+`docs/data-sources-trackD.md`, tests `tests/test_loop.py`, `tests/test_loop_run.py`.
+Measured (this session, 10 % weekday, synthetic demand, uncalibrated): 8 candidates scored from
+735 alignments in 6 s; candidate shuttle run 10.6 min wall (meso 8.5 min, 2.9 GB RSS); private-EV
+run with matched control ~25-40 min; 8 candidates x 2 sim seeds, 15 sweep/check runs. Replicate
+noise of one comparison +/- 34,236 VHT/day relief (1.25 %). Selected C1 Al-Salamah - KAU
+(17.86 km, USD 268-714 M). Recommended: shuttle mode, ridership capped by measured capacity
+(alpha 0.3, 28,820 passengers/day): relief 57,671 VHT/day (seed 2: 69,027), AM-peak road delay
+-2.85 %, 129 VHT/day per USD M (band 33-343), tunnel segment exceedance 1.7 %, 70 % of riders
+slower than by car. Vendor case: private-EV SAR 10 at 1.5 s headway 86,699 VHT/day. Network
+placebo +4,036 VHT/day (inside noise). pytest 94 passed; ruff clean; demo
+`uv run python -m sim.loop.run loop_demo --demo` ~10 s.
+Could not verify: Vegas 10-15 min waits and the "30 mph" figure (uncited); LVCC USD 53 M
+(uncited; contract USD 47-48.7 M used); no Saudi value of time; teleport-free tunnel capacity
+cannot be enforced in Tier A meso (gate instead).
+Next: intermediate tolls (SAR 12-20) for private-EV at measured capacity; more sim seeds for the
+top four corridors; integration to add the README command and fold the Loop transforms into
+`sim.schemas.Transform` directly.
