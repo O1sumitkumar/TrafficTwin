@@ -121,7 +121,28 @@ Per-policy detail (districts, corridors, hourly profile): `runs/<policy>/policy_
 
 ## Response curve: remote-work share
 
-SWEEP_SECTION
+```
+uv run python -m sim.policies.sweep --policy remote_work --param share=0.1:0.5:0.1 --sample 0.10
+```
+`runs/sweep-remote_work_30-share/response_curve.csv` and `.png` (5 points, 2 parallel processes,
+33 min wall). The share is the hybrid share of eligible (government, private-office) workers at
+3 remote days a week, induced trips 0.35.
+
+| hybrid share | workers at home today | mean delay | AM-peak delay | VKT | CO2 |
+|---|---|---|---|---|---|
+| 0.1 | 6 % | -3.1 % | -3.5 % | -0.5 % | -2.2 % |
+| 0.2 | 12 % | -6.3 % | -5.7 % | -1.0 % | -4.6 % |
+| 0.3 | 18 % | -9.3 % | -9.4 % | -1.6 % | -6.9 % |
+| 0.4 | 24 % | -12.3 % | -12.5 % | -2.2 % | -9.2 % |
+| 0.5 | 30 % | -15.4 % | -15.6 % | -2.7 % | -11.4 % |
+
+![remote-work response curve](img/m4-remote-work-sweep.png)
+
+The response is close to linear (about -3 % delay per 0.1 of share). **No share in the tested
+range halves the morning peak**: at 0.5 the AM-peak delay falls by 16 %; a straight-line
+extrapolation would need a share far above 1, i.e. remote work for desk workers alone cannot halve
+the morning peak in this model (the school peak is untouched; see staggered schools). The
+0.3 point reproduces the `remote_work_30` run exactly (same transform, same seed: determinism).
 
 ## Noise and bias checks
 
