@@ -7,6 +7,7 @@ the root element is cleared after every top-level child so memory stays flat.
 
 from __future__ import annotations
 
+import gzip
 import struct
 import xml.etree.ElementTree as ET
 from array import array
@@ -20,7 +21,6 @@ from pyproj import Transformer
 
 from api import settings
 from api.util import atomic_write_bytes, atomic_write_json, build_lock, read_json
-from sim.network.netinfo import _location
 
 MAGIC = b"TTE1"
 HEADER = struct.Struct("<4sII")
@@ -29,6 +29,20 @@ MS_TO_KMH = 3.6  # unit conversion
 
 def index_dir(network_hash: str) -> Path:
     return settings.cache_dir() / network_hash
+
+
+def _open_net(net: Path) -> Any:
+    """Plain or gzipped .net.xml (Track A writes edited networks as .net.xml.gz)."""
+    return gzip.open(net, "rb") if net.suffix == ".gz" else net.open("rb")
+
+
+def _location(net: Path) -> tuple[float, float, str]:
+    with _open_net(net) as fh:
+        for _, elem in ET.iterparse(fh, events=("end",)):
+            if elem.tag == "location":
+                dx, dy = (float(v) for v in elem.get("netOffset", "0,0").split(","))
+                return dx, dy, elem.get("projParameter", "!")
+    raise ValueError(f"{net}: no <location> element")
 
 
 def _parse_net(net: Path) -> tuple[dict[str, list[Any]], array, array, array]:
@@ -42,13 +56,19 @@ def _parse_net(net: Path) -> tuple[dict[str, list[Any]], array, array, array]:
     }
     xs, ys = array("d"), array("d")
     starts = array("I", [0])
+    with _open_net(net) as fh:
+        _walk_net(fh, attrs, xs, ys, starts)
+    return attrs, xs, ys, starts
+
+
+def _walk_net(fh: Any, attrs: dict[str, list[Any]], xs: array, ys: array, starts: array) -> None:
     root: ET.Element | None = None
     depth = 0
     current: dict[str, str] | None = None
     shape: str | None = None
     lanes = 0
     speed = ""
-    for event, elem in ET.iterparse(net, events=("start", "end")):
+    for event, elem in ET.iterparse(fh, events=("start", "end")):
         if event == "start":
             depth += 1
             if root is None:
@@ -82,7 +102,6 @@ def _parse_net(net: Path) -> tuple[dict[str, list[Any]], array, array, array]:
             shape = None
         if depth == 1 and root is not None:
             root.clear()  # drop finished top-level elements (edges, junctions, connections)
-    return attrs, xs, ys, starts
 
 
 def build_edge_index(net: Path, network_hash: str) -> Path:

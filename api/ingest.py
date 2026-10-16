@@ -1,5 +1,11 @@
-"""Convert run outputs for the viewer: edgedata.xml -> edgedata.parquet, fcd.xml -> fcd.parquet,
-and build the edge index and the dense bin arrays (contract docs/contracts/run-outputs.md §10).
+"""Convert run outputs for the viewer: edgedata.xml[.gz] -> edgedata.parquet,
+fcd.xml -> fcd.parquet, and build the edge index and the bin arrays
+(contract docs/contracts/run-outputs.md §10, §12).
+
+A producer's own `edgedata.parquet` / `fcd.parquet` (SUMO column names) is never rewritten: edge
+bins are read through `api.schema`, and producer FCD is copied once, sorted and renamed, into the
+cache. Conversions from XML go into the run directory (v1) unless it is not writable or
+TT_RUNS_READONLY=1, in which case they go to the cache.
 
     python -m api.ingest runs/<run_id>
     python -m api.ingest --all
@@ -11,7 +17,7 @@ row groups, so memory stays flat whatever the file size.
 
 from __future__ import annotations
 
-import json
+import gzip
 import math
 import os
 import time
@@ -26,7 +32,7 @@ import pyarrow.parquet as pq
 import typer
 
 from api import settings
-from api.runs import iter_runs, read_meta
+from api.schema import fcd_select, is_contract_edgedata, is_contract_fcd, sql_path
 from api.util import build_lock, is_stale, tmp_path_for
 
 SECONDS_PER_HOUR = 3600  # unit conversion
@@ -79,6 +85,10 @@ FCD_SCHEMA = pa.schema(
 Log = Callable[[str], None]
 
 
+def _open_xml(path: Path) -> Any:
+    return gzip.open(path, "rb") if path.suffix == ".gz" else path.open("rb")
+
+
 def _f(value: str | None) -> float:
     return float(value) if value not in (None, "") else math.nan
 
@@ -114,8 +124,11 @@ def convert_edgedata(xml: Path, out: Path) -> int:
             for v in buf.values():
                 v.clear()
 
-    with pq.ParquetWriter(tmp, EDGE_SCHEMA, compression="zstd") as writer:
-        for event, elem in ET.iterparse(xml, events=("start", "end")):
+    with (
+        _open_xml(xml) as src,
+        pq.ParquetWriter(tmp, EDGE_SCHEMA, compression="zstd") as writer,
+    ):
+        for event, elem in ET.iterparse(src, events=("start", "end")):
             if root is None:
                 root = elem
                 continue
@@ -178,8 +191,8 @@ def convert_fcd(xml: Path, out: Path) -> int:
     t = math.nan
     root: ET.Element | None = None
     try:
-        with pq.ParquetWriter(scratch, plain) as writer:
-            for event, elem in ET.iterparse(xml, events=("start", "end")):
+        with _open_xml(xml) as src, pq.ParquetWriter(scratch, plain) as writer:
+            for event, elem in ET.iterparse(src, events=("start", "end")):
                 if root is None:
                     root = elem
                     continue
@@ -205,17 +218,7 @@ def convert_fcd(xml: Path, out: Path) -> int:
                     root.clear()
             if buf["time_s"]:
                 writer.write_table(_fcd_table(buf))
-        con = duckdb.connect()
-        con.execute(f"SET memory_limit='{DUCKDB_MEMORY_LIMIT}'")
-        con.execute("SET preserve_insertion_order=false")
-        reader = con.execute(
-            "SELECT * FROM read_parquet(?) ORDER BY vehicle_id, time_s", [str(scratch)]
-        ).to_arrow_reader(FCD_ROW_GROUP)
-        with pq.ParquetWriter(tmp, FCD_SCHEMA, compression="zstd") as writer:
-            for batch in reader:
-                table = pa.Table.from_batches([batch]).cast(FCD_SCHEMA)
-                writer.write_table(table)
-        con.close()
+        _sorted_fcd(f"SELECT * FROM read_parquet({sql_path(scratch)})", tmp)
         os.replace(tmp, out)
     finally:
         scratch.unlink(missing_ok=True)
@@ -223,83 +226,162 @@ def convert_fcd(xml: Path, out: Path) -> int:
     return rows
 
 
-def ensure_edgedata(run: Path, force: bool = False) -> Path | None:
-    out, xml = run / "edgedata.parquet", run / "edgedata.xml"
+def _sorted_fcd(select: str, out: Path) -> None:
+    """Write `select` (contract FCD columns) sorted by (vehicle_id, time_s) to `out`."""
+    con = duckdb.connect()
+    try:
+        con.execute(f"SET memory_limit='{DUCKDB_MEMORY_LIMIT}'")
+        con.execute("SET preserve_insertion_order=false")
+        reader = con.execute(f"{select} ORDER BY vehicle_id, time_s").to_arrow_reader(FCD_ROW_GROUP)
+        with pq.ParquetWriter(out, FCD_SCHEMA, compression="zstd") as writer:
+            for batch in reader:
+                table = pa.Table.from_batches([batch]).select(FCD_SCHEMA.names)
+                writer.write_table(table.cast(FCD_SCHEMA))
+    finally:
+        con.close()
+
+
+def normalise_fcd(src: Path, out: Path) -> int:
+    """Producer FCD Parquet (SUMO names) -> contract fcd.parquet, sorted; return row count."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = tmp_path_for(out)
+    try:
+        _sorted_fcd(fcd_select(src), tmp)
+        os.replace(tmp, out)
+    finally:
+        tmp.unlink(missing_ok=True)
+    return pq.ParquetFile(out).metadata.num_rows
+
+
+def cache_run_dir(run_id: str) -> Path:
+    return settings.cache_dir() / "runs" / run_id
+
+
+def _writable(run: Path) -> bool:
+    return not settings.runs_readonly() and os.access(run, os.W_OK)
+
+
+def _xml(run: Path, stem: str) -> Path | None:
+    for name in (f"{stem}.xml", f"{stem}.xml.gz"):
+        if (run / name).is_file():
+            return run / name
+    return None
+
+
+def ensure_edgedata(run: Path, force: bool = False, run_id: str | None = None) -> Path | None:
+    """The run's edge bins as Parquet (contract or producer schema; see api.schema), or None.
+
+    `run` is the directory holding the simulation outputs (for nested runs the sub-directory)."""
+    run_id = run_id or run.name
+    own, xml = run / "edgedata.parquet", _xml(run, "edgedata")
+    if own.is_file() and not is_contract_edgedata(own):
+        return own  # a producer's file: read through api.schema, never rewritten
+    if xml is None:
+        if own.is_file():
+            return own
+        cached = cache_run_dir(run_id) / "edgedata.parquet"
+        return cached if cached.is_file() else None
+    out = own if _writable(run) else cache_run_dir(run_id) / "edgedata.parquet"
     if not force and not is_stale(out, xml):
         return out
-    if not xml.exists():
-        return out if out.exists() else None
-    with build_lock(f"edgedata:{run}"):
+    with build_lock(f"edgedata:{out}"):
         if force or is_stale(out, xml):
+            out.parent.mkdir(parents=True, exist_ok=True)
             convert_edgedata(xml, out)
     return out
 
 
-def _tier(run: Path) -> str | None:
-    try:
-        return json.loads((run / "meta.json").read_text()).get("tier")
-    except (OSError, ValueError):
+def ensure_fcd(
+    run: Path, force: bool = False, run_id: str | None = None, tier: str | None = None
+) -> Path | None:
+    """Contract-schema fcd.parquet for a Tier B run (converted or normalised), or None."""
+    run_id = run_id or run.name
+    if tier is None:
+        tier = _tier(run)
+    if tier == "A":  # trajectories are Tier B only (contract section 5)
         return None
-
-
-def ensure_fcd(run: Path, force: bool = False) -> Path | None:
-    out, xml = run / "fcd.parquet", run / "fcd.xml"
-    if _tier(run) == "A":  # trajectories are Tier B only (contract section 5)
-        return None
+    own, xml = run / "fcd.parquet", _xml(run, "fcd")
+    cached = cache_run_dir(run_id) / "fcd.parquet"
+    if own.is_file() and not is_contract_fcd(own):
+        if force or is_stale(cached, own):
+            with build_lock(f"fcd:{cached}"):
+                if force or is_stale(cached, own):
+                    normalise_fcd(own, cached)
+        return cached
+    if xml is None:
+        if own.is_file():
+            return own
+        return cached if cached.is_file() else None
+    out = own if _writable(run) else cached
     if not force and not is_stale(out, xml):
         return out
-    if not xml.exists():
-        return out if out.exists() else None
-    with build_lock(f"fcd:{run}"):
+    with build_lock(f"fcd:{out}"):
         if force or is_stale(out, xml):
+            out.parent.mkdir(parents=True, exist_ok=True)
             convert_fcd(xml, out)
     return out
 
 
-def ingest_run(run: Path, force: bool = False, log: Log = print) -> dict[str, Any]:
-    """Everything the viewer needs for one run; returns timings and counts."""
-    from api.bins import ensure_bins
-    from api.edges import ensure_edge_index
+def _tier(run: Path) -> str | None:
+    from api.runs import read_meta
 
     meta = read_meta(run)
-    if meta is None:
-        raise FileNotFoundError(f"{run}: no readable meta.json")
-    report: dict[str, Any] = {"run_id": run.name}
+    return meta.get("tier") if meta else None
+
+
+def _as_run(run: Any) -> Any:
+    from api.runs import Run, get_run
+
+    if isinstance(run, Run):
+        return run
+    return get_run(Path(run).name)
+
+
+def ingest_run(run: Any, force: bool = False, log: Log = print) -> dict[str, Any]:
+    """Everything the viewer needs for one run (a `Run`, run id or run path); timings and counts."""
+    from api.bins import ensure_bins
+    from api.edges import ensure_edge_index
+    from api.runs import run_network
+
+    r = _as_run(run)
+    meta = r.meta
+    report: dict[str, Any] = {"run_id": r.run_id}
     t0 = time.perf_counter()
-    edp = ensure_edgedata(run, force)
+    edp = ensure_edgedata(r.data_dir, force, run_id=r.run_id)
     report["edgedata_s"] = round(time.perf_counter() - t0, 2)
     if edp is not None:
         report["edgedata_rows"] = pq.ParquetFile(edp).metadata.num_rows
-    log(f"ingest {run.name}: edgedata {report.get('edgedata_rows', 'n/a')} rows")
+    log(f"ingest {r.run_id}: edgedata {report.get('edgedata_rows', 'n/a')} rows")
     if meta.get("tier") == "B":
         t0 = time.perf_counter()
-        fcdp = ensure_fcd(run, force)
+        fcdp = ensure_fcd(r.data_dir, force, run_id=r.run_id, tier="B")
         report["fcd_s"] = round(time.perf_counter() - t0, 2)
         if fcdp is not None:
             report["fcd_rows"] = pq.ParquetFile(fcdp).metadata.num_rows
-        log(f"ingest {run.name}: fcd {report.get('fcd_rows', 'n/a')} rows")
-    net, nhash = meta.get("network"), meta.get("network_hash")
-    if net and nhash:
+        log(f"ingest {r.run_id}: fcd {report.get('fcd_rows', 'n/a')} rows")
+    nhash = meta.get("network_hash")
+    if meta.get("network") and nhash:
         t0 = time.perf_counter()
-        ensure_edge_index(settings.resolve_repo_path(str(net)), str(nhash))
+        ensure_edge_index(run_network(r), str(nhash))
         report["edge_index_s"] = round(time.perf_counter() - t0, 2)
-        log(f"ingest {run.name}: edge index {nhash} ready")
+        log(f"ingest {r.run_id}: edge index {nhash} ready")
         if edp is not None:
             t0 = time.perf_counter()
-            ensure_bins(run, meta, force=force)
+            ensure_bins(r, force=force)
             report["bins_s"] = round(time.perf_counter() - t0, 2)
-            log(f"ingest {run.name}: dense bins ready")
+            log(f"ingest {r.run_id}: bins ready")
     return report
 
 
-def _resolve_run(arg: str) -> Path:
-    path = Path(arg)
-    if path.is_dir():
-        return path
-    candidate = settings.runs_dir() / arg
-    if candidate.is_dir():
-        return candidate
-    raise typer.BadParameter(f"{arg}: not a run directory")
+def _resolve_run(arg: str) -> Any:
+    from fastapi import HTTPException
+
+    from api.runs import get_run
+
+    try:
+        return get_run(Path(arg).name)
+    except HTTPException as exc:
+        raise typer.BadParameter(f"{arg}: not a run under {settings.runs_dir()}") from exc
 
 
 app = typer.Typer(add_completion=False, help=__doc__)
@@ -313,7 +395,9 @@ def main(
 ) -> None:
     if all_runs == (run is not None):
         raise typer.BadParameter("give exactly one of RUN or --all")
-    targets = [p for p, _ in iter_runs()] if all_runs else [_resolve_run(str(run))]
+    from api.runs import registry
+
+    targets = list(registry()[0].values()) if all_runs else [_resolve_run(str(run))]
     for target in targets:
         t0 = time.perf_counter()
         report = ingest_run(target, force=force, log=typer.echo)

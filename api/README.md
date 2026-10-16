@@ -3,7 +3,9 @@
 Thin, file-backed FastAPI viewer API for TrafficTwin Jeddah. Spec: `docs/contracts/run-outputs.md`.
 Everything it serves is **synthetic demand, uncalibrated**. Read-only except for two writes:
 starting a smoke run (`POST /api/jobs`) and logging a strategy decision (append-only, hash-chained
-`decisions.jsonl`; logging never actuates anything).
+`decisions.jsonl`, or for strategist recommendations the strategist's SQLite log
+`runs/strategist/decisions.sqlite`; logging never actuates anything). `TT_RUNS_READONLY=1` keeps
+even XML-to-Parquet conversions out of run directories (they go to the cache).
 
 ## Run
 
@@ -22,7 +24,7 @@ uv run python -m api.ingest --all --force       # rebuild even if fresh
 
 It streams `edgedata.xml` -> `edgedata.parquet` and `fcd.xml` -> `fcd.parquet` (iterparse, Parquet row
 groups, DuckDB external sort for FCD) and builds the cache: the edge index (`edges.bin`, `edges.json`)
-per network hash and dense float32 bin arrays per run and metric. Deleting the cache is always safe.
+per network hash and sparse float32 bin arrays per run (contract §10, layout `sparse-v1`). Deleting the cache is always safe.
 
 ## Example reports (fictional, for demonstrating the viewer)
 
@@ -50,6 +52,6 @@ Relative values resolve against the repo root, so the same code runs unchanged f
 ## Layout
 
 `main.py` (app factory `create_app()`), `routers/` (runs, networks, geo, jobs), `ingest.py`,
-`edges.py` (edge index), `bins.py` (dense bins), `districts.py`, `trajectories.py`, `geo.py`
+`edges.py` (edge index), `bins.py` (sparse bins), `normalize.py` + `schema.py` (producer shapes -> contract, §12), `strategist_link.py` (strategist recommendations and SQLite decision log), `districts.py`, `trajectories.py`, `geo.py`
 (buildings), `decisions.py` (hash chain; `verify_chain()`), `jobs.py`, `examples.py`, `settings.py`.
 Tests: `uv run pytest -q tests/test_api.py` (demo window, offline, about 6 s).

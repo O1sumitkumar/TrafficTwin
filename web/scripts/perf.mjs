@@ -8,12 +8,14 @@ import { BASE, GPU_FLAGS, gpuInfo, launch, sleep, waitReady } from "./lib.mjs";
 const SECONDS = Number(process.env.TT_PERF_SECONDS || 20);
 const CITY = process.env.TT_PERF_CITY || "smoke-A-s1-5b8a19d3-ab76d081";
 const DEMO = process.env.TT_PERF_DEMO || "smoke-B-s1-25c06763-9cfa755f";
+const COMPARE = process.env.TT_PERF_COMPARE || "smoke-A-s1-5b8a19d3-6ba142f4";
+const DEMO_VIEW = process.env.TT_PERF_DEMO_VIEW || "39.157,21.55,15.2,55,-20";
 
 const SCENARIOS = [
   { name: "tierA_city_300x", url: `/?run=${CITY}&metric=speed_rel&speed=300&panel=none`, speed: 300, orbit: false },
   { name: "tierA_city_300x_orbit", url: `/?run=${CITY}&metric=speed_rel&speed=300&panel=none`, speed: 300, orbit: true },
-  { name: "tierA_city_diff_300x_orbit", url: `/?run=${CITY}&compare=smoke-A-s1-5b8a19d3-6ba142f4&mode=diff&metric=speed_kmh&speed=300&panel=none`, speed: 300, orbit: true },
-  { name: "tierB_trips_60x_orbit", url: `/?run=${DEMO}&speed=60&panel=none&view=39.157,21.55,15.2,55,-20`, speed: 60, orbit: true },
+  { name: "tierA_city_diff_300x_orbit", url: `/?run=${CITY}&compare=${COMPARE}&mode=diff&metric=speed_kmh&speed=300&panel=none`, speed: 300, orbit: true },
+  { name: "tierB_trips_60x_orbit", url: `/?run=${DEMO}&speed=60&panel=none&view=${DEMO_VIEW}`, speed: 60, orbit: true },
 ];
 
 /** RSS (MB) of the Chrome process tree started by puppeteer, split by process type. */

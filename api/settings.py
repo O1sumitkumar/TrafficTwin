@@ -55,6 +55,18 @@ def max_jobs() -> int:
     return int(os.environ.get("TT_MAX_JOBS", "1"))
 
 
+def strategist_db() -> Path:
+    """TT_STRATEGIST_DB, default <runs dir>/strategist/decisions.sqlite (the strategist's log)."""
+    return _path("TT_STRATEGIST_DB", runs_dir() / "strategist" / "decisions.sqlite")
+
+
+def runs_readonly() -> bool:
+    """TT_RUNS_READONLY=1: never write into run directories; converted Parquet goes to the cache.
+
+    (Decisions are still appended: approving is the one write the API exists to do.)"""
+    return os.environ.get("TT_RUNS_READONLY", "").lower() in ("1", "true", "yes")
+
+
 def resolve_repo_path(path: str) -> Path:
     """A path stored in meta.json (repo-relative) as an absolute path."""
     p = Path(path)

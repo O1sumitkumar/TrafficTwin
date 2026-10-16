@@ -641,6 +641,23 @@ export class Engine {
     }
     const g = ev.geometry;
     if (g && g.type === "Point" && Array.isArray(g.coordinates)) anchor = g.coordinates as [number, number];
+    // Polygon (e.g. an evacuation zone, contract v1.1): outline each ring, label at the centroid.
+    if (g && g.type === "Polygon" && Array.isArray(g.coordinates)) {
+      for (const ring of g.coordinates as number[][][]) {
+        if (!Array.isArray(ring) || ring.length < 3) continue;
+        paths.push({ path: ring, color, width: 6, kind: "event", label });
+        if (!anchor) {
+          let x = 0,
+            y = 0;
+          const n = ring.length - 1; // closed ring: last point repeats the first
+          for (let k = 0; k < n; k++) {
+            x += ring[k]![0]!;
+            y += ring[k]![1]!;
+          }
+          anchor = [x / n, y / n];
+        }
+      }
+    }
     if (anchor) points.push({ position: anchor, color, text: ev.type.toUpperCase(), label });
   }
 

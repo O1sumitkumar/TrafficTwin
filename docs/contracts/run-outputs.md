@@ -1,6 +1,9 @@
 # Contract: run outputs (`runs/<run_id>/`) and the viewer API
 
-Version 1 (M3, 2026-10-16). Owner: Track C. Producers: `sim.runner` (Tracks A and B), `strategist/`
+Version 1.1 (2026-10-16; v1 was M3, same day). Owner: Track C. v1.1 is additive: every v1 file and
+endpoint is unchanged; it documents how the API reads what Tracks A and B actually write (§12), adds
+nested and strategist-only runs (§1, §2), a sparse bin cache (§10) and the strategist decision-log
+bridge (§8). Producers: `sim.runner` (Tracks A and B), `strategist/`
 (Track B). Consumer: `api/` (FastAPI, file-backed) and `web/` (viewer). All results are
 **synthetic demand, uncalibrated**; every JSON file carries `"label": "synthetic demand, uncalibrated"`.
 
@@ -26,14 +29,27 @@ through. Files a producer does not write yet can be derived by `python -m api.in
 A directory under `runs/` without a readable `meta.json` is skipped. Directories starting with `_`
 or `.` are ignored.
 
+**v1.1 run forms** (the API lists *runs*, not directories):
+
+| form | on disk | listed as |
+|---|---|---|
+| flat | `runs/<id>/meta.json` + outputs | `<id>` |
+| nested (`kind` `scenario` or `evacuation`) | `runs/<id>/meta.json` + report; outputs in `scenario/` + `baseline/`, or `evacuation/` + `reference/` | `<id>` (data from the primary sub-dir) and `<id>~baseline` / `<id>~reference`; the first gets `baseline_run_id` = the second |
+| alias | `runs/<name>/` with a `RUN_DIR` file and `meta.run_id` != `<name>` | not listed; `<name>` resolves to `meta.run_id` |
+| strategist-only | `runs/strategist/**/recommendation.json` whose scenario has no simulation run | `strategist~<scenario>-<window>-s<seed>` (network, overlays, recommendations; no bins) |
+
+A sub-run may carry its own `meta.json`; its keys override the ones inherited from the parent. The
+run id rule (`run_id` = directory name) holds for flat and nested parents; sub-run and strategist ids
+are derived as above and never collide with directory names because `~` is not used in them.
+
 ## 2. `meta.json`
 Already written by `sim.runner` (M1). Fields the API relies on:
 
 | key | type | note |
 |---|---|---|
-| `run_id` | str | equals the directory name |
+| `run_id` | str | equals the directory name (v1.1: or the derived id of §1; the API sets it) |
 | `label` | str | "synthetic demand, uncalibrated" |
-| `kind` | str | `smoke`, `baseline`, `policy`, `scenario`, `strategist`, `evacuation` |
+| `kind` | str | `smoke`, `baseline`, `policy`, `scenario`, `strategist`, `evacuation` (v1.1: `calibration`, `other` when absent) |
 | `tier` | `"A"` or `"B"` | |
 | `mode` | `"meso"` or `"micro"` | |
 | `seed`, `config_hash`, `network_hash`, `population_hash`, `sumo_version` | | determinism |
@@ -44,6 +60,11 @@ Optional keys (new in v1; producers should add them when they apply):
 `begin_s` (int, default 0), `baseline_run_id` (str; default comparison run for difference mode),
 `policy_id`, `scenario_id`, `window` (Tier B window name), `edgedata_freq_s` (default 300),
 `day_type`, `sample_fraction`.
+
+v1.1: `GET /api/runs/{id}` returns the meta **as normalised by the API** (§12): producer keys are kept,
+contract keys are filled, `network` becomes repo-relative (the stored value is kept as
+`network_original`), `sim_seconds` is derived when missing, sub-runs add `parent_run_id` and
+`sub_run`.
 
 ## 3. `metrics.json`
 ```json
@@ -136,12 +157,30 @@ emergency scenarios stay private (PROJECT.md section 11); public examples are de
 rule so both writers can share the file. Simulation and decision support only: approving logs the
 decision, it never actuates anything.
 
+**v1.1, strategist-backed recommendations.** When a run has no `recommendations.json` but a strategist
+recommendation matches it (same `scenario_id`, `window`, `seed` and `network_hash`; the newest wins),
+`/recommendations` maps it to the shape above: `option_id` = `opt-<rank>`, `title` = option label,
+`action_class` = `high_impact` for the strategist's `approval_required` and `advisory` for
+`auto_eligible`/`none`, `requires_approval` = (`action_class` is `high_impact`), `explanation` = the
+strategist's measured-only reason text, `effects` = its numeric outcome fields, `incident_id` =
+`recommendation_id`, plus `source: "strategist"`, `candidate_id`, `classification`.
+
+For such runs the decision log is the strategist's SQLite log `runs/strategist/decisions.sqlite`
+(`TT_STRATEGIST_DB`), never a `decisions.jsonl`: one log per recommendation, one source of truth. The
+POST appends a `decision` record through `strategist.decision_log.append` (same chain rule: SHA-256
+of canonical JSON, prev_hash genesis 64 zeros, append-only triggers), after `verify` passes and only
+if the recommendation has no decision yet (the strategist's one-decision rule; otherwise 409). The
+record's decision payload carries `source: "api"`, `applied: false`, `actuated: false`; the API never
+re-runs an option (`python -m strategist.approve` does that). `GET /decisions` returns that
+recommendation's records in the §8 entry shape with `log: "strategist-sqlite"` and `record_id`;
+`prev_hash`/`hash` are the SQLite chain values (verify with `python -m strategist.log verify`).
+
 ## 9. API (FastAPI, `api.main:app`, port 8000)
 
 | method | path | returns |
 |---|---|---|
 | GET | `/health` | `{"status": "ok", "label": ...}` |
-| GET | `/api/runs` | list of run summaries: `run_id, kind, tier, mode, seed, network_hash, sim_seconds, label, baseline_run_id, has{edgedata,fcd,policy_report,scenario_report,recommendations,decisions}` |
+| GET | `/api/runs` | list of run summaries: `run_id, kind, tier, mode, seed, network_hash, sim_seconds, label, baseline_run_id, has{edgedata,fcd,policy_report,scenario_report,recommendations,decisions}` (v1.1 adds `parent_run_id, scenario_id, policy_id, window`) |
 | GET | `/api/runs/{id}` | `meta.json` |
 | GET | `/api/runs/{id}/metrics` | §3 |
 | GET | `/api/runs/{id}/bins` | `{"bin_s":300,"begin_s":0,"n_bins":12,"n_edges":156126,"network_hash":"...","metrics":[...],"stats":{metric:{p5,p50,p95}}}` |
@@ -193,9 +232,15 @@ TripsLayer JSON:
 ## 10. Ingest and cache
 `python -m api.ingest runs/<run_id>` (or `--all`, `--force`) converts `edgedata.xml` -> `edgedata.parquet`
 and `fcd.xml` -> `fcd.parquet` (streaming `iterparse`, Parquet row groups; FCD is sorted by an
-external DuckDB sort), builds the edge index for the run's network and the dense bin arrays. The
+external DuckDB sort), builds the edge index for the run's network and the bin arrays. The
 API calls the same functions lazily on first request (one builder per artefact; concurrent requests
 wait). Parquet files are rebuilt when the XML is newer.
+
+v1.1: `edgedata.xml.gz` / `fcd.xml.gz` are accepted, and so are `.net.xml.gz` networks. A Parquet
+file in the producer schema (§12) is **never rewritten**: edge bins are read through a column mapping
+in DuckDB (no copy), producer FCD is copied once, renamed and sorted, to the cache. Conversions from
+XML go into the run directory as in v1, or to `<cache>/runs/<run_id>/` when the directory is not
+writable or `TT_RUNS_READONLY=1`.
 
 Derived caches live under `TT_CACHE_DIR`, default **`<TT_RUNS_DIR>/_viewer-cache`** (that is
 `runs/_viewer-cache`; `runs/` is the writable mount in docker-compose, `data/` is read-only). The run
@@ -205,8 +250,16 @@ listing ignores it because the name starts with `_`. Deleting the cache is alway
 |---|---|
 | `<network_hash>/edges.bin`, `edges.json` | edge index (§9) |
 | `<network_hash>/districts-<districts file hash>/` | edge -> district map (`edge_district.npy`, int32, -1 = none) |
-| `runs/<run_id>/<metric>.npy` | float32 `[n_bins, n_edges]`, NaN = no data (read with mmap) |
-| `runs/<run_id>/bins.json` | the `/bins` metadata incl. p5/p50/p95 per metric |
+| `runs/<run_id>/edge_pos.npy` | v1.1 int32 `[n_rows]`: edge index position per edge-bin row, rows sorted by bin (-1 = not in the network) |
+| `runs/<run_id>/bin_offsets.npy` | v1.1 int64 `[n_bins + 1]`: rows of bin i are `offsets[i]:offsets[i+1]` |
+| `runs/<run_id>/<metric>.npy` | v1.1 float32 `[n_rows]` per stored metric (`speed_kmh` is derived from `speed_ms`); v1 was dense `[n_bins, n_edges]` |
+| `runs/<run_id>/bins.json` | the `/bins` metadata incl. p5/p50/p95 per metric; v1.1 adds `layout: "sparse-v1"`, `metrics_with_data`, `source` |
+| `runs/<run_id>/edgedata.parquet`, `fcd.parquet` | v1.1: XML converted in read-only mode; producer FCD normalised to §5 |
+
+The `/bins/{i}` response is unchanged (dense Float32 `[n_edges]`, scattered on request). A cache
+without `layout: "sparse-v1"` is rebuilt. Measured on the 24 h Track A city baseline (155,366 edges,
+312 bins incl. the 2 h drain, 7.59 M rows): 224 MB of cache instead of ~1.55 GB dense, built in
+4-8 s; one bin 25-110 ms per request incl. gzip, 0.62 MB raw, ~30 KB gzip.
 
 `TT_RUNS_DIR`, `TT_CACHE_DIR` and `TT_LOGS_DIR` (job logs, default `logs/`) may be relative; they
 resolve against the repo root, so the API runs unchanged from `/app` in the container. `meta.json`
@@ -230,3 +283,22 @@ resolve against the repo root, so the API runs unchanged from `/app` in the cont
 - `/metrics` fallback adds `"source": "meta.result"`; units derive from key suffixes (`_ms` m/s,
   `_s` s, `_m` m, `_share`/`_factor` -), else `""`.
 - JSON and binary responses are gzip-compressed when the client accepts it (SSE excluded).
+
+## 12. Producer shapes the API maps (v1.1)
+
+All mappings live in `api/normalize.py` (meta, metrics, reports, recommendations), `api/schema.py`
+(Parquet columns) and `api/runs.py` (run forms). Producers keep writing what they write today.
+
+| producer | what it writes | API view |
+|---|---|---|
+| all Parquet edge bins | SUMO names: `begin`/`end` (float), `id` or `edge_id`, `speed`, `speedRelative`, `density`, `occupancy`, `flow`, `entered`, `left`, `sampledSeconds`, `traveltime`, `timeLoss`, `waitingTime` (any subset) | §4 columns; missing ones NaN; `flow_veh_h` = `entered * 3600 / (end - begin)` when `flow` is absent; `speed_rel` = `speed` / edge speed limit (edge index, km/h rounded) when `speedRelative` is absent |
+| Track B FCD Parquet | `time, id, type, lon, lat, angle, speed, pos, lane` | §5, sorted, cached |
+| Track A baseline/policy `meta.json` | absolute (worktree) `network`, `sim_end_s`/`run_end_s`, `daytype`, `sample`, `policy` (str), `compare_baseline` | `network` repo-relative, `sim_seconds` = `run_end_s` - `begin_s` (the 2 h drain is shown), `day_type`, `sample_fraction`, `policy_id`, `baseline_run_id` |
+| Track A `metrics.json` | `{"summary": {...}, "hourly": [...]}` | §3 `metrics` from `summary` (units from key names), `source: "metrics.json:summary"` |
+| Track A `policy_report.json` | `policy` (str), `title`, `kpis` (list), `districts` (winners/losers), `compare_baseline`, `assumption_ids` (dict) | §6: `policy` object, `summary` from `kpis`, `districts` from `policy_districts.parquet` (`zone_id` = feature index of `districts.geojson`, checked by `name_en`; `district_id` = `osm_id`; metrics `mean_speed_delta_pct`, `vkt_delta_pct`, `mean_delay_delta_pct`, `trips_delta_pct`, `mean_delay_delta_s`), the original `districts` kept as `districts_overview`, `assumptions` flattened |
+| Track B scenario run (`sim.scenarios.run`) | nested run + alias dir; `scenario_report.json` with `scenario` (str), `title`, `kpis{baseline,scenario}`, `delta`, `events` (`start`/`end`, `end` null for trips) | §1 nested; §7: `scenario` object; events `begin_s`/`end_s` (null end = the event's `end` log entry, else `max_end`, else run end); `emergency_trip` -> `other` with `producer_type`; full-closure accidents and flood `closed_edges` -> `closures`; `summary` from `kpis` + `delta`; sub-run `/metrics` from `kpis.scenario` / `kpis.baseline` |
+| evacuation run (`sim.events.evacuation`) | nested run (`evacuation/`, `reference/`); `evacuation_report.json` | `/scenario-report` (§7): zone = `evacuation` event with a GeoJSON Polygon (closed ring) from the order time; each exit = `other` event with a Point; dormant contraflow corridors = closures (opened ones = `other` events); other events as above; `summary` from `window_kpis` + `clearance_*`. `/metrics`: clearance (`clearance_t50_s` ... `t100_s`, `out_share`), background delay, teleports, reroutes; the reference sub-run gets the reference KPIs |
+| strategist (`strategist.run`, `strategist.evacuation`) | `runs/strategist/**/recommendation.json` + `decisions.sqlite` | §8 as described there; matched to scenario/evacuation runs, else a strategist-only run (§1) whose `/scenario-report` draws the lanes closed at dispatch and each candidate route (emergency) or the zone, exits and corridors (evacuation) |
+
+Not mapped (listed as they are, no viewer data): calibration runs (`kind: calibration`, no `tier`;
+outputs in `sim/`), and directories without `meta.json` (sweeps, `fidelity-*`, `repeat/`).

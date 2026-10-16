@@ -272,7 +272,8 @@ def test_decision_log_tampering_is_detected(tmp_path: Path) -> None:
 def test_register_block_current_and_ids_unique() -> None:
     assert reg.is_current(), "run: python -m strategist.register"
     ids = reg.ids()
-    assert ids and not ids & sim_register.all_ids()
+    # integration (B-D-024): the strategist rows are also generated into the Track B register
+    assert ids and ids <= sim_register.all_ids()
     assert set(C.setting_ids()) | set(C.load_weights()["ids"]) == ids
     text = reg.DOC.read_text()
     for pid in ids:

@@ -17,6 +17,7 @@ from shapely.geometry import shape
 
 from api import settings
 from api.edges import EdgeIndex
+from api.schema import edge_select
 from api.util import atomic_save_npy, atomic_write_json, build_lock, read_json
 from sim.common import file_hash
 
@@ -73,9 +74,8 @@ def _speed_sums(parquet: Path) -> dict[str, tuple[float, float]]:
     """Per edge: (sum speed * sampled_s, sum sampled_s), streaming in DuckDB."""
     con = duckdb.connect()
     rows = con.execute(
-        "SELECT CAST(edge_id AS VARCHAR), sum(speed_ms * sampled_s), sum(sampled_s) "
-        "FROM read_parquet(?) WHERE NOT isnan(speed_ms) AND sampled_s > 0 GROUP BY 1",
-        [str(parquet)],
+        "SELECT edge_id, sum(speed_ms * sampled_s), sum(sampled_s) "
+        f"FROM ({edge_select(parquet)}) WHERE NOT isnan(speed_ms) AND sampled_s > 0 GROUP BY 1"
     ).fetchall()
     con.close()
     return {e: (float(a), float(b)) for e, a, b in rows}

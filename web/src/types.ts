@@ -1,4 +1,4 @@
-// Types for the viewer API (docs/contracts/run-outputs.md, version 1).
+// Types for the viewer API (docs/contracts/run-outputs.md, version 1.1).
 
 export const SYNTHETIC_LABEL = "synthetic demand, uncalibrated";
 
@@ -12,6 +12,11 @@ export interface RunSummary {
   sim_seconds: number;
   label: string;
   baseline_run_id?: string | null;
+  /** v1.1: comparison sub-runs (`<id>~baseline`, `<id>~reference`) name their parent run. */
+  parent_run_id?: string | null;
+  scenario_id?: string | null;
+  policy_id?: string | null;
+  window?: string | null;
   has?: Partial<
     Record<"edgedata" | "fcd" | "policy_report" | "scenario_report" | "recommendations" | "decisions", boolean>
   >;
@@ -90,8 +95,11 @@ export interface ScenarioEvent {
   begin_s: number;
   end_s: number;
   edges?: string[];
+  /** GeoJSON in lon/lat: Point (anchor) or Polygon (outlined; v1.1). */
   geometry?: { type: string; coordinates: unknown } | null;
   description?: string;
+  /** v1.1: the producer's own event type when `type` is "other" (e.g. emergency_trip). */
+  producer_type?: string;
 }
 
 export interface Closure {
@@ -122,6 +130,9 @@ export interface RecommendationOption {
   explanation: string;
   effects?: Record<string, number>;
   actions?: unknown[];
+  /** v1.1 strategist-backed options: the strategist's candidate id and classification. */
+  candidate_id?: string;
+  classification?: string;
 }
 
 export interface Recommendations {
@@ -129,6 +140,9 @@ export interface Recommendations {
   run_id: string;
   incident_id?: string;
   generated_at?: string;
+  /** v1.1: "strategist" when mapped from runs/strategist (decisions go to its SQLite log). */
+  source?: string;
+  recommendation_id?: string;
   options: RecommendationOption[];
 }
 
@@ -143,6 +157,9 @@ export interface DecisionEntry {
   label?: string;
   prev_hash: string;
   hash: string;
+  /** v1.1: "strategist-sqlite" for entries read from the strategist's decision log. */
+  log?: string;
+  record_id?: string;
 }
 
 export interface TripsVehicle {

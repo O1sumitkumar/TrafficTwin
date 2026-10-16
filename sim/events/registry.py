@@ -38,7 +38,7 @@ def resolve_events(
     for ev in scenario.events:
         if isinstance(ev, Evacuation):
             raise NotImplementedError(
-                f"event {ev.id}: evacuation scenarios run through sim.events.evacuation.run "
+                f"event {ev.id}: evacuation scenarios (M7) run through sim.events.evacuation.run "
                 "(sim.runner --scenario dispatches there; B-D-026)"
             )
         if isinstance(ev, Accident):
