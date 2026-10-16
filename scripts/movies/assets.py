@@ -2,9 +2,10 @@
 
     python -m scripts.movies.assets          # (make movies-docs)
 
-For every rendered film: a light README GIF (the same 6 s as the render's preview, 10 fps, at most
-360 px wide and narrower when needed to stay <= 1.2 MB) and a 1280 px JPEG still from the poster frame. movies/ stays git-ignored (with the
-full <= 3 MB GIFs); these small previews are committed.
+For every rendered film: a light README GIF (the same 6 s as the render's preview, 10 fps, at
+most 360 px wide, narrower when needed to stay <= 1.2 MB) and a 1280 px JPEG still from the
+poster frame. movies/ stays git-ignored (with the full <= 3 MB GIFs); these small previews are
+committed.
 """
 
 from __future__ import annotations

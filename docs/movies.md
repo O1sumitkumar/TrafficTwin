@@ -120,9 +120,9 @@ flowchart LR
 
 Same spec + same runs give the same bundle (`bundle/hashes.json`) and the same frames: the render
 clock is the frame index, the bundle is fixed, layers are a pure function of (bundle, frame). Each
-render records the SHA-256 of the first, middle and last frame with content (frames fully faded
-to black are skipped, so the hashes test real pictures); the smoke test renders 10 frames of
-`tahlia-street` twice and compares them. Frames are bit-identical on one machine and GPU; another GPU or Chrome
+render records the SHA-256 of the first, middle and last frame free of any fade (no black or
+half-black frames); the smoke test renders frames 100-110 of `tahlia-street` (past the title
+card) twice at 640x360 and compares the three hashes. Frames are bit-identical on one machine and GPU; another GPU or Chrome
 version can differ in the last bits of anti-aliasing (not verified).
 
 ## Spec schema

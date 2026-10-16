@@ -78,14 +78,19 @@ Measured (final `make movies`, M3 Pro, ANGLE Metal, another agent simulating): 7
 in all; browser RSS max 1.0-1.5 GB (budget 2 GB); disk max 97-278 MB per film (budget 1 GB); no
 frames left; GIFs exactly 6.00 s, 2.2-2.9 MB; README GIFs 0.93-1.09 MB (8 MB in git with the
 stills); showreel 174.7 s (2 min 55 s), 7 films + cards with crossfades. Determinism:
-`tahlia-street` rendered three times (two by me, one from scratch by the verifier): identical mid
-frame hash 9c84b771766bcacf and bundle hashes; the smoke test's two renders match.
-Tests: 292 passed, 1 skipped (full suite, 4 min 06 s); ruff and tsc clean.
+`tahlia-street` rendered three times (two by me, one from scratch by the verifier): identical
+frame-450 hash 9c84b771766bcacf, identical bundle hashes and MP4 byte size; the smoke test renders
+frames 100-110 twice and the hashes match. The film JSONs now hash the first, middle and last
+fade-free frames (from single-frame renders of the same bundles, `frame_hash_note`).
+Tests: 292 passed, 1 skipped (full suite, 4 min 06 s, before the last two fixes); after them
+`tests/test_movies.py` + `tests/test_integration.py` pass again (see the verifier's final pass);
+ruff check, ruff format --check and tsc clean.
 Verifier: first pass, the from-scratch render of `tahlia-street` PASS (30.000 s, 1920x1080,
 h264 yuv420p CRF 18, footer visible in the 15 s frame, no frames left, identical hashes); one FAIL
 (GIFs 6.01 s at 8-12 fps) plus notes (hashes on black fade frames, six films rendered before the
 last render.py, stale numbers). Fixed in E-D-006, all films re-rendered with the final code, numbers
-above re-measured.
+above re-measured. Second pass: all PASS except a ruff E501 in a docstring and hashes still on
+mostly faded frames; both fixed (hashes now on fade-free frames).
 Could not verify: whether frames are bit-identical on another GPU or Chrome version; the 4K and
 60 fps flags (implemented, not rendered).
 Open: the incident run re-routes instead of queueing (E-D-008), so the film has no shockwave; a

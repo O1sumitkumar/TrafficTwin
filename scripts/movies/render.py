@@ -379,9 +379,9 @@ def render_film(
         shutil.rmtree(d, ignore_errors=True)
         d.mkdir(parents=True)
     poster_k = poster_frame(film, fps, a, b)
-    # hash the first, middle and last frames with content (not fully faded to black)
+    # hash the first, middle and last frames free of any fade (real pictures, not black)
     fade = json.loads((bundle / "frames.json").read_text())["fade"]
-    content = [k for k in range(a, b) if fade[k] < 1] or list(range(a, b))
+    content = [k for k in range(a, b) if fade[k] == 0] or list(range(a, b))
     hash_ks = {content[0], content[len(content) // 2], content[-1]}
     picks = sorted(hash_ks | {poster_k})
     hashes: dict[str, str] = {}

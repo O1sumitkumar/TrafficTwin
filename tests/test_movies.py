@@ -284,7 +284,7 @@ def test_render_smoke_ten_frames_deterministic(
     metas = []
     for k in range(2):
         out = tmp_path / f"r{k}"
-        metas.append(render_film("tahlia-street", size=(640, 360), frames=(0, 10), out_dir=out))
+        metas.append(render_film("tahlia-street", size=(640, 360), frames=(100, 110), out_dir=out))
         mp4 = out / "tahlia-street.mp4"
         assert mp4.exists() and (out / "tahlia-street.poster.png").exists()
         info = metas[-1]["mp4"]
@@ -294,8 +294,8 @@ def test_render_smoke_ten_frames_deterministic(
         frames_dir = REPO_ROOT / "runs" / "movies" / "tahlia-street" / "frames"
         assert not frames_dir.exists() or not any(frames_dir.iterdir())  # no frames left behind
         meta = json.loads((out / "tahlia-street.json").read_text())
-        assert len(meta["frame_sha256_16"]) == 3  # first, middle, last frame with content
-        assert "0" not in meta["frame_sha256_16"]  # frame 0 is the black fade-in
+        # first, middle, last frame free of fades (after the title card)
+        assert set(meta["frame_sha256_16"]) == {"100", "105", "109"}
     # same spec + same run => identical first, middle and last frames
     assert metas[0]["frame_sha256_16"] == metas[1]["frame_sha256_16"]
 
