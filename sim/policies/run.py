@@ -23,6 +23,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import typer
 
@@ -175,6 +176,7 @@ def run_policy(
     force_simulate: bool = False,
     sim_seed: int | None = None,
     run_id: str | None = None,
+    placebo_reroute_share: float = 0.0,
 ) -> dict[str, Any]:
     """`sim_seed` (default: `seed`) re-seeds only the final simulation: a no-change policy with
     another sim seed measures the run-to-run noise of the meso run (replicate)."""
@@ -235,12 +237,22 @@ def run_policy(
     m = veh[["veh_id", "vtype", "depart", "o_edge", "d_edge"]].merge(
         base_v, on="veh_id", how="left", suffixes=("", "_b")
     )
+    # a vType change within the same vehicle class (car <-> ride-hail) keeps the route
+    from sim.population.export_trips import export_config
+
+    vclass = {k: v["vClass"] for k, v in export_config()["vtypes"].items() if isinstance(v, dict)}
     same = (
-        (m["vtype"].astype(str) == m["vtype_b"])
+        (m["vtype"].astype(str).map(vclass) == m["vtype_b"].map(vclass))
         & (m["depart"] == m["depart_b"])
         & (m["o_edge"].astype(str) == m["o_edge_b"])
         & (m["d_edge"].astype(str) == m["d_edge_b"])
     )
+    if placebo_reroute_share > 0:
+        # placebo: re-route a random share of unchanged vehicles without changing their trips;
+        # measures the gain one-shot routes have over the baseline's assignment (TA-018)
+        ids = np.sort(m.loc[same.to_numpy(), "veh_id"].to_numpy().astype(str))
+        u = np.random.default_rng(seed).random(len(ids))
+        plan.force_reroute |= set(ids[u < placebo_reroute_share])
     reuse = set(m.loc[same.to_numpy(), "veh_id"]) - plan.force_reroute
     need = veh[~veh["veh_id"].isin(reuse)]
     unchanged = (
@@ -292,8 +304,11 @@ def run_policy(
             (out / "reroute.rou.alt.xml.gz").unlink(missing_ok=True)
             (out / "weights.xml.gz").unlink()
         t2 = time.perf_counter()
+        changed_type = m[same.to_numpy() & (m["vtype"].astype(str) != m["vtype_b"])]
+        retype = dict(zip(changed_type["veh_id"], changed_type["vtype"].astype(str), strict=True))
+        routing["retyped"] = len(retype)
         counts = R.merge_routes(plan.base_routes, new_routes, reuse, out / "routes.rou.xml.gz",
-                                vtype_lines(scale))  # fmt: skip
+                                vtype_lines(scale), retype)  # fmt: skip
         routing |= counts
         routing["unroutable"] = len(need) - counts["rerouted"]
         routes_hash = xml_content_hash(out / "routes.rou.xml.gz")
@@ -346,6 +361,7 @@ def run_policy(
         "date": base_meta.get("date"),
         "seed": seed,
         "sim_seed": sim_seed,
+        "placebo_reroute_share": placebo_reroute_share,
         "sample": sample,
         "capacity_scale": scale,
         "config_hash": config_hash(

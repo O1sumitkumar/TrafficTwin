@@ -169,9 +169,16 @@ def _serialise(elem: ET.Element) -> str:
 
 
 def merge_routes(
-    base: Path, new: Path | None, keep: set[str], out: Path, vtype_lines: list[str]
+    base: Path,
+    new: Path | None,
+    keep: set[str],
+    out: Path,
+    vtype_lines: list[str],
+    retype: dict[str, str] | None = None,
 ) -> dict[str, int]:
-    """Baseline vehicles in `keep` + all vehicles of `new`, one file sorted by departure."""
+    """Baseline vehicles in `keep` + all vehicles of `new`, one file sorted by departure.
+    `retype` gives reused vehicles a new vType (same vehicle class, e.g. car -> ride-hail)."""
+    retype = retype or {}
 
     Item = tuple[float, int, int, str]
 
@@ -183,6 +190,8 @@ def merge_routes(
             if only is not None and elem.get("id") not in only:
                 continue
             n += 1
+            if rank == 0 and elem.get("id") in retype:
+                elem.set("type", retype[elem.get("id", "")])
             yield dep, rank, n, _serialise(elem)
 
     counts = {"reused": 0, "rerouted": 0}

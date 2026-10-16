@@ -198,3 +198,29 @@ def test_sweep_writes_response_curve(penv: dict, tmp_path: Path) -> None:
     assert list(df["share"]) == [0.2, 0.6]
     assert df["trips_completed"].iloc[1] < df["trips_completed"].iloc[0]
     assert SYNTHETIC_LABEL in (out / "response_curve.csv").read_text().splitlines()[0]
+
+
+def test_ridehail_keeps_routes_and_placebo(penv: dict, tmp_path: Path) -> None:
+    m = run_policy("ridehail_plus_10", "weekday", runs_dir=tmp_path, **penv["kw"])
+    r, eff = m["routing"], m["effects"][0]
+    # converted tours keep their baseline routes (same vehicle class); only empty legs are new
+    assert r["retyped"] > 0 and r["to_route"] == eff["deadhead_vehicles_added"]
+    ti = pd.read_parquet(tmp_path / m["run_id"] / "tripinfo.parquet")
+    base = penv["kw"]["baselines_dir"] / m["compare_baseline"]
+    tb = pd.read_parquet(base / "tripinfo.parquet")
+    assert (ti["vtype"] == "ridehail").sum() > (tb["vtype"] == "ridehail").sum() + r["retyped"] / 2
+    null = policy(
+        [
+            {
+                "type": "remote_work",
+                "share": 0.0,
+                "days_per_week": 3,
+                "eligible_sectors": ["government"],
+                "assumption": "placebo",
+            }
+        ],
+        pid="placebo",
+    )
+    p = run_policy(null, "weekday", runs_dir=tmp_path, placebo_reroute_share=0.2, **penv["kw"])
+    share = p["routing"]["to_route"] / p["routing"]["vehicles"]
+    assert 0.15 < share < 0.25 and p["placebo_reroute_share"] == 0.2
