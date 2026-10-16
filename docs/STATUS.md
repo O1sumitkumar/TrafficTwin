@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-15
+Last updated: 2026-10-16 (integration of tracks A, B, C)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -10,8 +10,76 @@ All results: **synthetic demand, uncalibrated**.
 ## Milestones
 | M | Title | State | Evidence |
 |---|---|---|---|
-| M0 | Skeleton | done | verifier 2026-10-15: all items PASS after STATUS fix; 26 tests in 8.6 s |
-| M1 | Jeddah network | done | smoke-A-s1-5b8a19d3-ab76d081: 0.144 % teleports; docs/network-qa.md; docs/img/m1-viewer.png |
+| M0 | Skeleton | done | verifier 2026-10-15; 26 tests then |
+| M1 | Jeddah network | done | smoke-A-s1-5b8a19d3-ab76d081: 0.144 % teleports; docs/network-qa.md |
+| M2 | Population and baseline | done (Track A) | 10 % weekday baseline 389,289 vehicles; reproduced on main: integration run below |
+| M3 | Viewer and API | done (Track C) | contract v1.1 `docs/contracts/run-outputs.md`; docs/img/integration-*.png; `docker compose up` unverified |
+| M4 | Policy lab | done (Track A) | remote_work_30 reproduced on main: mean delay -9.3 %, AM peak -9.4 %, VKT -1.6 %, CO2 -6.9 % |
+| M5 | Focus windows and events | done (Track B) | accident_tahlia on main: mean delay +5.7 % vs window baseline, 130 s wall |
+| M6 | Emergency strategist | done (Track B) | top 3 in 11.6 s on main; best (68 s) beats no strategy (173 s) |
+| M7 | Evacuation | done (Track B) | evac_corniche_hamra via `sim.runner --scenario`: T50/T90/T100 1,264/2,399/3,004 s |
+| M8 | Calibration (dormant) | done (Track A) | synthetic round trip GEH<5 100 %; no real counts |
+| M9 | Docs and release | not started | README now carries the M2-M8 commands |
+| LANE_AUDIT, v2 | Lane counts from imagery | blocked - accuracy (Track C) | held-out precision 60 % < 80 % gate; `jeddah.lanes.net.xml` not written, so not promoted |
+| LOOP | Loop tunnels | not merged (Track D in progress) | trackD status says `LOOP — in progress`; needs a second integration pass |
+
+## Integration — 2026-10-16
+Merged on `main`: trackC (c5b3203), trackB (46fc412), trackA (13ed16e), in that order. Conflicts only
+in `sim/runner.py` (CLI options and dispatch), resolved by keeping both sides. trackD (Loop tunnels)
+was **not merged**: its status file still reads `LOOP — in progress` and its runs were active during
+integration; a second integration pass is needed once it writes `LOOP: done`.
+Lane audit: both passes are `blocked - accuracy`, so `data/jeddah/jeddah.net.xml` stays the default
+network (no hash change, demo window not re-cut).
+
+Fixes and wiring done at integration:
+- `sim.runner --scenario evac_*` dispatches to `sim.events.evacuation.run` (B-D-026); the event
+  registry registers the evacuation class lazily (`build_events`).
+- `run_baseline` gained `routing_threads` and `gz` (`sim.runner --baseline --routing-threads N --gzip`);
+  `sim.policies.baseline_launch` is now a thin wrapper (TA-016 fold-in).
+- Register: `strategist/strategist.yaml`, `strategist/weights.yaml` and `sim/scenarios/evac_settings.yaml`
+  added to the Track B register sources (B-D-024, B-D-031); all track rows merged into
+  `docs/assumptions.md` (256 ids, one duplicate row A-act-006 removed); a test keeps them in step.
+- API contract v1.1 (additive, reader-side `api/normalize.py`, `api/strategist_link.py`): scenario
+  and evacuation runs expose their `scenario/`/`evacuation/` sub-run with a `~baseline`/`~reference`
+  comparison run; pointer dirs resolve to the hashed run; strategist recommendations map to §8
+  options and API approvals append to the strategist's own SQLite chain; policy reports get the
+  §6 shape from `policy_districts.parquet`; gzipped edgeData accepted; bins cache stores only edges
+  with data (224 MB instead of ~1.55 GB per 24 h city run). Producers' files are untouched.
+- `pillow` is a direct dependency (C-001); README carries the M2-M8 commands and the viewer/API
+  commands; stub comments removed from docker-compose and Dockerfile.api.
+- Gates: ruff clean, pytest 267 passed / 1 skipped (about 3 min), web typecheck and build pass.
+  Local npm has `omit=dev` and the shell sets `NODE_ENV=production`: use `npm ci --include=dev`.
+
+End to end on the merged code (10 % sample, seed 1; all **synthetic demand, uncalibrated**):
+| run | command | wall | result |
+|---|---|---|---|
+| baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3 | `sim.runner --baseline --daytype weekday --sample 0.10 --seed 1 --routing-threads 8 --gzip` | 680 s (assignment from the route cache; sim 616 s, peak 2.8 GB) | identical to Track A's run: routes hash a297ac7632dd529d, 389,289 vehicles, mean delay 1,876.5 s, 20.46 km/h, VKT 56.1 M, CO2 26,185 t; teleports 50.5 % (TA-011) |
+| remote_work_30 | `sim.runner --policy remote_work_30 --daytype weekday --sample 0.10 --seed 1` | about 15 min | mean delay -9.3 %, AM-peak -9.4 %, VKT -1.6 %, VHT -7.7 %, CO2 -6.9 % (same routes hash 01ff40085fb11d11 as Track A) |
+| accident_tahlia-tahlia-s1-257eae8d | `sim.runner --scenario accident_tahlia --window tahlia --seed 1` | 130 s | mean delay 97.8 -> 103.5 s (+5.7 %), as in M5 |
+| strategist rec-20261016T114454Z-22d13986 | `strategist.run --scenario emergency_tahlia_0830 --window tahlia --seed 1` | 11.6 s | Route A + rescue lane 68 s, Route B + preemption 89 s, Route C 95 s; no strategy 173 s |
+| evac_corniche_hamra-tahlia-s1-162d21cb | `sim.runner --scenario evac_corniche_hamra --seed 1` | 328 s | 2,000/2,000 out; T50 1,264 s, T90 2,399 s, T100 3,004 s; background +90.1 veh-h |
+
+Viewer: all five appear in `/api/runs` with their comparison runs; screenshots
+`docs/img/integration-{baseline,policy,policy-districts,accident,strategist,evacuation}.png`
+(`node web/scripts/screenshot-runs.mjs web/scripts/integration-shots.json`, API on 8010 because
+port 8000 was held by Track C's API).
+
+Decisions:
+- I-001 The baseline E2E reused Track A's route cache (APFS clones of `data/population/`,
+  `data/policies/`, and Track B's `data/windows/`) instead of a 2 h re-assignment; the cache key
+  matched, and the outputs are identical. Its config hash differs (65b0f3 vs f124c5) because
+  `baseline.yaml` changed after Track A's run (e434ce0); the route key did not.
+- I-002 Contract conformance is reader-side (contract v1.1, §12) so no producer output or test
+  changed; native `recommendations.json` runs keep `decisions.jsonl`, strategist runs use its SQLite log.
+- I-003 Lane audit not promoted (blocked); default network unchanged.
+- I-004 trackD skipped (not done); second integration pass required.
+
+Could not verify: `docker compose up --build` (Docker Desktop needs someone at the Mac); a fresh,
+uncached 2 h assignment on the merged code (the cache path was exercised instead).
+Open: network capacity (TA-011: 50 % teleports in the city baseline) is the top realism issue; the
+windows are linked to the M1 smoke route set, not to the M2 baseline (B-D-002), so re-link them to
+the baseline routes; Tier B trajectory loading should be chunked (p5 30 fps on 1 h windows);
+strategist-only runs have no edge bins; one noise replicate per policy and strategist.
 
 ## Measured
 - M0: pytest 26 tests, 8.6 s wall (demo window only, offline). Demo window: 939 edges, 401 junctions,
@@ -26,6 +94,9 @@ All results: **synthetic demand, uncalibrated**.
   performance figure 306); demand generation (randomTrips + duarouter, 5 routing threads) 500 s;
   teleports 26 (all jam) = 0.144 %; mean route length 24.8 km. Peak RSS of the meso run 2.87 GB
   (measured on the pre-extension network, same demand size).
+- M2-M8 measured numbers: see the integration table above and the track handoffs below
+  (docs/population.md, docs/policies.md, docs/events.md, docs/strategist.md, docs/evacuation.md,
+  docs/calibration.md, docs/viewer.md, docs/lane-audit.md).
 
 ## Decisions
 - D-001 SUMO install path: `uv` + `eclipse-sumo` 1.28.0 wheel (macOS arm64 wheel installs and runs;
@@ -74,9 +145,12 @@ All results: **synthetic demand, uncalibrated**.
   untagged roads default to 1-2 lanes at 100 km/h. Largest realism gap; M2 type overlay planned.
 - Traffic-light coverage far below reality (72 programs; 2,264 major 3+-approach junctions without
   a signal). Not verified against any official inventory.
-- Demand generation dominates smoke runtime (500 s for 18k random trips). M2 must cache routes
-  (network hash, population hash, day type, seed) and use duaIterate with routing threads.
-- Disk: about 18 GB free on this Mac; the city net is 353 MB (plus a raw copy of the same size).
+- City baseline teleports 50.5 % of vehicles at 10 % (TA-011): network capacity (untagged lanes,
+  junction clusters, ramps), not demand, is the binding issue. Lane audit blocked on accuracy.
+- Assignment of an uncached 10 % baseline takes about 2 h (8 routing threads, not repeatable;
+  1 thread is repeatable but slower: TA-013/TA-015). Routes are cached by key.
+- Disk: 80 GB free at the end of integration (was at 99 % mid-day); 10 % city runs are 0.3-0.6 GB
+  each with gzip, the bins cache about 0.2 GB per 24 h run.
 
 ## Handoffs
 
@@ -133,3 +207,267 @@ Next: M2 Population and baseline. First three tasks:
    (Al Harameen Road way 346621217), then re-run the smoke to confirm teleports stay < 0.5 %.
 3. Synthetic population + weekday activity chains for a 10 % sample, routed with duaIterate, with
    runtime and memory measured at 10 % and 25 % to make the sampling decision.
+
+## Track handoffs (merged from docs/status/track*.md; full logs stay there)
+
+### M2 (Track A)
+### M2 handoff (2026-10-16 08:30)
+ruff clean; pytest 45 passed (demo window); verifier PASS after one fix round (assignment
+determinism, sanity table, status corrections). Carried forward: re-run the 10 % baseline with 1
+routing thread when ~15 GB are free (closes TA-013 for the reported run); 25 % run and the 10 % vs
+25 % capacity-scaling check (A-sim-101); network capacity (TA-011) is the top issue for the
+lane-audit/network work; README M2 command at integration (`uv run python -m sim.runner --baseline
+--daytype weekday --sample 0.10 --seed 1`).
+M2: done
+
+### M4 (Track A)
+### M4 handoff (2026-10-16 13:45)
+Built: policy models in `sim/schemas.py` + `python -m sim.validate`; `sim/policies/`: transforms
+(remote_work with per-sector shares, staggered_hours, daytype, pt_line via ptlines2flows.py,
+road_pricing with elasticity and edge-weight penalty, network_change via netconvert patch,
+ridehail_share), incremental re-routing runner with matched controls, policy report (KPIs, peak
+spreading, district winners/losers, top-10 relieved/worsened corridors, assumption ids, label),
+parallel sweep (CSV + PNG), results summary, baseline launcher; `sim.runner --policy` (additive);
+`sim/metrics.py` reads gzipped outputs. 9 demo policies incl. the composed Ramadan + 30 % remote.
+Measured (10 % sample, seed 1, all "synthetic demand, uncalibrated"; table in docs/policies.md):
+- New city baselines: Ramadan weekday 451,313 vehicle trips (4.51 M city-equivalent), mean delay
+  1,805 s, 0.48 teleports/vehicle; Friday 385,392 (3.85 M), mean delay 1,596 s, peak hour 11:00,
+  0.60 teleports/vehicle; Friday assignment 71 min (8 threads), final runs 10 min (Friday) and 20 min (Ramadan).
+- Policies vs matching baseline (mean delay / AM-peak delay / VKT / CO2): remote_work_30 -9.3 /
+  -9.4 / -1.6 / -6.9 %; staggered_schools_60 (vs control) -1.1 / -9.1 / +0.2 / -0.6 %, top-hour
+  share -19 %; friday -14.9 / -98.0 / -3.3 / -13.0 %; ramadan_weekday -3.8 / -33.1 / +13.8 /
+  +12.4 %; bus_line_tahlia +2.5 / +0.7 / -0.2 / +1.7 %; cordon_center (vs control) +20.1 / +8.6 /
+  -0.4 / +10.4 %; close_corniche_road (vs control) +1.1 / +0.7 / -0.1 / +0.6 %; ramadan_remote_30
+  (vs Ramadan) -9.8 / -13.9 / -1.2 / -7.2 %; ridehail_plus_10 +1.5 / -0.5 / +2.7 / +4.7 %.
+- Noise replicate (sim seed 2): mean delay +1.8 %, VHT +1.3 % (one replicate). Placebo (8 %
+  re-routed, no trip changed): mean delay -20.1 %, VHT -13.3 % (TA-018).
+- Sweep remote_work share 0.1-0.5: 5 points, 2 processes, 33 min wall; linear, mean delay -3.1 %
+  to -15.4 %, AM-peak -3.5 % to -15.6 %: no tested share halves the morning peak. The 0.3 point
+  reproduces remote_work_30 bit for bit (tripinfo hash 81cd70d69a1a0790).
+- Run cost: 14-17 min per incremental policy run, 17-24 min with its matched control.
+- Tests: ruff clean; pytest 72 passed (demo window, ~1.5 min).
+Commands (README at integration): `uv run python -m sim.runner --policy remote_work_30 --daytype
+weekday --sample 0.10 --seed 1`; `uv run python -m sim.policies.sweep --policy remote_work --param
+share=0.1:0.5:0.1 --sample 0.10`; `uv run python -m sim.validate sim/policies/*.yaml`.
+Could not verify: real-world magnitudes (no counts; uncalibrated); whether the bus-line effect
+exceeds noise (one replicate only); a deterministic 1-thread assignment of any city baseline (all
+three use 8 threads and are reproducible from the route cache only).
+Integration notes: `sim/schemas.py` also changed two existing lines (docstring, typing import);
+`sim/validate.py` and `docs/img/m4-remote-work-sweep.png` are new; fold the `--gzip` option of
+`sim/policies/baseline_launch.py` into baseline.py; the network variant
+`data/jeddah/jeddah.m2.close_corniche_road-8376e92d.net.xml.gz` lives in the shared data dir; run
+provenance stores absolute network paths (runs/ is untracked; make relative before publishing).
+Next: more assignment steps and replicates to shrink the routing-gain and noise bands; README
+commands at integration; network capacity (TA-011) remains the top issue.
+
+Verifier: PASS on all 11 criteria after two fix rounds (per-sector share test, status accuracy).
+M4: done
+
+
+### M8 (Track A)
+See docs/status/trackA.md (M8 block) and docs/calibration.md.
+M8: done
+
+### M3 (Track C)
+Built: `api/` (FastAPI, file-backed: runs, metrics, bins, edges, district effects, trajectories,
+reports, recommendations + decision POST with SHA-256 chain, jobs with SSE progress, ingest,
+examples), `tests/test_api.py` (15 tests, about 8 s, tmp run dirs), `web/` (React 19 + TS strict +
+Vite 7 + deck.gl 9.4 + MapLibre 5: run picker, Tier A binary PathLayer by 5-minute bin, metrics
+speed_rel/speed/delay/density/flow, baseline-vs-scenario and difference mode, district choropleth,
+extruded buildings, Tier B TripsLayer by speed or vType, event and closure overlays, 0-24 h slider
+with play/pause/speed, strategist panel with approve/reject and decision log, policy/scenario tables,
+start-run form with SSE, fps/heap HUD, deep-link URL params), `web/scripts/screenshot.mjs` +
+`perf.mjs`, `docs/viewer.md`, six screenshots `docs/img/m3-*.png`.
+
+Measured: ingest of all runs 12.5 s, peak 469 MB; city edgedata (116 MB XML, 324,033 rows) to
+Parquet 2.9 s at 231 MB peak (242 MB at 3x the input, so memory is flat); city edge index from the
+353 MB net 3.7 s, 156,126 edges, 434,982 points, edges.bin 4.10 MB (2.07 MB gzip). One city bin
+624,504 B (38-44 KB gzip at smoke demand) = 7.5 MB raw per simulated hour per metric. Tier B
+trajectories 1 h, 1,800 vehicles: 9.5 MB (2.3 MB gzip). Viewer, headless Chrome with the Metal GPU
+(ANGLE Metal Renderer: Apple M3 Pro): full city at 300x 59.9 fps median (vsync cap), p5 59.5-59.9,
+uncapped 172 fps median with an orbiting camera; Tier B 59.9 fps; JS heap 131-154 MB; Chrome RSS
+0.86-1.39 GB across two measurement sessions; recolour of 156k edges per bin 2.2-2.9 ms. Gates:
+ruff clean, pytest 63 passed / 2 skipped (Pillow, lane audit), `npm run typecheck` and `build` pass.
+Verifier (two passes): all engineering criteria PASS; `docker compose up` UNVERIFIED; its fixes (this
+status block, the memory range, Tier A never reports FCD) were applied in 6dab21c. The verifier's view:
+the track work passes; M3 as a project milestone also needs the root README update and one successful
+`docker compose up --build` at integration. `docs/img/m3-events.png` still shows the old doubled
+"(fictional) (fictional)" scenario title (examples regenerated after the screenshot).
+
+Could not verify: `docker compose up`. The API image builds (`logs/m3-docker-build.log`), but
+Docker Desktop hung on the first bind mount from `~/Documents` (looks like a macOS privacy prompt
+nobody could answer), then its daemon stopped responding; it needs someone at the Mac. The
+compose file, Dockerfile and vite proxy were reviewed statically by the verifier. The Docker
+credential helper (`credsStore: desktop`) also blocked image pulls in this non-interactive session; a
+clean DOCKER_CONFIG worked. Approve and start-run were exercised by the tests and curl, not clicked in
+the browser. Real policy/scenario/strategist reports do not exist yet (the views use fictional
+examples). Only one vType exists in the smoke runs, so "colour by type" shows one colour.
+
+Integration notes: update the root README viewer section (lines 60-68 still say "M1 stub" / "API
+stub") with `uv run uvicorn api.main:app --port 8000` + `cd web && npm install --include=dev && npm
+run dev`, and drop the "stub" comments in docker-compose.yml and Dockerfile.api; run
+`docker compose up --build` once Docker Desktop is healthy. Consider `VITE_API_TARGET=http://api:8000`
+in compose and a `runs/`-based job log dir. Tracks A and B: write `edgedata.parquet` (or keep XML and
+let ingest convert), `meta.baseline_run_id`, and the report files per the contract.
+
+Next: once Tracks A/B produce a 24 h baseline and a policy run, replay them in the viewer and re-run
+`npm run perf` on 288 bins; chunk Tier B trajectory loading for long windows.
+
+Integration pending: root README demo commands, `docker compose up --build`.
+M3: done
+
+### Lane audit v2 (Track C)
+Measured: calibration (50) single-read exact 66 % / 54 %, reads agree 76 %, agreed counts 26/38 =
+68.4 % (motorway 19/23, trunk 7/15). No threshold reaches 80 % on >= 15 kept (0.8 -> 81.8 % on 11).
+Holdout (30) single reads 80 % / 80 %, agree 93 %, agreed 23/28 = 82.1 % (motorway 12/15, trunk
+11/13); 80.0-90.9 % at every cut keeping >= 10. Prince Majid Road (tag 3): 6 of the 12 agreed
+calibration errors; both reads say 4 on five of its ways. Sensitivity (information only, not the
+gate): without it, the calibration threshold is 0.45 (83.3 % on 18), effectively motorway-only (only
+6 trunk ways remain, none agreed and correct), and the holdout at 0.45 is 87.0 % on 23 (85.0 % on
+20 without its Prince Majid ways). Crops: 247 audit crops in 411 s (1,236 tiles). Ten analyst calls in parallel, about 100 s.
+ruff clean, pytest 74 run (72 passed, 2 skipped).
+
+Not done because of the block: the audit reads, `imagery-lanes.yaml`, `jeddah.lanes.net.xml`, the
+after-smoke. The before-smoke is unchanged (26 teleports = 0.144 %, 22.4 s). `jeddah.net.xml`
+untouched.
+
+Could not verify: Prince Majid Road's real lane count (tag 3, edited 2026-05-17, vs three blind
+passes reading 4); the Esri capture dates.
+
+Next: a person checks the six Prince Majid Road sections read as 4 or 6 (1432320656, 1432320655,
+1024884983, 444383287, 646811886, 41519535). The other 7 calibration sections and 4 of the 5
+holdout sections read 3, so the lane count may vary along the road. If only the five sections
+read as 4 have 4, fix those tags and re-run `evaluate-two-reads`: the calibration reaches 31/38 =
+81.6 %, and the rule picks 0.75 (exactly 80 % on 15, so only just). If the whole road has 4, the
+calibration drops to 63.2 %. Then read the 247 audit crops (26 calls) and run `write-fixes`,
+`rebuild` and the smoke. If they have 3, keep trunk out. A motorway-only pass would need its own
+fresh motorway holdout, because this pass's motorway figures have been seen. Integration: add
+`pillow` to pyproject.
+
+LANE_AUDIT_V2: blocked - accuracy
+
+### M5 (Track B)
+### M5 summary — 2026-10-16
+Built: four windows (tahlia, kaia_corridor, al_balad, kau_faisaliyah) with service roads grafted onto
+the city cut (`sim/link.py window`); Tier A exit-time run and cutRoutes link with edge-map rewrite
+and Webster-retimed window signals (`tier-a`, `cut`, `tls`); flow check (`check`); vType library and
+mixes (`sim/vtypes/`); scenario schema, validator and assumption-register generator
+(`sim/scenarios/`); TraCI events accident, rain, flood, motorcade, emergency_trip (`sim/events/`);
+`python -m sim.runner --scenario <id> --window <w> --seed <n>` (additive) with baseline + scenario
+in parallel, FCD/tripinfo/edgeData/timeseries to Parquet (FCD XML deleted), window KPIs (delay,
+speed, VKT, VHT, queues, gridlock, emergency TT vs free flow and vs baseline, convoy) and
+`runs/<id>/scenario_report.{json,md}`; `data/jeddah_flood_sites.yaml` (25 sourced sites);
+`docs/events.md`; register `docs/assumptions-trackB.md` (114 rows).
+Measured: flow check pass on all four windows (tahlia GEH<5 90.2 % of 420 edges, total ratio 0.910;
+others 100 %, 0.99+). Tahlia window 10,074 edges / 3,888 junctions / 7 TLS, 4,597 cut vehicles;
+baseline 3,652 inserted, mean delay 97.8 s, 13 teleports (0.34 % of 3,855 loaded). Scenario mean delay deltas:
+accident +5.7 %, heavy rain +23.3 %, flood +123.8 %, motorcade -11.2 % (not interpretable),
+emergency +4.8 % with the ambulance at 2.0x free flow. About 190-205 s wall per scenario (emergency 119 s)
+(baseline and scenario in parallel). accident_tahlia run twice (lead and verifier): identical KPIs.
+Tests: 79 pass (about 30-60 s on the shared machine); ruff clean.
+Could not verify: rain-effect citations (Agarwal et al. 2005, Rakha et al. 2008, HCM 2010
+Exhibit 10-15) and AASHTO wet deceleration, quoted from memory and marked unverified; flood-site
+locations beyond OSM matching; gridlock detection on a real gridlocked run (unit-tested only).
+Open: reviewed signal program for the Madinah Rd / Tahlia cluster (tahlia link margin is thin);
+motorcade KPI for held traffic; link_assumptions.yaml is kept in step with link.yaml by hand;
+Tier A exit run 1.12 % teleports over 4 h (hot spots for the network owner); an Al Faisaliyyah
+window; fold the service-road graft into build_window at integration.
+Next: M6 Emergency strategist — (1) save Tier B state at the emergency dispatch time and fork
+what-ifs with loadState; (2) candidates: k-shortest time-dependent routes, signal preemption along
+each, rescue-lane enforcement; (3) rank against the no-strategy baseline from `emergency_tahlia`.
+M5: done
+
+
+### M6 (Track B)
+### M6 summary — 2026-10-16
+Built: `strategist/` (snapshot, fork, graph/Yen, candidates, controllers for preemption, rescue lane
+and holds, parallel evaluate, rank, classify, explain, decision log, register); CLIs
+`python -m strategist.run --scenario emergency_tahlia_0830 --window tahlia --seed 1`,
+`python -m strategist.approve <recommendation_id> [--option n] [--actor a] [--reject]`,
+`python -m strategist.log verify|show`; `docs/strategist.md`; 25 strategist tests.
+Measured (tahlia, seed 1, M3 Pro, load average 50-60 from other tracks): cold 29.9 s (warm-up to
+1800 s 13.3 s + save 2.5 s); from the saved state 10.1-13.5 s total, evaluation of 9 what-ifs
+6.6-9.1 s; within the 60 s budget. No strategy 173 s (free flow 47.4 s; 77 s of it on
+`444771953#1`). Top 3: Route A + rescue lane 68 s (-105 s), Route B + preemption + rescue lane
+89 s (-84 s), Route C only 95 s (-78 s); all auto_eligible; background delay changes <= 0.22 of
+~27.7 veh-h (noise level). Best beats no strategy: yes. Determinism: three runs + verifier's two
+runs identical (fingerprint c345c0094c51cc15); approve reproduced 68.0 s; log verify OK.
+Tests: 104 pass (about 80 s under load); ruff clean. Verifier: 12/12 PASS (before the B-D-022
+wording fix; full suite, CLI, approve and verify rerun after it).
+Could not verify: preemption and rescue-lane parameters (no Jeddah specification found); bluelight
+device behaviour without the sublane model (identical in every candidate).
+Open: each what-if is one run from one state, so options close in time (ranks 2 and 3: Route C
+passes the 77 s signal in 4 s on arrival timing alone) are not robustly ordered — add repeated
+runs with varied RNG and report the spread; merge A-strat rows into the Track B register;
+weather/motorcade re-application after load; snapshot rebuild race between concurrent runs; the
+log cannot detect deletion of its newest records without an external head hash; the side-entry
+hold had no measurable effect here.
+Next: M7 Evacuation (zone evacuation, contraflow, phasing, clearance metrics, evacuation strategies).
+M6: done
+
+
+### M7 (Track B)
+### M7 summary — 2026-10-16
+Built: `sim/events/evacuation.py` (zone origins, auto exits, reverse free-flow trees, seeded
+evacuee sampling, nearest / balanced assignment, simultaneous / near-first / far-first release,
+contraflow corridor detection + netconvert edit + Webster retime, run-time contraflow and signal
+plan, clearance T50/T90/T100, bottleneck edges, background delay; `run`, `validate`, `net`,
+`register` CLIs); `strategist/evacuation.py` (screening candidates, parallel what-ifs + noise
+replicate, score, classification, explanations, explicit recommendation, decision log, `approve`);
+`sim/scenarios/evac_settings.yaml` (A-evac-001..038), `evac_demo.yaml`, `evac_corniche_hamra.yaml`,
+`evac_flood_balad.yaml`; `docs/evacuation.md` (method, contraflow mechanics, results tables,
+register block); 42 tests in `tests/test_evacuation.py` and `tests/test_evacuation_run.py`.
+Commands:
+`uv run python -m sim.events.evacuation run --scenario evac_corniche_hamra --seed 1`,
+`uv run python -m sim.events.evacuation run --scenario evac_flood_balad --seed 1`,
+`uv run python -m strategist.evacuation run --scenario <id> --seed 1`,
+`uv run python -m strategist.evacuation approve <recommendation_id> --option 1`.
+Measured (seed 1, SUMO 1.28.0, load average 30-50 from other tracks):
+- Al Hamra (tahlia window; 2,000 vehicles, zone 2.06 km2, 6 exits, 3 corridors 7.3 lane-km):
+  as written T50 1,264 s, T90 2,399 s, T100 3,004 s, 2,000/2,000 out, 214 teleports (125
+  evacuees), background +90.1 veh-h versus the reference (537.4); bottleneck Hail Street
+  (`-1486721509#7.s5`, 16.2 halted veh-h). Demo command 292-308 s wall. Strategist: 11 what-ifs (incl.
+  no strategy) + replicate in 540-631 s; noise band T90 +/-3 s, T100 +/-19 s, delay +/-8.1 veh-h; recommendation
+  **no strategy** (no option beats it on score); fastest = contraflow cf1+cf2 (T90 -90 s, T100
+  -258 s, +25.3 veh-h, 5.3 lane-km, score 2,857 vs 2,702). Three strategist runs: same fingerprint
+  cac0abd33e53160d (log records 12, 14, 17; final rec-20261016T053046Z-750c78f4).
+- Al Balad flood day (al_balad window; storm + FS-002 closed; 2,000 vehicles, 0.92 km2, 6 exits,
+  3 corridors 10.6 lane-km): as written only 1,755/2,000 out by the run end, T50 2,768 s, T90 not
+  reached, 602 teleports (503 evacuees); background +291.8 veh-h. Demo command 197-221 s wall.
+  Strategist: 11 what-ifs + replicate in 310-353 s; noise band T90/T100 n/a (neither run reaches
+  them), delay
+  +/-13.3 veh-h; recommendation **balanced exit guidance + evacuation signal plan** (auto_eligible):
+  T90 4,493 s, T100 5,212 s, 2,000/2,000 out, score 4,860 vs 8,550. Approved in the log
+  (final: dec-20261016T054527Z-939a23de on rec-20261016T053643Z-624adbd0); `strategist.log verify`
+  OK, 19 records. Three strategist runs: same fingerprint ff134cd308b9f3e9 (records 13, 15, 18).
+- Demo window (`evac_demo`, 150 vehicles): T50 383 s, T90 642 s, T100 733 s (verifier, twice, and
+  the strategist's no-strategy run); 5-15 s per command.
+- The demo command and the strategist's no-strategy what-if gave identical clearance on all three
+  windows; light and FCD run paths identical on the demo window (test).
+- Contraflow net edit: netconvert + retime 6-37 s per scenario (cached by hash).
+Could not verify: every evacuation parameter (no Jeddah evacuation, event-parking or contraflow
+data; HCM saturation flow quoted from memory, A-evac-011); the inbound-carriageway match is
+geometric (checked by name in the corridor tables, not against imagery); why contraflow moves the
+Al Balad bottleneck to Dhahab Street; clearance is flattered by jam teleports (125-503 evacuee
+teleports in the as-written runs).
+Open: one noise replicate is a crude band (more replicates would firm up close rankings); the
+reversed lanes have no crossover geometry and copy the corridor speed; evacuation is not wired into
+`sim.runner --scenario` (registry and schema are M5 files: B-D-026); the A-evac rows live in
+docs/evacuation.md until integration adds evac_settings.yaml to the register SOURCES (B-D-031);
+README commands to copy at integration (B-D-033); superseded recommendation records from the
+earlier Al Hamra runs (before B-D-032/034/035/036) remain in the append-only log as records 8-11
+(rec-20261016T034544Z-092be3ed, ...T040041Z-b087e28c, ...T041245Z-aa5f90d0, ...T042644Z-cbb10229);
+records 12-15 are the final simulation code before reporting-only changes and match the final
+records 17 (Al Hamra, rec-20261016T053046Z-750c78f4) and 18 (Al Balad, rec-20261016T053643Z-624adbd0);
+record 16 approves record 15, record 19 approves record 18.
+Next: M8 Calibration (Track A) — Track B's next work is integration: registry/runner wiring for
+evacuation, register merge, README commands.
+Disk: the shared volume was at 99 % (about 1-6 GB free) during M7 and the verifier's first test
+run failed on a full disk; M7 outputs under runs/ are about 0.7 GB (superseded strategist run dirs
+are kept because decision-log records point at them). Long city runs by any track can hit this.
+Tests: 146 pass (full suite, about 1.5 min under load); 42 of them M7; ruff clean.
+Verifier: first pass FAIL on documentation accuracy (stale status numbers), an unregistered
+threshold and a missing assumption id in outputs; all fixed (B-D-038), city demos and strategists
+rerun with unchanged fingerprints; second pass PASS on all items except one stale register range
+in this block, fixed in the same commit as this line.
+M7: done
