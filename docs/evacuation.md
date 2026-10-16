@@ -106,9 +106,9 @@ Corridors: for the 3 exits most used under nearest and balanced assignment (A-ev
 trailing part of the most common route to the exit that runs on motorway / trunk / primary /
 secondary roads (A-evac-019), at most 2 km long (A-evac-016) and at least 300 m (A-evac-017). The
 inbound carriageway is found per corridor edge: the reverse edge between the same nodes, else the
-nearest anti-parallel edge (heading differs by more than 135 degrees) of an allowed type within
-60 m of the edge's start, middle and end, with the same name when both are named; it must run
-beside at least half of the corridor's length. Every corridor edge gets the same number of
+nearest anti-parallel edge (heading differs by more than 135 degrees, A-evac-036) of an allowed type within
+60 m (A-evac-037) of the edge's start, middle and end, with the same name when both are named; it must run
+beside at least half of the corridor's length (A-evac-038). Every corridor edge gets the same number of
 reversed lanes, the inbound lane count (length-weighted mode) capped at 3 (A-evac-018).
 Limitations: the reversed lanes copy the corridor edge's speed limit and have no crossover
 geometry; the inbound match is geometric, so a parallel service road with the same name could be
@@ -184,7 +184,7 @@ runs, which is why they are listed.
 `evac_corniche_hamra`: order at 900 s, 2,000 vehicles (~5,000 persons) from 377 zone edges (2.063 km2), release 1200 s, run end 7200 s (horizon 6300 s after the order). Exits: `1510709655#1` الاندلس الفرعي 4 lanes; `133875683#0` طريق المدينة المنورة 3 lanes; `133875680#13.s2` طريق المدينة المنورة 3 lanes; `406629917#6-AddedOffRampEdge` طريق فلسطين 3 lanes; `43232435#12` شارع غرناطة 3 lanes; `73324168#13.s1` طريق الأمير سلطان 3 lanes.
 Contraflow corridors: cf1 towards `1510709655#1` (82161453#0-AddedOffRampEdge, 857 m, 17 edges, 1.713 lane-km); cf2 towards `73324168#13.s1` (شارع الأمير محمد بن عبدالعزيز, 1775 m, 29 edges, 3.55 lane-km); cf3 towards `133875680#13.s2` (شارع الحمرا, 1996 m, 28 edges, 1.996 lane-km). Edited net `data/windows/tahlia/tahlia.evac-a7569a7539.net.xml`.
 
-**Demo command** (`python -m sim.events.evacuation run --scenario evac_corniche_hamra --seed 1`, run `evac_corniche_hamra-tahlia-s1-fde35dc3`, wall 292.29 s):
+**Demo command** (`python -m sim.events.evacuation run --scenario evac_corniche_hamra --seed 1`, run `evac_corniche_hamra-tahlia-s1-162d21cb`, wall 307.55 s):
 
 | run | T50 | T90 | T100 | out | teleports (evacuees) | background delay veh-h |
 |---|---|---|---|---|---|---|
@@ -201,7 +201,7 @@ Bottleneck edges (evacuation as written):
 | `-1486721509#7` | شارع حائل | highway.primary | 2 | 8.44 | 22 | 0.213 |
 | `-1486721509#9` | شارع حائل | highway.primary | 2 | 8.06 | 26 | 0.183 |
 
-**Strategies** (`python -m strategist.evacuation run --scenario evac_corniche_hamra --seed 1`, recommendation `rec-20261016T050132Z-4bd44f8f`, 11 what-ifs + 1 noise replicate in 540 s on 11 workers, fingerprint `cac0abd33e53160d`). Noise band (replicate, SUMO seed 1001): T90 +/- 3 s, T100 +/- 19 s, background delay +/- 8.1 veh-h.
+**Strategies** (`python -m strategist.evacuation run --scenario evac_corniche_hamra --seed 1`, recommendation `rec-20261016T053046Z-750c78f4`, 11 what-ifs + 1 noise replicate in 631 s on 11 workers, fingerprint `cac0abd33e53160d`). Noise band (replicate, SUMO seed 1001): T90 +/- 3 s, T100 +/- 19 s, background delay +/- 8.1 veh-h.
 
 | rank | option | T50 | T90 | T100 | out | bg delay vs no strategy (veh-h) | lane-km reversed | signals | score | class |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -225,7 +225,7 @@ Recommended: `no_strategy`; fastest clearance: `contraflow`.
 Contraflow corridors: cf1 towards `194728659#3` (46963269#2, 1439 m, 21 edges, 4.316 lane-km); cf2 towards `133055588#12` (شارع حائل, 1209 m, 9 edges, 2.417 lane-km); cf3 towards `240251224#0.s1` (شارع الملك خالد, 1927 m, 8 edges, 3.854 lane-km). Edited net `data/windows/al_balad/al_balad.evac-f7a77b9743.net.xml`.
 Other event: flood `storm_flood`, preset storm, closures of FS-002 (King Abdullah Road / King Fahd Road underpass, 2 edges) from 900.0 s.
 
-**Demo command** (`python -m sim.events.evacuation run --scenario evac_flood_balad --seed 1`, run `evac_flood_balad-al_balad-s1-64490f4a`, wall 220.52 s):
+**Demo command** (`python -m sim.events.evacuation run --scenario evac_flood_balad --seed 1`, run `evac_flood_balad-al_balad-s1-38064fa6`, wall 197.28 s):
 
 | run | T50 | T90 | T100 | out | teleports (evacuees) | background delay veh-h |
 |---|---|---|---|---|---|---|
@@ -242,7 +242,7 @@ Bottleneck edges (evacuation as written):
 | `45204223#7` |  | highway.residential | 1 | 33.72 | 33 | 0.051 |
 | `26282692#0.s1` | طريق المدينة المنورة | highway.primary | 6 | 28.58 | 37 | 0.406 |
 
-**Strategies** (`python -m strategist.evacuation run --scenario evac_flood_balad --seed 1`, recommendation `rec-20261016T050646Z-937de0b1`, 11 what-ifs + 1 noise replicate in 310 s on 11 workers, fingerprint `ff134cd308b9f3e9`). Noise band (replicate, SUMO seed 1001): T90 +/- 0 s, T100 +/- 0 s, background delay +/- 13.3 veh-h.
+**Strategies** (`python -m strategist.evacuation run --scenario evac_flood_balad --seed 1`, recommendation `rec-20261016T053643Z-624adbd0`, 11 what-ifs + 1 noise replicate in 353 s on 11 workers, fingerprint `ff134cd308b9f3e9`). Noise band (replicate, SUMO seed 1001): T90 n/a (neither run reaches it), T100 n/a (neither run reaches it), background delay +/- 13.3 veh-h.
 
 | rank | option | T50 | T90 | T100 | out | bg delay vs no strategy (veh-h) | lane-km reversed | signals | score | class |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -268,8 +268,8 @@ Recommended: `balanced_signals`; fastest clearance: `balanced_signals`.
   (recommendation: no strategy). Contraflow on cf1 + cf2 clears fastest (T90 -90 s, T100 -258 s,
   well outside the noise band of +/- 3 s / +/- 19 s) but adds 25.3 veh-h of background delay (17.2
   beyond the noise band, 171 s of score) and reverses 5.3 lane-km (158 s); it would rank first if
-  a background vehicle-hour were valued below about 1 s of clearance, or a reversed lane-km below
-  about 0.6 s, so the ranking here is a value judgement carried by A-evac-029/030, not a modelling
+  a background vehicle-hour were valued below about 0.9 s of clearance, or a reversed lane-km below
+  about 0.5 s, so the ranking here is a value judgement carried by A-evac-029/030, not a modelling
   result. Balanced exit guidance is ~15 min slower: it sends evacuees past the bottleneck to
   farther exits. Phased release does not help (near-first +18 s T90, far-first +149 s).
 - **Al Balad, flood day.** With the storm (speed x 0.85, longer headways) and the FS-002 underpass
@@ -278,14 +278,14 @@ Recommended: `balanced_signals`; fastest clearance: `balanced_signals`.
   clears everyone** (T90 4,493 s, T100 5,212 s), both actions auto-eligible; balanced guidance
   alone clears everyone 3-4 min later; each of the two measures is credited with its measured
   share (guidance 367 s, signals 157 s of T90). The approved decision is in the log
-  (`dec-20261016T050754Z-b5d7845a`, actor `m7-demo-operator`, simulation only).
+  (`dec-20261016T054527Z-939a23de`, actor `m7-demo-operator`, simulation only).
   Contraflow options do not reach 90 % (1,717-1,762 out). Measured: in every contraflow option
   the worst bottleneck becomes Dhahab Street (`45266820#4`, ~80 halted veh-h), which is neither a
   corridor nor an inbound edge and is not among the top bottlenecks without contraflow; the
   mechanism (diverted inbound traffic or evacuees re-planning onto it) was not analysed further.
 - The demo command and the strategist's no-strategy what-if are the same simulation: identical
   clearance on both windows (and checked by a test on the demo window). Two strategist runs of
-  each scenario gave the same fingerprint (Al Hamra `cac0abd33e53160d`, Al Balad
+  each scenario (three for each after later reporting-only changes) gave the same fingerprint (Al Hamra `cac0abd33e53160d`, Al Balad
   `ff134cd308b9f3e9`).
 
 ## Assumptions (M7)
