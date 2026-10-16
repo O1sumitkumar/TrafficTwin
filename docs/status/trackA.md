@@ -206,5 +206,5 @@ Decisions (M4):
 - Noise: re-simulating the weekday baseline with sim seed 2 changes mean delay +1.8 %, VHT +1.3 %.
 - Friday baseline restarted with 8 threads after the Ramadan run (09:50; the 1-thread Friday
   assignment needed ~1.5 h per step under contention). Baseline final runs go through a launcher
-  that gzips SUMO outputs (`/tmp/baseline_gz.py`, recorded in logs); integration should make
+  that gzips SUMO outputs (`python -m sim.policies.baseline_launch <daytype> --routing-threads 8 --gzip`, same code as the ad-hoc launcher used for the runs); integration should make
   `sim/population/baseline.py` write `.xml.gz` (metrics already reads it).
