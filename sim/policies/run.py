@@ -173,7 +173,11 @@ def run_policy(
     iterations: int | None = None,
     quiet: bool = False,
     force_simulate: bool = False,
+    sim_seed: int | None = None,
+    run_id: str | None = None,
 ) -> dict[str, Any]:
+    """`sim_seed` (default: `seed`) re-seeds only the final simulation: a no-change policy with
+    another sim seed measures the run-to-run noise of the meso run (replicate)."""
     from sim import metrics
     from sim.common import sumo_bin, sumo_version
     from sim.metrics import xml_content_hash
@@ -208,7 +212,8 @@ def run_policy(
         )  # fmt: skip
     )
     base_meta = json.loads((base_dir / "meta.json").read_text())
-    run_id = run_name(pol, compare_day, sample, seed)
+    sim_seed = seed if sim_seed is None else sim_seed
+    run_id = run_id or run_name(pol, compare_day, sample, seed)
     out = runs_dir / run_id
     if out.exists():
         shutil.rmtree(out)
@@ -310,7 +315,7 @@ def run_policy(
             "--additional-files", ",".join(str(p) for p in additional),
             "--begin", str(bcfg["begin"]),
             "--end", f"{run_end:.0f}",
-            "--seed", str(seed),
+            "--seed", str(sim_seed),
             "--tripinfo-output", str(out / "tripinfo.xml.gz"),
             "--device.emissions.probability", "1",
             "--statistic-output", str(out / "stats.xml"),
@@ -340,6 +345,7 @@ def run_policy(
         "compare_daytype": compare_day,
         "date": base_meta.get("date"),
         "seed": seed,
+        "sim_seed": sim_seed,
         "sample": sample,
         "capacity_scale": scale,
         "config_hash": config_hash(

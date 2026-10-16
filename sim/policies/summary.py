@@ -1,6 +1,6 @@
 """Results table of policy runs (markdown) from their policy_report.json files.
 
-    python -m sim.policies.summary runs/remote_work_30 runs/friday ...      # prints the table
+python -m sim.policies.summary runs/remote_work_30 runs/friday ...      # prints the table
 """
 
 from __future__ import annotations
