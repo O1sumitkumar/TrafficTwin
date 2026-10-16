@@ -3,7 +3,7 @@ import type { FeatureCollection } from "geojson";
 
 import { api } from "./api";
 import { METRICS, metricDef } from "./config";
-import { Engine, type EngineStatus, type RunInput } from "./engine";
+import { Engine, VEHICLE_SCALE, type EngineStatus, type RunInput } from "./engine";
 import type {
   BinsInfo,
   DistrictEffects,
@@ -49,7 +49,7 @@ const INITIAL: UrlState = readUrl();
 /** Global hook for the screenshot/perf scripts. */
 declare global {
   interface Window {
-    __tt?: { engine: Engine; ready: () => boolean; loading: () => number };
+    __tt?: { engine: Engine; ready: () => boolean; loading: () => number; debug: () => Record<string, unknown> };
   }
 }
 
@@ -105,7 +105,12 @@ export function App() {
     eng.onStatus = (s) => setStatus(s);
     eng.onScaleChange = () => setScaleVer((v) => v + 1);
     setEngine(eng);
-    window.__tt = { engine: eng, ready: () => loading.current === 0 && eng.isReady(), loading: () => loading.current };
+    window.__tt = {
+      engine: eng,
+      ready: () => loading.current === 0 && eng.isReady(),
+      loading: () => loading.current,
+      debug: () => ({ loading: loading.current, ...eng.readiness() }),
+    };
     const onMove = () => {
       if (firstFit.current) return;
       const c = eng.map.getCenter();
@@ -448,10 +453,15 @@ export function App() {
             note={`${modeLabel} · grey = no data`}
           />
         ) : null}
-        {choropleth && effects ? <Legend title={`District ${effects.metric}`} unit={effects.unit} scale={engine!.choroScale} /> : null}
+        {choropleth && effects ? <Legend
+            title={`District ${effects.metric}`}
+            unit={effects.unit}
+            scale={engine!.choroScale}
+            note={`${effects.source === "policy_report" ? "from policy report" : "computed from edge bins"}${compare ? ` vs ${compare.run_id}` : ""}${engine!.choroClipped ? " · scale clipped at p90 |value|" : ""}`}
+          /> : null}
         {run?.tier === "B" && trips ? (
           colorBy === "speed" ? (
-            <Legend title="Vehicle speed" unit="m/s" scale={{ palette: "rdylgn", min: 0, max: 20, invert: false }} />
+            <Legend title="Vehicle speed (trails)" unit="m/s" scale={VEHICLE_SCALE} />
           ) : (
             <div className="legend">
               <div className="legend-title">Vehicle type</div>

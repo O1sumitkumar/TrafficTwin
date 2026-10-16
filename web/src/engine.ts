@@ -18,6 +18,7 @@ import {
   BASEMAP_TIMEOUT_MS,
   BUILDINGS_MIN_ZOOM,
   CHORO_MIN_HALF,
+  CHORO_RANGE_QUANTILE,
   DAY_S,
   PREFETCH_AHEAD,
   TRAIL_S,
@@ -43,6 +44,8 @@ export const BLANK_STYLE: StyleSpecification = {
 };
 
 const KM_PER_DEG = 111.32;
+
+export const VEHICLE_SCALE: Scale = { palette: "cool", min: 0, max: VEH_SPEED_MAX_MS, invert: false };
 
 type RGBA = [number, number, number, number];
 
@@ -155,6 +158,7 @@ export class Engine {
   private effectByDistrict = new Map<string, number>();
   private showChoropleth = false;
   choroScale: Scale = { palette: "rdbu", min: -5, max: 5, invert: false };
+  choroClipped = false;
   private scenario: ScenarioReport | null = null;
 
   // --- derived per bin ---
@@ -171,6 +175,8 @@ export class Engine {
   private dirty = true;
   private pending = 0;
   private tooltip: HTMLDivElement;
+  /** Recolour timings (per bin change), read by scripts/perf.mjs. */
+  perf = { recolours: 0, recolourMsTotal: 0, recolourMsMax: 0 };
 
   status: EngineStatus = { basemap: "loading", edges: "none", bin: "none", trips: "none", message: "" };
   onStatus: ((s: EngineStatus) => void) | null = null;
@@ -217,12 +223,13 @@ export class Engine {
       clearTimeout(timer);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const style = (await res.json()) as StyleSpecification;
-      this.map.setStyle(style);
       this.map.once("style.load", () => {
         this.styleLoaded = true;
         this.basemapOk = true;
         this.applyBasemapVisibility();
       });
+      // diff: false forces a full load so "style.load" fires (a diff from the blank style does not).
+      this.map.setStyle(style, { diff: false });
     } catch (err) {
       console.warn("basemap style failed, using plain background", err);
       this.styleLoaded = true;
@@ -343,13 +350,16 @@ export class Engine {
     this.effects = effects;
     this.showChoropleth = show;
     this.effectByDistrict.clear();
-    let maxAbs = 0;
+    const abs: number[] = [];
     for (const d of effects?.districts ?? []) {
       if (d.value === null || !Number.isFinite(d.value)) continue;
       this.effectByDistrict.set(d.district_id, d.value);
-      maxAbs = Math.max(maxAbs, Math.abs(d.value));
+      abs.push(Math.abs(d.value));
     }
-    const half = Math.max(CHORO_MIN_HALF, maxAbs);
+    abs.sort((a, b) => a - b);
+    const q = abs.length ? abs[Math.min(abs.length - 1, Math.floor(CHORO_RANGE_QUANTILE * abs.length))]! : 0;
+    const half = Math.max(CHORO_MIN_HALF, q);
+    this.choroClipped = abs.length > 0 && abs[abs.length - 1]! > half;
     const lowerBetter = (effects?.metric ?? "").includes("delay") || (effects?.metric ?? "").includes("vkt");
     this.choroScale = { palette: "rdbu", min: -half, max: half, invert: lowerBetter };
     this.onScaleChange?.();
@@ -498,7 +508,12 @@ export class Engine {
       values = null;
       base = null;
     }
+    const t0 = performance.now();
     fillEdgeColors(net.colors, net.geom.startIndices, n, values, base, scale, this.hideNoData);
+    const dt = performance.now() - t0;
+    this.perf.recolours++;
+    this.perf.recolourMsTotal += dt;
+    this.perf.recolourMsMax = Math.max(this.perf.recolourMsMax, dt);
     // New wrapper object -> deck re-uploads the colour attribute only; the path geometry is not
     // re-tessellated because `data` itself is unchanged.
     net.data.attributes.getColor = { value: net.colors, size: 4 };
@@ -534,7 +549,7 @@ export class Engine {
     const starts = new Uint32Array(vs.length);
     const vtypes = [...new Set(vs.map((v) => v.vtype))].sort();
     this.vtypes = vtypes;
-    const speedScale: Scale = { palette: "rdylgn", min: 0, max: VEH_SPEED_MAX_MS, invert: false };
+    const speedScale: Scale = VEHICLE_SCALE;
     let p = 0;
     vs.forEach((v, k) => {
       starts[k] = p;
@@ -670,7 +685,7 @@ export class Engine {
             const v = this.effectByDistrict.get(String(f.properties?.osm_id));
             if (v === undefined) return [90, 90, 90, 40];
             const c = colorOf(this.choroScale, v);
-            return [c[0], c[1], c[2], 150];
+            return [c[0], c[1], c[2], 170];
           },
           updateTriggers: { getFillColor: [choro, this.effects] },
         }),
@@ -685,14 +700,16 @@ export class Engine {
           _pathType: "open",
           widthUnits: "meters",
           widthMinPixels: 1,
-          widthMaxPixels: 10,
+          widthMaxPixels: this.tripsData ? 5 : 10,
           ...(net.data.attributes.getWidth ? {} : { getWidth: 4 }),
           capRounded: false,
           jointRounded: false,
           pickable: true,
           autoHighlight: true,
           highlightColor: [255, 255, 255, 220],
-          opacity: this.tripsData ? 0.55 : 1,
+          opacity: this.tripsData ? 0.4 : 1,
+          // Flat 2D layer: no depth writes, so vehicles and overlays at z = 0 always draw over it.
+          parameters: { depthWriteEnabled: false },
           updateTriggers: { getColor: this.colorVersion },
         }),
       );
@@ -724,8 +741,9 @@ export class Engine {
           trailLength: TRAIL_S,
           fadeTrail: true,
           widthUnits: "pixels",
-          getWidth: 4,
-          widthMinPixels: 3,
+          getWidth: 6,
+          widthMinPixels: 4,
+          parameters: { depthWriteEnabled: false },
           capRounded: true,
           jointRounded: true,
         }),
@@ -742,6 +760,7 @@ export class Engine {
           widthUnits: "pixels",
           capRounded: false,
           pickable: true,
+          parameters: { depthWriteEnabled: false, depthCompare: "always" },
         }),
       );
     }
@@ -758,6 +777,7 @@ export class Engine {
           radiusUnits: "pixels",
           getRadius: 11,
           pickable: true,
+          parameters: { depthCompare: "always" },
         }),
         new TextLayer<OverlayPoint>({
           id: "scenario-labels",
@@ -771,6 +791,7 @@ export class Engine {
           outlineWidth: 3,
           outlineColor: [0, 0, 0, 255],
           fontSettings: { sdf: true },
+          parameters: { depthCompare: "always" },
         }),
       );
     }
@@ -827,12 +848,27 @@ export class Engine {
     );
   }
 
+  /** Readiness breakdown (used by the screenshot and perf scripts). */
+  readiness(): Record<string, boolean | number | string> {
+    const deck = (this.overlay as unknown as { _deck?: { layerManager?: { getLayers(): Layer[] } } })._deck;
+    const layers = deck?.layerManager?.getLayers() ?? [];
+    const notLoaded = layers.filter((l) => !l.isLoaded).map((l) => l.id);
+    return {
+      pending: this.pending,
+      dirty: this.dirty,
+      deck: Boolean(deck),
+      layersNotLoaded: notLoaded.join(","),
+      styleLoaded: this.styleLoaded,
+      mapLoaded: this.map.loaded(),
+      tilesLoaded: this.map.areTilesLoaded(),
+      bin: this.status.bin,
+    };
+  }
+
   /** True when nothing is loading and deck + map have drawn the current state. */
   isReady(): boolean {
-    const deck = (this.overlay as unknown as { _deck?: { layerManager?: { getLayers(): Layer[] } } })._deck;
-    const layersLoaded = deck?.layerManager?.getLayers().every((l) => l.isLoaded) ?? false;
-    const mapReady = this.styleLoaded && this.map.loaded() && this.map.areTilesLoaded();
-    return this.pending === 0 && !this.dirty && layersLoaded && mapReady && this.status.bin !== "loading";
+    const r = this.readiness();
+    return r.pending === 0 && !r.dirty && r.deck === true && r.layersNotLoaded === "" && r.styleLoaded === true && r.tilesLoaded === true && r.bin !== "loading";
   }
 
   cacheStats(): { entries: number; mb: number } {

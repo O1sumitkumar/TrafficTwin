@@ -29,8 +29,16 @@ const RDBU: Stop[] = [
   [1, [33, 102, 172]],
 ];
 
-export type PaletteName = "rdylgn" | "ylorrd" | "rdbu";
-const STOPS: Record<PaletteName, Stop[]> = { rdylgn: RDYLGN, ylorrd: YLORRD, rdbu: RDBU };
+// Vehicles: magenta (stopped) -> violet -> cyan -> white (fast); distinct from the edge palettes.
+const COOL: Stop[] = [
+  [0, [255, 0, 170]],
+  [0.35, [170, 70, 255]],
+  [0.7, [0, 200, 255]],
+  [1, [220, 255, 255]],
+];
+
+export type PaletteName = "rdylgn" | "ylorrd" | "rdbu" | "cool";
+const STOPS: Record<PaletteName, Stop[]> = { rdylgn: RDYLGN, ylorrd: YLORRD, rdbu: RDBU, cool: COOL };
 
 function buildLut(stops: Stop[]): Uint8Array {
   const lut = new Uint8Array(256 * 4);
@@ -51,6 +59,7 @@ const LUTS: Record<PaletteName, Uint8Array> = {
   rdylgn: buildLut(RDYLGN),
   ylorrd: buildLut(YLORRD),
   rdbu: buildLut(RDBU),
+  cool: buildLut(COOL),
 };
 
 export interface Scale {

@@ -43,6 +43,8 @@ export const VEH_SPEED_MAX_MS = 20;
 export const NO_DATA_RGBA: [number, number, number, number] = [110, 116, 128, 60];
 /** Choropleth half-range (percent) used when the data range is degenerate. */
 export const CHORO_MIN_HALF = 1;
+/** Choropleth half-range = this quantile of |value| (robust to outlier districts; beyond it clips). */
+export const CHORO_RANGE_QUANTILE = 0.9;
 /** Zoom from which buildings are worth drawing in the city view. */
 export const BUILDINGS_MIN_ZOOM = 13;
 

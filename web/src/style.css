@@ -256,7 +256,7 @@ table.summary td:first-child {
 .legends {
   position: absolute;
   right: 10px;
-  bottom: 86px;
+  bottom: 112px;
   display: flex;
   flex-direction: column;
   gap: 6px;
