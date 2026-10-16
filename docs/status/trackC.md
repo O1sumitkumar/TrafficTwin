@@ -100,10 +100,13 @@ Parquet 2.9 s at 231 MB peak (242 MB at 3x the input, so memory is flat); city e
 trajectories 1 h, 1,800 vehicles: 9.5 MB (2.3 MB gzip). Viewer, headless Chrome with the Metal GPU
 (ANGLE Metal Renderer: Apple M3 Pro): full city at 300x 59.9 fps median (vsync cap), p5 59.5-59.9,
 uncapped 172 fps median with an orbiting camera; Tier B 59.9 fps; JS heap 131-154 MB; Chrome RSS
-0.86-1.39 GB across two measurement sessions; recolour of 156k edges per bin about 3 ms. Gates:
+0.86-1.39 GB across two measurement sessions; recolour of 156k edges per bin 2.2-2.9 ms. Gates:
 ruff clean, pytest 63 passed / 2 skipped (Pillow, lane audit), `npm run typecheck` and `build` pass.
-Verifier: all engineering criteria PASS; the status block (this) and the memory range were its two
-fixes.
+Verifier (two passes): all engineering criteria PASS; `docker compose up` UNVERIFIED; its fixes (this
+status block, the memory range, Tier A never reports FCD) were applied in 6dab21c. The verifier's view:
+the track work passes; M3 as a project milestone also needs the root README update and one successful
+`docker compose up --build` at integration. `docs/img/m3-events.png` still shows the old doubled
+"(fictional) (fictional)" scenario title (examples regenerated after the screenshot).
 
 Could not verify: `docker compose up`. The API image builds (`logs/m3-docker-build.log`), but
 Docker Desktop hung on the first bind mount from `~/Documents` (looks like a macOS privacy prompt
@@ -124,4 +127,5 @@ let ingest convert), `meta.baseline_run_id`, and the report files per the contra
 Next: once Tracks A/B produce a 24 h baseline and a policy run, replay them in the viewer and re-run
 `npm run perf` on 288 bins; chunk Tier B trajectory loading for long windows.
 
+Integration pending: root README demo commands, `docker compose up --build`.
 M3: done
