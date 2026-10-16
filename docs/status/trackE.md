@@ -76,12 +76,13 @@ load/renderFrame/frameCount, HUD), `web/scripts/cinema.mjs` (frame stepper), 8 s
 Measured (final `make movies`, M3 Pro, ANGLE Metal, another agent simulating): 7 films at 1920x1080,
 30 fps, exactly their spec length (30-40 s), 0.12-0.18 s per frame, 154-269 s per film, about 25 min
 in all; browser RSS max 1.0-1.5 GB (budget 2 GB); disk max 97-278 MB per film (budget 1 GB); no
-frames left; GIFs exactly 6.00 s, 2.2-2.9 MB; README GIFs 0.93-1.09 MB (8 MB in git with the
+frames left; GIFs exactly 6.00 s, 2.19-2.83 MB; README GIFs 0.93-1.09 MB (8 MB in git with the
 stills); showreel 174.7 s (2 min 55 s), 7 films + cards with crossfades. Determinism:
 `tahlia-street` rendered three times (two by me, one from scratch by the verifier): identical
-frame-450 hash 9c84b771766bcacf, identical bundle hashes and MP4 byte size; the smoke test renders
+frame-450 hash 9c84b771766bcacf (under the earlier hash rule), identical bundle hashes and MP4 byte size; the smoke test renders
 frames 100-110 twice and the hashes match. The film JSONs now hash the first, middle and last
-fade-free frames (from single-frame renders of the same bundles, `frame_hash_note`).
+fade-free frames (from single-frame renders of the same bundles, `frame_hash_note`; the first
+one is under the title card).
 Tests: 292 passed, 1 skipped (full suite, 4 min 06 s, before the last two fixes); after them
 `tests/test_movies.py` + `tests/test_integration.py` pass again (see the verifier's final pass);
 ruff check, ruff format --check and tsc clean.
@@ -90,7 +91,8 @@ h264 yuv420p CRF 18, footer visible in the 15 s frame, no frames left, identical
 (GIFs 6.01 s at 8-12 fps) plus notes (hashes on black fade frames, six films rendered before the
 last render.py, stale numbers). Fixed in E-D-006, all films re-rendered with the final code, numbers
 above re-measured. Second pass: all PASS except a ruff E501 in a docstring and hashes still on
-mostly faded frames; both fixed (hashes now on fade-free frames).
+mostly faded frames; both fixed (hashes now on fade-free frames). Final pass at 787bf9d: PASS on
+all five checks.
 Could not verify: whether frames are bit-identical on another GPU or Chrome version; the 4K and
 60 fps flags (implemented, not rendered).
 Open: the incident run re-routes instead of queueing (E-D-008), so the film has no shockwave; a
@@ -98,3 +100,5 @@ crash with `lanes_closed: 1` (as in emergency_tahlia) would show one. The strate
 strategist's reason text verbatim, including raw edge ids. The loop film waits for Track D.
 Next: integration — merge trackE (movies/specs, scripts/movies, web/src/cinema, the main.tsx branch,
 the Makefile targets); render `loop` once Track D's docs/loop.md and runs are on the branch.
+
+MOVIES: done
