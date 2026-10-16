@@ -70,6 +70,13 @@ def run_loop_policy(
     report = write_loop_report(out, meta, pol, search)
     meta["loop"] = report
     if prune:
+        # the variant network is rebuilt in ~1 min when needed again (disk is the constraint)
+        variant = (meta.get("net_change") or {}).get("variant")
+        if variant and "jeddah.loop-" in variant:
+            from sim.common import REPO_ROOT
+
+            path = Path(variant)
+            (path if path.is_absolute() else REPO_ROOT / path).unlink(missing_ok=True)
         for name in ("edgedata.parquet", "emissions.parquet"):
             (out / name).unlink(missing_ok=True)
         ctrl = meta.get("control_run")

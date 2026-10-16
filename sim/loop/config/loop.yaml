@@ -59,7 +59,8 @@ shift:
   alpha: 0.5
   alpha_sweep: [0.3, 0.5, 0.7]
   modes: [car, ridehail]
-  assumption: "A-loop-009: share alpha of eligible car-driver and ride-hail tours shifts to the Loop (brief sweep 0.3/0.5/0.7, default 0.5). Exogenous: no mode-choice model (PROJECT.md non-goal); every leg of the tour must be station-to-station. alpha is an upper-end assumption; the rider-time flag reports how many shifted trips would be slower than by car."
+  competitive_only: false
+  assumption: "A-loop-009: share alpha of eligible car-driver and ride-hail tours shifts to the Loop (brief sweep 0.3/0.5/0.7, default 0.5). Exogenous: no mode-choice model (PROJECT.md non-goal); every leg of the tour must be station-to-station. alpha is an upper-end assumption; the rider-time flag reports how many shifted trips would be slower than by car. Sensitivity (A-loop-017): competitive_only restricts the shift to tours whose every leg is faster by Loop (walk + wait + loading + ramps + ride at tunnel speed) than the same leg by car in the baseline."
 
 wait:
   measured_min: 12.5

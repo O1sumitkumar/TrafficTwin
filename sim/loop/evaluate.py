@@ -61,7 +61,7 @@ def make_policy(pid: str, title: str, alignments: list[dict[str, Any]], mode: st
 
 
 def policy_hash(pol: LoopPolicy) -> str:
-    return config_hash(pol.model_dump())
+    return config_hash(pol.model_dump(exclude_none=True))
 
 
 def run_one(pol: LoopPolicy, sample: float, seed: int, runs_dir: Path, prune: bool,
@@ -78,8 +78,8 @@ def run_one(pol: LoopPolicy, sample: float, seed: int, runs_dir: Path, prune: bo
         meta_path = runs_dir / rid / "meta.json"
         if rep_path.exists() and meta_path.exists():
             meta = json.loads(meta_path.read_text())
-            if meta.get("policy_hash") == h and meta.get("sim_seed", seed) == (sim_seed or seed):
-                rep = json.loads(rep_path.read_text())
+            rep = json.loads(rep_path.read_text())
+            if rep.get("policy_hash") == h and meta.get("sim_seed", seed) == (sim_seed or seed):
                 rep["reused"] = True
                 return rep
     gb = free_gb()

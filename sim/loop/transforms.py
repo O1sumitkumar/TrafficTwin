@@ -199,6 +199,58 @@ def capacity_flags(
     }
 
 
+def keep_competitive(
+    plan: Plan,
+    cand: pd.DataFrame,
+    legs: pd.DataFrame,
+    stations: pd.DataFrame,
+    seg_len: dict[tuple[str, int], float],
+    p: dict[str, Any],
+    cfg: dict[str, Any],
+) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """Keep tours whose every leg is faster by Loop (walk + wait + dwell + ride) than the same
+    leg by car in the starting baseline (simulated duration + departure delay)."""
+    tun = cfg["tunnel"]
+    ramp_s = 2 * float(tun["ramp_length_m"]) / (float(tun["ramp_speed_kmh"]) / 3.6)
+    st = stations.set_index(["line", "k"])["connect_m"]
+    ride_m = np.array([
+        sum(seg_len[(ln, min(k, k + (1 if d > o else -1)))]
+            for k in range(o, d, 1 if d > o else -1))
+        for ln, o, d in zip(legs["line"], legs["os"], legs["ds"], strict=True)
+    ])  # fmt: skip
+    ramp_m = float(tun["ramp_length_m"])
+    extra_ramp = np.array([
+        max(st[(ln, o)] - ramp_m, 0) + max(st[(ln, d)] - ramp_m, 0)
+        for ln, o, d in zip(legs["line"], legs["os"], legs["ds"], strict=True)
+    ]) / (float(tun["ramp_speed_kmh"]) / 3.6)  # fmt: skip
+    walk = p["walk_speed_kmh"] / 3.6 / p["detour_factor"]
+    loop_s = ((legs["access_m"].to_numpy() + legs["egress_m"].to_numpy()) / walk
+              + p["wait_min"] * 60.0 + p["dwell_s"] + ramp_s + extra_ramp
+              + ride_m / (p["speed_kmh"] / 3.6))  # fmt: skip
+    rows = cand.loc[legs["row"].to_numpy(), ["tour_id", "leg", "person_id"]]
+    v = plan.vehicles[["veh_id", "tour_id", "leg", "person_id"]]
+    ti = pd.read_parquet(plan.base_routes.parent / "tripinfo.parquet",  # type: ignore[union-attr]
+                         columns=["veh_id", "duration", "depart_delay"])  # fmt: skip
+    ti["car_s"] = ti["duration"] + ti["depart_delay"]
+    car = (
+        rows.merge(v, on=["tour_id", "leg", "person_id"], how="left")
+        .merge(ti[["veh_id", "car_s"]], on="veh_id", how="left")["car_s"]
+        .to_numpy()
+    )
+    fast = np.isfinite(car) & (loop_s < car)
+    ok_tour = pd.Series(fast).groupby(legs["tour_id"].to_numpy()).transform("all").to_numpy()
+    kept = legs[ok_tour]
+    info = {
+        "legs_tested": len(legs),
+        "legs_faster_by_loop": int(fast.sum()),
+        "tours_before": int(legs["tour_id"].nunique()),
+        "tours_after": int(kept["tour_id"].nunique()),
+        "mean_loop_estimate_min": round(float(loop_s.mean() / 60.0), 1),
+        "mean_car_min": round(float(np.nanmean(car) / 60.0), 1),
+    }
+    return kept, info
+
+
 def loop_shuttle(plan: Plan, t: LoopShuttle) -> dict[str, Any]:
     from sim.population.baseline import baseline_config, scale_options
 
@@ -217,6 +269,16 @@ def loop_shuttle(plan: Plan, t: LoopShuttle) -> dict[str, Any]:
     snaps = snap_legs(stations, ox, oy, dx, dy, p["radius_o_m"], p["radius_d_m"],
                       p["min_trip_km"])  # fmt: skip
     legs = choose_line(snaps, cand["tour_id"].to_numpy())
+    nxt = stations.assign(k=stations["k"] - 1)
+    seg = stations.merge(nxt, on=["line", "k"], suffixes=("", "_n"))
+    seg_len = {
+        (r.line, int(r.k)): float(np.hypot(r.x_n - r.x, r.y_n - r.y))
+        * float(cfg["tunnel"]["curvature_factor"])
+        for r in seg.itertuples()
+    }
+    competitive = None
+    if p["competitive_only"] and len(legs):
+        legs, competitive = keep_competitive(plan, cand, legs, stations, seg_len, p, cfg)
     elig_tours = np.unique(legs["tour_id"].to_numpy()) if len(legs) else np.array([], np.int64)
     u = tour_draws(plan, "loop_shuttle:shift", elig_tours)
     shifted = elig_tours[u < p["alpha"]]
@@ -242,13 +304,6 @@ def loop_shuttle(plan: Plan, t: LoopShuttle) -> dict[str, Any]:
     changed = plan.set_mode(shifted, LOOP_MODE, "loop_shuttle")
     plan.set_net(net)
     plan.net_info = info
-    nxt = stations.assign(k=stations["k"] - 1)
-    seg = stations.merge(nxt, on=["line", "k"], suffixes=("", "_n"))
-    seg_len = {
-        (r.line, int(r.k)): float(np.hypot(r.x_n - r.x, r.y_n - r.y))
-        * float(cfg["tunnel"]["curvature_factor"])
-        for r in seg.itertuples()
-    }
     sh = shuttles(pax, seg_len, p, plan.seed)
     scale, _ = scale_options(plan.sample, baseline_config())
     routes = plan.work / "loop_shuttles.rou.xml"
@@ -265,6 +320,7 @@ def loop_shuttle(plan: Plan, t: LoopShuttle) -> dict[str, Any]:
         "params": p,
         "network": info,
         "eligible_tours": len(elig_tours),
+        "competitive_filter": competitive,
         "tours_shifted": len(shifted),
         "person_trips_shifted": len(pax),
         "passengers_per_day": int(round(len(pax) * f)),

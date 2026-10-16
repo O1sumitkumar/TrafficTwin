@@ -80,6 +80,27 @@ SWEEP: list[tuple[str, str, dict[str, Any], str, str]] = [
         "uncertainty",
         "engineering capacity (1.5 s headway, vendor-side)",
     ),
+    (
+        "_comp",
+        "shuttle",
+        {"competitive_only": True},
+        "uncertainty",
+        "time-competitive shift only, measured case (90 km/h, 12.5 min wait, 5.3 s headway)",
+    ),
+    (
+        "_comp_v50",
+        "shuttle",
+        {"competitive_only": True, "speed_kmh": 50.0},
+        "uncertainty",
+        "time-competitive shift only, Vegas-like speed (50 km/h, 12.5 min wait)",
+    ),
+    (
+        "_comp_vendor",
+        "shuttle",
+        {"competitive_only": True, "speed_kmh": 160.0, "capacity": "engineering"},
+        "uncertainty",
+        "time-competitive shift only, vendor case (160 km/h, 2 min wait, 1.5 s headway)",
+    ),
 ]
 
 

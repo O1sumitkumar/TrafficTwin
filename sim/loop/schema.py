@@ -72,6 +72,7 @@ class LoopShuttle(LoopBase):
     radius_d_m: float | None = Field(None, gt=0)
     dwell_s: float | None = Field(None, ge=0)
     empty_reposition_factor: float | None = Field(None, ge=0)
+    competitive_only: bool | None = None
 
 
 class LoopPrivate(LoopBase):

@@ -51,6 +51,9 @@ def resolve_params(
                 else t.empty_reposition_factor
             ),
             "shift_modes": list(sh["modes"]),
+            "competitive_only": bool(
+                sh["competitive_only"] if t.competitive_only is None else t.competitive_only
+            ),
             "min_trip_km": float(acc["min_trip_km"] if t.min_trip_km is None else t.min_trip_km),
             "walk_speed_kmh": float(acc["walk_speed_kmh"]),
             "detour_factor": float(acc["detour_factor"]),
