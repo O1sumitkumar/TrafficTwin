@@ -136,10 +136,12 @@ trips, ~970k); with the deterministic 1-thread default (TA-013) about 4x the rou
 
 ### Sampling decision (default `--sample`)
 TA-012 Default for Tier A baselines and policy runs: `--sample 0.10` with consistent capacity
-scaling (`--scale` equivalent: length+minGap and meso tau x10, A-sim-101). Reason: the 10 % run is the
-only sample that fits the 18 GB machine alongside other work within ~2 h; the 25 % run needs ~2x the
-routing time and memory. Use 0.25 for final reported comparisons once disk/memory allow; 1.0 is not
-planned on this machine.
+scaling (`--scale` equivalent: length+minGap and meso tau x10, A-sim-101). Reason: 10 % is the only
+city sample that fits the 18 GB machine alongside other work; 25 % needs ~2x the routing time and
+memory. Updated after TA-013: the deterministic default (1 routing thread) makes a fresh 10 % run
+~5 h (routing ~4x slower); the 8-thread setting (~2 h) is allowed for exploratory runs and is flagged
+`routes_deterministic: false`. Reported results and policy comparisons use 1 thread or a cached
+route set. Use 0.25 for final comparisons once disk/memory allow; 1.0 is not planned on this machine.
 
 ### Determinism of the assignment (verifier finding, fixed)
 TA-013 The verifier found that two from-scratch demo assignments gave different routes: the seed did
@@ -153,3 +155,12 @@ this fix: its routes (routes_hash in meta.json) are reproducible from the route 
 `data/population/routes/9724fafeab351805` only, not from the seed; the final simulation on them is
 seeded and repeatable. It is not re-run now (disk, and ~5 h at 1 thread). A run that sets
 `routing_threads: 8` records `routes_deterministic: false` in meta.json.
+
+### M2 handoff (2026-10-16 08:30)
+ruff clean; pytest 45 passed (demo window); verifier PASS after one fix round (assignment
+determinism, sanity table, status corrections). Carried forward: re-run the 10 % baseline with 1
+routing thread when ~15 GB are free (closes TA-013 for the reported run); 25 % run and the 10 % vs
+25 % capacity-scaling check (A-sim-101); network capacity (TA-011) is the top issue for the
+lane-audit/network work; README M2 command at integration (`uv run python -m sim.runner --baseline
+--daytype weekday --sample 0.10 --seed 1`).
+M2: done
