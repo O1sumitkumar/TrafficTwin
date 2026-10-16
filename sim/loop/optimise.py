@@ -105,6 +105,15 @@ def sweep_plan(cfg: dict[str, Any]) -> Sweep:
             )
     plan.append(
         (
+            f"_private_toll{t0:g}_capeng",
+            "private",
+            {"toll_sar": t0, "capacity": "engineering"},
+            "uncertainty",
+            f"private-EV, SAR {t0:g} toll, engineering capacity (1.5 s headway)",
+        )
+    )
+    plan.append(
+        (
             "_capeng",
             "shuttle",
             {"capacity": "engineering"},
@@ -274,6 +283,9 @@ def passes(rep: dict[str, Any], cfg: dict[str, Any], tele_tol: float) -> tuple[b
         return False, f"pair capacity exceedance {ex:.1%}"
     if seg > lim:
         return False, f"tunnel segment exceedance {seg:.1%}"
+    util = f.get("segment_peak_utilisation") or 0.0
+    if f.get("segment_exceedance_share") is None and util > 1.05:
+        return False, f"tunnel segment peak utilisation {util:.2f} (teleport-assisted)"
     t, t0 = f.get("teleport_share"), f.get("teleport_share_compare")
     if t is not None and t0 is not None and t > t0 + tele_tol:
         return False, f"teleports {t:.3f} vs {t0:.3f}"
@@ -524,6 +536,7 @@ def recommend(sweep: list[dict[str, Any]]) -> dict[str, Any] | None:
     uncertainty runs that pass (e.g. engineering capacity)."""
     levers = [r for r in sweep if r["role"] == "lever"]
     shuttle = [r for r in levers if not r["suffix"].startswith("_private")]
+    # (uncertainty runs never enter the options; private engineering capacity is a variant)
     options = []
     central = next((r for r in shuttle if r["suffix"] == ""), None)
     if central is not None:

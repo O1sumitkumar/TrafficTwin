@@ -115,26 +115,49 @@ def rider_times(out: Path, ref: Path | None, p: dict[str, Any]) -> dict[str, Any
     }
 
 
-def private_usage(out: Path, sample: float, p: dict[str, Any]) -> dict[str, Any]:
+def loop_edgedata(out: Path) -> pd.DataFrame | None:
+    """Edge data of the Loop edges only; kept as loop_edgedata.parquet so pruning the run's full
+    edgedata (disk) does not lose the tunnel statistics."""
+    small = out / "loop_edgedata.parquet"
+    if small.exists():
+        return pd.read_parquet(small)
     ed = out / "edgedata.parquet"
     if not ed.exists():
-        return {}
+        return None
     import pyarrow.parquet as pq
 
     tbl = pq.read_table(ed, columns=["begin", "edge_id", "entered"]).to_pandas()
-    tbl = tbl[tbl["edge_id"].astype(str).str.startswith(SHUTTLE_PREFIX)]
-    downs = tbl[tbl["edge_id"].astype(str).str.match(r"^loop_[A-Za-z0-9]+_D\d+$")]
+    tbl = tbl[tbl["edge_id"].astype(str).str.startswith(SHUTTLE_PREFIX)].reset_index(drop=True)
+    tbl["edge_id"] = tbl["edge_id"].astype(str)
+    tbl.to_parquet(small, index=False)
+    return tbl
+
+
+def private_usage(out: Path, sample: float, p: dict[str, Any]) -> dict[str, Any]:
+    """Tunnel entries, toll revenue and tunnel segment load. Throughput above the headway
+    capacity is possible only through jam teleports (120 s teleport time, A-sim-103): vehicles
+    queued at a full tunnel jump through it, so exceedance marks teleport-assisted use."""
+    tbl = loop_edgedata(out)
+    if tbl is None:
+        return {}
+    downs = tbl[tbl["edge_id"].str.match(r"^loop_[A-Za-z0-9]+_D\d+$")]
     f = 1.0 / sample
     entries = float(downs["entered"].sum() * f)
     hourly = downs.groupby(np.floor(downs["begin"] / 3600.0))["entered"].sum() * f
-    tunnels = tbl[tbl["edge_id"].astype(str).str.match(r"^loop_[A-Za-z0-9]+_T\d+_\d+$")]
+    tunnels = tbl[tbl["edge_id"].str.match(r"^loop_[A-Za-z0-9]+_T\d+_\d+$")]
     t_hour = tunnels.groupby([np.floor(tunnels["begin"] / 3600.0), "edge_id"])["entered"].sum() * f
     cap = 3600.0 / p["headway_s"]
+    over = t_hour[t_hour > cap * 1.0001]
+    total = float(t_hour.sum())
     return {
         "tunnel_entries_per_day": round(entries),
         "peak_hour_entries": round(float(hourly.max())) if len(hourly) else 0,
         "toll_revenue_sar_per_day": round(entries * p["toll_sar"]),
         "segment_peak_utilisation": round(float(t_hour.max() / cap), 3) if len(t_hour) else 0.0,
+        "segment_exceedance_share": round(float(over.sum() / total), 4) if total else 0.0,
+        "tunnel_vehicle_km_above_capacity_share": round(float((over - cap).sum() / total), 4)
+        if total
+        else 0.0,
     }
 
 
@@ -224,6 +247,7 @@ def write_loop_report(
     else:
         rep["private"] = private_usage(out, sample, p) if p else {}
         rep["flags"]["segment_peak_utilisation"] = rep["private"].get("segment_peak_utilisation")
+        rep["flags"]["segment_exceedance_share"] = rep["private"].get("segment_exceedance_share")
     rep["headline"] = headline(rep)
     (out / "loop_report.json").write_text(json.dumps(rep, indent=2, default=float))
     (out / "loop_report.md").write_text(render_md(rep, r))
@@ -304,6 +328,10 @@ def rebuild(run: Path, search: list[Path] | None = None) -> dict[str, Any]:
     for k in ("wall_s", "policy_hash", "free_gb_before", "timings"):
         if k in old:
             rep[k] = old[k]
+    if rep.get("mode") == "private" and not rep.get("private") and old.get("private"):
+        # edge data pruned before loop_edgedata.parquet existed: keep the earlier tunnel figures
+        rep["private"] = old["private"]
+        rep["flags"]["segment_peak_utilisation"] = old["private"].get("segment_peak_utilisation")
     (run / "loop_report.json").write_text(json.dumps(rep, indent=2, default=float))
     return rep
 

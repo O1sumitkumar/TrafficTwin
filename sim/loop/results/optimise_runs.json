@@ -327,6 +327,101 @@
         "report_s": 82.7,
         "total_s": 587.8
       }
+    },
+    "loop_opt_c1_private_toll10": {
+      "label": "synthetic demand, uncalibrated",
+      "run_id": "loop_opt_c1_private_toll10",
+      "policy": "loop_opt_c1_private_toll10",
+      "mode": "private",
+      "alignments": [
+        "C1"
+      ],
+      "compare": "loop_opt_c1_private_toll10--control",
+      "params": {
+        "speed_kmh": 90.0,
+        "capacity": "measured",
+        "occupancy": 2.0,
+        "headway_s": 5.314,
+        "pair_capacity_pph": 1355.0,
+        "wait_min": 12.5,
+        "mode": "private",
+        "toll_sar": 10.0,
+        "value_of_time_sar_h": 40.0,
+        "reroute_radius_m": 2500.0,
+        "eligible_share": 1.0,
+        "min_trip_km": 2.0,
+        "toll_penalty_s": 900.0
+      },
+      "tunnel_km": 17.86,
+      "stations": 8,
+      "capex_usd_m": {
+        "low": 267.9,
+        "central": 446.5,
+        "high": 714.4
+      },
+      "capex_sar_m": {
+        "low": 1004.6,
+        "central": 1674.4,
+        "high": 2679.0
+      },
+      "relief_vht_per_day": 98743,
+      "relief_pct": 3.751,
+      "relief_per_km": 5528.7,
+      "relief_per_usd_m": {
+        "low": 368.58,
+        "central": 221.15,
+        "high": 138.22
+      },
+      "annual_relief_vht": 24685672,
+      "vht_saved_per_day": 88739,
+      "vht_saved_pct": 3.37,
+      "road_vht_saved_per_day": 88739,
+      "shuttle_vht_per_day": 0,
+      "shuttle_vkt_per_day": 0,
+      "am_peak_delay_change_s": -35.9,
+      "am_peak_delay_change_pct": -1.92,
+      "mean_delay_change_pct": -4.85,
+      "city_am_peak_delay_change_pct": -1.93,
+      "vkt_change_pct": 0.03,
+      "vht_saved_per_km": 4968.6,
+      "vht_saved_per_usd_m": {
+        "low": 331.24,
+        "central": 198.74,
+        "high": 124.21
+      },
+      "passengers_per_day": null,
+      "car_vehicles_removed_per_day": 0,
+      "cars_rerouted": 37877,
+      "flags": {
+        "teleport_share": 0.410808,
+        "teleport_share_compare": 0.456715,
+        "pair_exceedance_share": null,
+        "peak_pair_pph": null,
+        "segment_peak_utilisation": 2.982,
+        "segment_exceedance_share": null,
+        "connect_flags": 0
+      },
+      "private": {
+        "tunnel_entries_per_day": 16320,
+        "peak_hour_entries": 3240,
+        "toll_revenue_sar_per_day": 163200,
+        "segment_peak_utilisation": 2.982
+      },
+      "headline": "loop_opt_c1_private_toll10 (private, 17.86 km): congestion relief 98,743 VHT/day (+3.75 % for remaining vehicles), 221.2 VHT/day per USD M (capex USD 268-714 M); city VHT saved 88,739/day; synthetic demand, uncalibrated",
+      "wall_s": 1463.1,
+      "policy_hash": "aa0ad04fc79c5516",
+      "free_gb_before": 78.5,
+      "timings": {
+        "transforms_s": 29.5,
+        "reroute_s": 256.3,
+        "merge_s": 21.7,
+        "simulation": {
+          "wall_s": 406.7,
+          "peak_rss_mb": 3031.0
+        },
+        "report_s": 745.3,
+        "total_s": 1461.1
+      }
     }
   }
 }
