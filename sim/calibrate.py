@@ -92,8 +92,25 @@ def geh_report(
         "max_geh": round(max((r["geh"] for r in rows), default=0.0), 3),
         "total_count": round(sum(targets.values()), 1),
         "total_simulated": round(sum(r["simulated"] for r in rows), 1),
+        "by_hour": by_hour(rows),
         "rows": rows,
     }
+
+
+def by_hour(rows: list[dict[str, Any]]) -> dict[str, dict[str, float]]:
+    """Per-hour share of GEH-ok counts and simulated/counted volume (boundary effects show here)."""
+    out: dict[str, dict[str, float]] = {}
+    for hour in sorted({r["hour"] for r in rows}):
+        sel = [r for r in rows if r["hour"] == hour]
+        counted = sum(r["count"] for r in sel)
+        out[str(hour)] = {
+            "counts": len(sel),
+            "share_geh_ok": round(sum(r["ok"] for r in sel) / len(sel), 4),
+            "volume_ratio": round(sum(r["simulated"] for r in sel) / counted, 4)
+            if counted
+            else 0.0,
+        }
+    return out
 
 
 # ---------------------------------------------------------------------------- SUMO I/O
@@ -307,6 +324,14 @@ def write_markdown(meta: dict[str, Any], path: Path) -> None:
         f"- **GEH < {g['threshold']:g}: {g['share_geh_ok']:.1%}** of counts (target "
         f"{g['target_share']:.0%}): {'PASS' if g['passed'] else 'FAIL'}; mean GEH {g['mean_geh']}, "
         f"max {g['max_geh']}",
+        "",
+        "| hour | counts | GEH < threshold | simulated / counted volume |",
+        "|---|---|---|---|",
+        *(
+            f"| {h} | {v['counts']} | {v['share_geh_ok']:.0%} | {v['volume_ratio']:.2f} |"
+            for h, v in g["by_hour"].items()
+        ),
+        "",
     ]
     if meta.get("geh_before"):
         b = meta["geh_before"]
