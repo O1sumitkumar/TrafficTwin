@@ -13,7 +13,7 @@ event:
   reroute_period_s: {id: A-evac-004, value: 120, unit: s, range: [30, 600], assumption: "Evacuees re-plan the route to their assigned exit with current travel times at departure and every 2 min (navigation apps, perfect information); the exit itself does not change"}
   origin_weight: {id: A-evac-005, value: lane_length, unit: "weight", range: "lane_length", assumption: "Evacuee vehicles start on passenger edges inside the zone in proportion to lane length (service roads = car-park aisles); no parking inventory for the site"}
   evacuee_types: {id: A-evac-034, value: passenger_share_of_mix, unit: "vType shares", range: "", assumption: "Evacuees are private cars: each draws its vType (seeded) from the passenger-class members of the scenario's driver mix, renormalised (normal / slow / aggressive); trucks and buses are background only"}
-  background: {id: A-evac-006, value: unchanged, unit: mode, range: "unchanged", assumption: "Background demand is unchanged during the evacuation (no closure of inbound traffic, no extra background departures); side effects on it are measured, not modelled away"}
+  background: {id: A-evac-006, value: unchanged, unit: mode, range: "unchanged", assumption: "Background demand is unchanged during the evacuation (no extra or cancelled background trips, no closure of the zone to inbound traffic; only a strategy's contraflow closes inbound carriageways, A-evac-020); side effects on it are measured, not modelled away"}
 exits:
   count: {id: A-evac-007, value: 6, unit: exits, range: [2, 12], assumption: "With `exits: auto`, the six highest-capacity window fringe edges that pass the filters below; an operator would name the exits in a real plan"}
   min_capacity: {id: A-evac-008, value: 40, unit: "lanes x m/s", range: [20, 80], assumption: "An exit must carry at least 2 lanes at 72 km/h (or 3 lanes at 48 km/h, ...); excludes residential and service stubs"}
@@ -32,7 +32,10 @@ contraflow:
   max_added_lanes: {id: A-evac-018, value: 3, unit: lanes, range: [1, 4], assumption: "At most 3 inbound lanes per edge are reversed"}
   road_types: {id: A-evac-019, value: "highway.motorway|highway.trunk|highway.primary|highway.secondary", unit: "OSM road types", range: "", assumption: "Only divided or multi-lane arterials are reversed; tertiary and local streets are not"}
   inbound_allowed: {id: A-evac-020, value: emergency, unit: vClass, range: "emergency|none", assumption: "While reversed, the inbound carriageway is closed to everyone except emergency vehicles; inbound background traffic reroutes"}
-  max_corridors: {id: A-evac-021, value: 3, unit: corridors, range: [1, 6], assumption: "Candidate corridors are built for the 3 exits with the most evacuees (by nearest-exit assignment); more reversals than that exceed one police shift"}
+  antiparallel_deg: {id: A-evac-036, value: 135, unit: deg, range: [120, 170], assumption: "An edge is the inbound carriageway of a corridor edge only if their headings differ by more than 135 deg (same threshold as the M5 rubbernecking search, sim/events/netindex.py); excludes cross streets"}
+  partner_search_m: {id: A-evac-037, value: 60, unit: m, range: [30, 100], assumption: "The inbound carriageway is searched within 60 m of the corridor edge's start, middle and end; covers Jeddah divided arterials with wide medians (not measured)"}
+  partner_coverage: {id: A-evac-038, value: 0.5, unit: "share of corridor length", range: [0.3, 0.9], assumption: "A corridor is reversible only if an inbound carriageway was found beside at least half of its length (short gaps: split edges, junction areas)"}
+  max_corridors: {id: A-evac-021, value: 3, unit: corridors, range: [1, 6], assumption: "Candidate corridors are built for the 3 exits used most under nearest and balanced assignment together; more reversals than that exceed one police shift"}
 signals:
   green_factor: {id: A-evac-022, value: 1.5, unit: "x green", range: [1.2, 2.0], assumption: "Evacuation signal plan: phases that give green to an evacuation movement are lengthened by 50 %"}
   other_factor: {id: A-evac-023, value: 0.6, unit: "x green", range: [0.4, 0.9], assumption: "... and the other green phases are shortened to 60 %"}
@@ -44,18 +47,16 @@ clearance:
 strategy:
   w_t90: {id: A-evac-027, value: 0.5, unit: "score per s", range: [0, 1], assumption: "Objective = clearance time: half the weight on the time to 90 % out (the bulk of the crowd) ..."}
   w_t100: {id: A-evac-028, value: 0.5, unit: "score per s", range: [0, 1], assumption: "... and half on the time to 100 % out (the last vehicle), which is noisier because of stragglers"}
-  w_delay: {id: A-evac-029, value: 10.0, unit: "s per background veh-h", range: [2, 60], assumption: "One vehicle-hour of background delay added versus the no-strategy evacuation costs 10 s of clearance (life safety first; same scale as the M6 weight A-strat-022). A penalty only: a reduction is not rewarded, because the objective is clearance and background delay in a gridlocked window moves by +/- 150 veh-h between runs (measured, Al Hamra)"}
+  w_delay: {id: A-evac-029, value: 10.0, unit: "s per background veh-h", range: [2, 60], assumption: "One vehicle-hour of background delay added versus the no-strategy evacuation costs 10 s of clearance (life safety first; same scale as the M6 weight A-strat-022). A penalty only: a reduction is not rewarded, because the objective is clearance, not relieving background traffic; and only beyond the noise band (A-evac-035)"}
   w_contraflow: {id: A-evac-030, value: 30.0, unit: "s per reversed lane-km", range: [0, 120], assumption: "Fixed cost per reversed lane-km (police staffing, crossover risk) on top of the measured delay"}
   w_signal: {id: A-evac-031, value: 2.0, unit: "s per retimed signal", range: [0, 10], assumption: "Small fixed cost per signal switched to the evacuation plan"}
   w_order: {id: A-evac-032, value: 60.0, unit: "s per extra staged order", range: [0, 300], assumption: "Each extra staged evacuation order (phased release) costs 1 min of clearance equivalent (communication, compliance risk)"}
-  noise_replicates: {id: A-evac-035, value: 1, unit: "replicate runs", range: [1, 5], assumption: "Run-to-run noise is estimated from one replicate of the no-strategy run with another SUMO seed (same evacuees and departure times): the absolute T90 / T100 / background-delay differences form the noise band. Background delay counts as a penalty, and towards the auto-eligibility limit, only beyond that band; T90 differences inside it are flagged. One replicate is a crude estimate (measured on Al Hamra: identical-effect options differed by up to 75 veh-h)"}
+  noise_replicates: {id: A-evac-035, value: 1, unit: "replicate runs", range: [1, 5], assumption: "Run-to-run noise is estimated from one replicate of the no-strategy run with another SUMO seed (same evacuees and departure times): the absolute T90 / T100 / background-delay differences form the noise band. Background delay counts as a penalty, and towards the auto-eligibility limit, only beyond that band; T90 differences inside it are flagged. One replicate is a crude estimate (measured band: Al Hamra +/-8.1 veh-h, Al Balad +/-13.3 veh-h); where neither run reaches 90 % the T90 band is not measurable (n/a)"}
   auto_max_added_veh_h: {id: A-evac-033, value: 5.0, unit: "veh-h beyond noise", range: [1, 20], assumption: "A signal plan or exit guidance is auto-eligible only while the option adds at most 5 background vehicle-hours versus no strategy; contraflow and staged evacuation orders always need approval (A-strat-020)"}
 
 model:
   vehicle_prefix: "ev."            # evacuee ids: ev.<event id>.<n> (EVENT_VEHICLE_PREFIX)
   dormant_owner: "evac.dormant"    # closure owner of the contraflow lanes while not reversed
-  partner_search_m: 60             # inbound carriageway search radius around a corridor edge
-  partner_coverage: 0.5            # inbound carriageway must run beside half the corridor
   bottleneck_sample_s: 5           # halted-vehicle sampling interval for bottleneck edges
   top_bottlenecks: 5               # bottleneck edges reported
   max_workers: 11                  # strategist what-if processes in parallel

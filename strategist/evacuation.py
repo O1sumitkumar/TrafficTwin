@@ -61,7 +61,8 @@ def weights() -> dict[str, float]:
 
 
 def weight_ids() -> list[str]:
-    return [V.param("strategy", k).id for k in (*WEIGHT_KEYS, "auto_max_added_veh_h")]
+    keys = (*WEIGHT_KEYS, "noise_replicates", "auto_max_added_veh_h")
+    return [V.param("strategy", k).id for k in keys]
 
 
 # --- candidates ---------------------------------------------------------------------------------
@@ -209,7 +210,9 @@ def noise_band(results: dict[str, dict[str, Any]]) -> dict[str, Any]:
     crude estimate of run-to-run noise, A-evac-035)."""
     a, b = results[NO_STRATEGY], results[REPLICATE]
 
-    def diff(key: str) -> float:
+    def diff(key: str) -> float | None:
+        if a["clearance"][key] is None and b["clearance"][key] is None:
+            return None  # neither run reaches this level: not measurable
         return round(abs(V.effective(a["clearance"], key) - V.effective(b["clearance"], key)), 1)
 
     return {
@@ -436,7 +439,7 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
                 "action_classes": cls["actions"],
                 "clearance": res["clearance"],
                 "t90_vs_no_strategy_s": round(d90, 1),
-                "t90_within_noise": abs(d90) <= noise["t90_s"],
+                "t90_within_noise": noise["t90_s"] is not None and abs(d90) <= noise["t90_s"],
                 "background_delay_veh_h": res["background"]["delay_veh_h"],
                 "contraflow_lane_km": sum(a.get("lane_km", 0) for a in c["actions"]),
                 "signals_retimed": len(res["signals_retimed"]),
@@ -461,7 +464,11 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
     )
     best = options[0] if options else None
     beats = bool(best and best["score"] < base["score"])
-    beats_t90 = bool(best and best["t90_vs_no_strategy_s"] < -noise["t90_s"])
+    beats_t90 = bool(
+        best
+        and best["clearance"]["t90_s"] is not None
+        and best["t90_vs_no_strategy_s"] < -(noise["t90_s"] or 0.0)
+    )
     snapshot_id = f"evac:{sit.scenario.id}:{sit.window}:s{seed}:{key[:16]}"
     report: dict[str, Any] = {
         "kind": "evacuation",
@@ -545,6 +552,10 @@ def recommend(scenario: str, window: str | None = None, seed: int = 1, workers: 
     return report
 
 
+def _band(v: float | None, unit: str) -> str:
+    return "n/a (neither run reaches it)" if v is None else f"+/- {v:.0f} {unit}"
+
+
 def _s(v: float | None) -> str:
     return "not reached" if v is None else f"{v:,.0f}"
 
@@ -558,10 +569,11 @@ def render_md(r: dict[str, Any]) -> str:
         "",
         f"{r['title']}",
         "",
-        "Times are seconds after the evacuation order. Score = 0.5 x T90 + 0.5 x T100 + penalties "
+        "Times are seconds after the evacuation order. Score = "
+        f"{r['weights']['w_t90']} x T90 + {r['weights']['w_t100']} x T100 + penalties "
         "(lower is better; weights in sim/scenarios/evac_settings.yaml). Noise band from a "
         "replicate of the no-strategy run with another SUMO seed: "
-        f"T90 +/- {r['noise']['t90_s']:.0f} s, T100 +/- {r['noise']['t100_s']:.0f} s, "
+        f"T90 {_band(r['noise']['t90_s'], 's')}, T100 {_band(r['noise']['t100_s'], 's')}, "
         f"background delay +/- {r['noise']['delay_veh_h']:.1f} veh-h; delay is penalised only "
         "beyond it; (~) = T90 within the noise band of no strategy.",
         "",

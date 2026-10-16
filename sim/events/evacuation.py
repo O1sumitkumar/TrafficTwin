@@ -311,7 +311,7 @@ class EvacNet:
     # contraflow --------------------------------------------------------------------------------
     def partners(self, eid: str) -> list[str]:
         """Inbound carriageway of a corridor edge: the reverse edge between the same nodes, else
-        the nearest anti-parallel edge (heading differs by > 135 deg) within `partner_search_m`
+        the nearest anti-parallel edge (heading differs by > A-evac-036) within A-evac-037
         of the edge's start, middle and end, of an allowed road type and with the same name when
         both are named."""
         e = self.edges[eid]
@@ -325,7 +325,8 @@ class EvacNet:
         if same:
             return same
         h = _heading(e)
-        r = float(model("partner_search_m"))
+        r = float(value("contraflow", "partner_search_m"))
+        anti = float(value("contraflow", "antiparallel_deg"))
         found: set[str] = set()
         shape = e.getShape()
         for x, y in (shape[0], _mid(e), shape[-1]):
@@ -336,7 +337,9 @@ class EvacNet:
                     continue
                 if e.getName() and o.getName() and o.getName() != e.getName():
                     continue
-                if abs((_heading(o) - h + 180) % 360 - 180) > 135 and (best is None or d < best[0]):
+                if abs((_heading(o) - h + 180) % 360 - 180) > anti and (
+                    best is None or d < best[0]
+                ):
                     best = (d, oid)
             if best:
                 found.add(best[1])
@@ -347,7 +350,7 @@ class EvacNet:
         i.e. zone origin edges and other corridors, are excluded): contiguous edges
         of an allowed road type (A-evac-019) up to A-evac-016, skipping at most two fringe stubs
         at the exit. The inbound carriageway = partners found along it; it must run beside at
-        least `partner_coverage` of the corridor length. Every corridor edge gets the same number
+        least A-evac-038 of the corridor length. Every corridor edge gets the same number
         of reversed lanes: the inbound lane count (length-weighted mode), capped (A-evac-018)."""
         types = set(str(value("contraflow", "road_types")).split("|"))
         max_len = float(value("contraflow", "max_length_m"))
@@ -369,7 +372,7 @@ class EvacNet:
         if not picked or length < float(value("contraflow", "min_length_m")):
             return None
         covered = sum(self.edges[eid].getLength() for eid, parts in picked if parts)
-        if covered < float(model("partner_coverage")) * length:
+        if covered < float(value("contraflow", "partner_coverage")) * length:
             return None
         lanes: Counter = Counter()
         for eid, parts in picked:
