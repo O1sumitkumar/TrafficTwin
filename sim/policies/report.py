@@ -376,7 +376,7 @@ Ten most worsened
 - Day type: {", ".join(ids["daytype"])}
 - Baseline model: {", ".join(ids["baseline_model"])}
 
-Register: docs/assumptions-trackA.md.
+Register: docs/assumptions.md (Track A rows also in docs/assumptions-trackA.md).
 
 ## Provenance
 {md_table([{k: fmt(v) for k, v in r["provenance"].items()}])}

@@ -18,7 +18,7 @@ Apple M3 Pro, 18 GB RAM, macOS. Tools present: claude, uv 0.11, python3 (3.14 sy
 - Prefer SUMO built-ins (`cutRoutes.py`, `duaIterate.py`, `routeSampler.py`, `ptlines2flows.py`, bluelight device, `saveState`) over reimplementation.
 - Micro-only features (sublane, opposite-direction driving, lane-area detectors, lane-level outputs, bluelight) are confined to Tier B and asserted at config load.
 - Label every result "synthetic demand, uncalibrated" until calibration (M8) says otherwise.
-- No secrets in the repo or URLs. `.env` gitignored. `data/` gitignored except `data/demo/`, `data/osm/fixes/`, and public licensed tables in `data/census/`.
+- No secrets in the repo or URLs. `.env` gitignored. `data/` gitignored except `data/demo/`, `data/osm/fixes/`, public licensed tables in `data/census/`, and the reviewed public flood-site list `data/jeddah_flood_sites.yaml`. Imagery crops are never committed.
 - Licence Apache-2.0; `NOTICE` attributes OpenStreetMap (ODbL), SUMO (EPL-2.0), GASTAT open data.
 
 ## Workflow

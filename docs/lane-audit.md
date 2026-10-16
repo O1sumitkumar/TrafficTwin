@@ -268,6 +268,8 @@ was not built, and the audit stopped after 115 of 1,500 crops; none of them was 
 
 ## Example crops (`docs/img/lane-audit/`, pred vs tag, analyst confidence)
 
+The crops are Esri World Imagery and are no longer committed (integration, licence); regenerate them locally with the crop step of `sim/network/lane_audit.py`.
+
 | crop | class | tag | read | conf | note |
 |---|---|---|---|---|---|
 | ![](img/lane-audit/1132416434.jpg) 1132416434 | motorway (Al Harameen Rd) | 4 | 4 | 0.85 | correct, clear dashes |

@@ -26,11 +26,11 @@ GASTAT open data
   used under its open-data terms of use, with attribution to GASTAT.
 
 Esri World Imagery
-  Lane counts on some untagged OpenStreetMap roads (data/osm/fixes/imagery-lanes.yaml) were
-  read from Esri World Imagery tiles (https://server.arcgisonline.com/ArcGIS/rest/services/
-  World_Imagery/MapServer). Imagery: Esri, Maxar, Earthstar Geographics, and the GIS User
-  Community. Only lane counts are derived; no imagery is redistributed except the small example
-  crops in docs/img/lane-audit/, shown with this attribution.
+  The lane audit (sim/network/lane_audit.py) reads lane counts from Esri World Imagery tiles
+  (https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer). Imagery: Esri,
+  Maxar, Earthstar Geographics, and the GIS User Community. The audit is blocked on accuracy, so no
+  imagery-derived lane count is applied to the network, and no imagery is redistributed in this
+  repository (crops stay local under data/imagery/ and docs/img/lane-audit/, both gitignored).
 
 Synthetic demand
   All simulation results are produced from synthetic demand and are

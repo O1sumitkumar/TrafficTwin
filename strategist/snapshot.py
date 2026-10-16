@@ -22,6 +22,7 @@ import traci.constants as tc
 from sim.common import SYNTHETIC_LABEL, file_hash, rel, sumo_bin, sumo_version
 from sim.events.base import EventContext
 from sim.events.registry import build_events
+from sim.metrics import xml_content_hash
 from sim.scenarios.simulate import start_sumo
 from sim.vtypes.loader import apply_mix, write_vtypes_additional
 from strategist import config as C
@@ -150,7 +151,7 @@ def warm_up(sit: Situation, snap_dir: Path) -> dict[str, Any]:
         "t_dispatch": t_dispatch,
         "edge_tt_window": [tt_begin, t_dispatch],
         "state_file": rel(snap_dir / STATE_FILE),
-        "state_hash": file_hash(snap_dir / STATE_FILE),
+        "state_hash": state_hash(snap_dir / STATE_FILE),
         "population_hash": file_hash(snap_dir / "demand.rou.xml"),
         "demand_counts": demand_counts,
         "sumo_version": sumo_version(),
@@ -178,6 +179,16 @@ def load_edge_tt(snap_dir: Path) -> dict[str, Any]:
     return json.loads((snap_dir / "edge_tt.json").read_text())
 
 
+def state_hash(path: Path) -> str:
+    """Hash of the saved state without its SUMO header comment (date, TraCI port, paths)."""
+    return xml_content_hash(path)
+
+
+def state_matches(path: Path, recorded: str | None) -> bool:
+    """Current header-free hash, or the whole-file hash recorded before integration."""
+    return recorded is not None and recorded in (state_hash(path), file_hash(path))
+
+
 def get_snapshot(
     sit: Situation, fresh: bool = False, root: Path = SNAPSHOT_DIR
 ) -> tuple[dict[str, Any], Path, bool]:
@@ -186,7 +197,7 @@ def get_snapshot(
     meta = snap_dir / META_FILE
     if not fresh and meta.exists() and (snap_dir / STATE_FILE).exists():
         record = json.loads(meta.read_text())
-        if record.get("state_hash") == file_hash(snap_dir / STATE_FILE):
+        if state_matches(snap_dir / STATE_FILE, record.get("state_hash")):
             return record, snap_dir, True
     if snap_dir.exists():
         shutil.rmtree(snap_dir)

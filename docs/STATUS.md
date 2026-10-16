@@ -53,13 +53,13 @@ Fixes and wiring done at integration:
 End to end on the merged code (10 % sample, seed 1; all **synthetic demand, uncalibrated**):
 | run | command | wall | result |
 |---|---|---|---|
-| baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3 | `sim.runner --baseline --daytype weekday --sample 0.10 --seed 1 --routing-threads 8 --gzip` | 680 s (assignment from the route cache; sim 616 s, peak 2.8 GB) | identical to Track A's run: routes hash a297ac7632dd529d, 389,289 vehicles, mean delay 1,876.5 s, 20.46 km/h, VKT 56.1 M, CO2 26,185 t; teleports 50.5 % (TA-011) |
-| remote_work_30 | `sim.runner --policy remote_work_30 --daytype weekday --sample 0.10 --seed 1` | about 15 min | mean delay -9.3 %, AM-peak -9.4 %, VKT -1.6 %, VHT -7.7 %, CO2 -6.9 % (same routes hash 01ff40085fb11d11 as Track A) |
+| baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3 | `sim.runner --baseline --daytype weekday --sample 0.10 --seed 1 --routing-threads 8 --gzip` (gzips edgeData, emissions and tripinfo; build.log and sumo.log stay plain) | 680 s (assignment from the route cache; sim 616 s, peak 2.8 GB) | identical to Track A's run: routes hash a297ac7632dd529d, 389,289 vehicles, mean delay 1,876.5 s, 20.46 km/h, VKT 56.1 M, CO2 26,185 t; teleports 50.5 % (TA-011) |
+| remote_work_30 | `sim.runner --policy remote_work_30 --daytype weekday --sample 0.10 --seed 1` | 779 s (about 13 min) | mean delay -9.3 %, AM-peak -9.4 %, VKT -1.6 %, VHT -7.7 %, CO2 -6.9 % (same routes hash 01ff40085fb11d11 as Track A) |
 | accident_tahlia-tahlia-s1-257eae8d | `sim.runner --scenario accident_tahlia --window tahlia --seed 1` | 130 s | mean delay 97.8 -> 103.5 s (+5.7 %), as in M5 |
 | strategist rec-20261016T114454Z-22d13986 | `strategist.run --scenario emergency_tahlia_0830 --window tahlia --seed 1` | 11.6 s | Route A + rescue lane 68 s, Route B + preemption 89 s, Route C 95 s; no strategy 173 s |
 | evac_corniche_hamra-tahlia-s1-162d21cb | `sim.runner --scenario evac_corniche_hamra --seed 1` | 328 s | 2,000/2,000 out; T50 1,264 s, T90 2,399 s, T100 3,004 s; background +90.1 veh-h |
 
-Viewer: all five appear in `/api/runs` with their comparison runs; screenshots
+Viewer: all five appear in `/api/runs`; the baseline, policy, accident and evacuation runs carry their comparison runs (the strategist recommendation has none: it has no run of its own, `strategist~...`); screenshots
 `docs/img/integration-{baseline,policy,policy-districts,accident,strategist,evacuation}.png`
 (`node web/scripts/screenshot-runs.mjs web/scripts/integration-shots.json`, API on 8010 because
 port 8000 was held by Track C's API).
@@ -73,6 +73,16 @@ Decisions:
   changed; native `recommendations.json` runs keep `decisions.jsonl`, strategist runs use its SQLite log.
 - I-003 Lane audit not promoted (blocked); default network unchanged.
 - I-004 trackD skipped (not done); second integration pass required.
+
+Verifier (2026-10-16, whole repo vs PROJECT.md G1-G6): G1-G5 PASS; G6, hygiene and STATUS FAILs
+fixed: NOTICE no longer claims imagery-derived lanes (audit blocked) and the 12 Esri crops in
+docs/img/lane-audit/ are untracked and gitignored (they remain in git history from trackC); the flood-site list
+stays public (I-005) with docs, .gitignore and CLAUDE.md aligned; the strategist snapshot
+`state_hash` ignores the SUMO header (approve also accepts the old whole-file hash); policy reports
+point at docs/assumptions.md; three STATUS wording fixes.
+- I-005 `data/jeddah_flood_sites.yaml` stays committed: a reviewed compilation of publicly reported
+  flood sites (press and papers, B-D-005/007) that the brief asks for. Scenario files that pair sites
+  with timings stay fictional. Reverse by untracking it if the owner treats the list as private.
 
 Could not verify: `docker compose up --build` (Docker Desktop needs someone at the Mac); a fresh,
 uncached 2 h assignment on the merged code (the cache path was exercised instead).

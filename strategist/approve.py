@@ -20,10 +20,11 @@ from typing import Any
 
 import typer
 
-from sim.common import REPO_ROOT, SYNTHETIC_LABEL, file_hash, rel
+from sim.common import REPO_ROOT, SYNTHETIC_LABEL, rel
 from strategist import config as C
 from strategist import decision_log as L
 from strategist.evaluate import run_candidate
+from strategist.snapshot import state_matches
 
 
 def _tripinfo_tt(path: Path, vid: str) -> float | None:
@@ -80,7 +81,7 @@ def approve(
             if not Path(fork["state"]).is_absolute()
             else Path(fork["state"])
         )
-        if file_hash(state) != report["snapshot"]["state_hash"]:
+        if not state_matches(state, report["snapshot"]["state_hash"]):
             raise RuntimeError(
                 f"saved state {state} changed since the recommendation (hash mismatch)"
             )
