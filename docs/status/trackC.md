@@ -146,13 +146,22 @@ Decisions
 - C-022 Gate, fixed before any read: threshold chosen on the calibration set's agreed counts with
   the C-008 rule; the holdout must reach >= 80 % at that threshold on >= 10 kept crops. All 160
   calibration and holdout reads were taken before any scoring.
-- C-023 Blocked, although the holdout alone scored 82.1 % on agreed counts: the calibration set
-  produced no threshold, choosing one on the holdout would spend it, and the pooled agreed precision
-  is 74 %. Audit crops prepared but not read.
+- C-023 Blocked, although the holdout alone scored 82.1 % on agreed counts (23/28, a thin
+  margin). The calibration set produced no threshold, and choosing one on the holdout would spend
+  it. Supporting point, added afterwards: the pooled agreed precision is 74 %. Audit crops prepared
+  but not read. The gate constants (80 %, 15 kept, 10 kept, 5 per road) are tool settings in
+  `lane_audit.py`, not behavioural assumptions.
 - C-024 `collect-reads` takes analyst replies from the subagent transcripts using a
   `READ-TAG <set>/<read>/<batch>` line in each prompt (replaces C-010's ad-hoc script).
   `imagery-eval.json` now holds attempt 2 (`protocol: two-reads`); attempt 1's file is in git at
   403d2af.
+
+Verifier: all seven checks PASS (lint, tests, holdout disjointness, two complete reads with
+different orders and crops-only folders, every number recomputed and the eval reproduced
+byte-identical, nothing written beyond allowed files, register and status line). Its wording
+fixes are applied: the Prince Majid unblock arithmetic and per-section evidence, attempt 1 read
+646811886 as 5, the sensitivity being effectively motorway-only, the instruction text quoted in
+the docs, and the holdout-info threshold set to null.
 
 Built: `lane_audit.py` additions (`combine_reads`, `evaluate_two_reads`, `read_folders`,
 `analyst_records`; CLI `subset-set`, `prepare-reads`, `collect-reads`, `evaluate-two-reads`;
@@ -165,8 +174,9 @@ Measured: calibration (50) single-read exact 66 % / 54 %, reads agree 76 %, agre
 Holdout (30) single reads 80 % / 80 %, agree 93 %, agreed 23/28 = 82.1 % (motorway 12/15, trunk
 11/13); 80.0-90.9 % at every cut keeping >= 10. Prince Majid Road (tag 3): 6 of the 12 agreed
 calibration errors; both reads say 4 on five of its ways. Sensitivity (information only, not the
-gate): without it, the calibration threshold is 0.45 (83.3 % on 18) and the holdout at 0.45 is 87.0 %
-on 23. Crops: 247 audit crops in 411 s (1,236 tiles). Ten analyst calls in parallel, about 100 s.
+gate): without it, the calibration threshold is 0.45 (83.3 % on 18), effectively motorway-only (only
+6 trunk ways remain, none agreed and correct), and the holdout at 0.45 is 87.0 % on 23 (85.0 % on
+20 without its Prince Majid ways). Crops: 247 audit crops in 411 s (1,236 tiles). Ten analyst calls in parallel, about 100 s.
 ruff clean, pytest 74 run (72 passed, 2 skipped).
 
 Not done because of the block: the audit reads, `imagery-lanes.yaml`, `jeddah.lanes.net.xml`, the
@@ -176,10 +186,14 @@ untouched.
 Could not verify: Prince Majid Road's real lane count (tag 3, edited 2026-05-17, vs three blind
 passes reading 4); the Esri capture dates.
 
-Next: a person checks Prince Majid Road (3 or 4 through lanes per direction). If it has 4, fix the
-tag or add a reviewed fix and re-run `evaluate-two-reads`. The calibration then reaches 81.6 %
-agreed, and the rule picks 0.75 (exactly 80 % on 15, so only just). Then read the 247 audit crops
-(26 calls) and run `write-fixes`, `rebuild` and the smoke. If it has 3, keep trunk out and consider a
-motorway-only pass. Integration: add `pillow` to pyproject.
+Next: a person checks the six Prince Majid Road sections read as 4 or 6 (1432320656, 1432320655,
+1024884983, 444383287, 646811886, 41519535). The other 7 calibration sections and 4 of the 5
+holdout sections read 3, so the lane count may vary along the road. If only the five sections
+read as 4 have 4, fix those tags and re-run `evaluate-two-reads`: the calibration reaches 31/38 =
+81.6 %, and the rule picks 0.75 (exactly 80 % on 15, so only just). If the whole road has 4, the
+calibration drops to 63.2 %. Then read the 247 audit crops (26 calls) and run `write-fixes`,
+`rebuild` and the smoke. If they have 3, keep trunk out. A motorway-only pass would need its own
+fresh motorway holdout, because this pass's motorway figures have been seen. Integration: add
+`pillow` to pyproject.
 
 LANE_AUDIT_V2: blocked - accuracy

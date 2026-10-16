@@ -30,12 +30,17 @@ attribution (see `NOTICE`). Google imagery was not used (its terms forbid derive
   crops (`data/imagery/<set>/reads/read-{a,b}/batch-NNN/`): blindness is enforced, not just
   instructed. A count is accepted only if both reads give the same integer **and** both
   confidences are at or above the threshold, i.e. the lower one is (`combine_reads`).
-- **Instruction.** Same as attempt 1, without the bridge-deck cap. A bridge or flyover deck with
-  clear dashed lines is read like any other carriageway. Verbatim text:
-  `data/imagery/v2-prompts/instruction.txt`. The crops, sample points and zoom are unchanged
-  (C-007).
+- **Instruction.** Same as attempt 1 (quoted under "Method" below), with one change. The
+  bridge-deck clause is removed from the "at most 0.3" list, and this sentence is added at the end:
+  "A bridge or flyover deck with clear dashed lines is read like any other carriageway." Each
+  prompt was `READ-TAG <set>/<read>/<batch>`, then the folder path, then "Glob *.png in this folder
+  and Read every image. Do not open any other file or folder.", the instruction, and "Final reply:
+  one JSON object per crop, one per line, nothing else, in your standard format." A copy is kept
+  (gitignored) in `data/imagery/v2-prompts/instruction.txt`. Crops, sample points and zoom are
+  unchanged (C-007).
 - **Calibration set** (chooses the threshold): the 50 motorway and trunk ways of attempt 1's
-  calibration and holdout sets (25 + 25), read again under the new protocol.
+  calibration (20) and holdout (30) sets, 25 motorway and 25 trunk, read again under the new
+  protocol.
 - **Fresh holdout**: 30 tagged motorway and trunk ways never used before (seed 3, excluding every
   earlier set and the reviewed fixes). It has 17 motorway and 13 trunk ways, with **at most 5 ways
   per named road and class**. Without that cap, Prince Majid Road would supply 39 of the 54
@@ -66,10 +71,12 @@ precision at every confidence cut keeping at least 10 agreed crops stays between
 
 **Decision: `LANE_AUDIT_V2: blocked - accuracy`.** The brief says to proceed only if held-out
 precision on agreed counts reaches 80 %. Read alone, the holdout figure (82.1 %) would meet that.
-It was not used, for three reasons:
+It was not used, for two reasons fixed before any read:
 1. The protocol needs a threshold from the calibration set, and the calibration set produced none.
 2. Choosing a threshold after looking at the holdout would turn it into a second calibration set.
-3. The two blind sets disagree (68 % vs 82 %). Pooled, they give 74 %, which is under 80 %.
+
+Added afterwards, not part of the gate: the two blind sets disagree (68 % vs 82 %) and pool to
+74 %. The holdout margin is also thin: 23/28, and one more error would give 78.6 %.
 Agreement between reads did raise precision (single reads 54-80 %, agreed reads 68-82 %). It did
 not remove systematic errors, because both reads usually make the same mistake on the same crop.
 The audit crops are on disk (247, `data/imagery/v2-audit/`), but none were read.
@@ -78,10 +85,13 @@ The audit crops are on disk (247, `data/imagery/v2-audit/`), but none were read.
 
 12 agreed calibration counts disagree with the tags:
 - **Prince Majid Road (trunk, tagged `lanes=3`): 6.** Both reads say 4 on five ways
-  (1432320656, 1432320655, 1024884983, 444383287, 646811886) and 6 on one (41519535). Of its 13
-  agreed calibration counts, 7 match the tag. Attempt 1 read the same ways as 4, so three
-  independent passes now agree. The tag was edited on 2026-05-17. Either the tag or the imagery
-  is out of date, and a tag-based score cannot tell which (A-network-004).
+  (1432320656, 1432320655, 1024884983, 444383287, 646811886) and 6 on one (41519535). Attempt 1
+  gave the same reads (4, and 6 on 41519535), except 646811886, which it read as 5. Of the road's
+  13 agreed calibration counts, the other 7 read 3 and match the tag. In the holdout, both reads
+  give 3 on four of its five ways and 2 on the fifth (41409169, a tunnel portal). So the road reads
+  as 3 on most sections and as 4 on a few. Either those sections really are wider, or the
+  imagery or the tag is out of date there, and a tag-based score cannot tell which
+  (A-network-004). The tag was edited on 2026-05-17.
 - **Motorway: 4 under or overcounts by one lane.** 43172347 reads 3 against tag 4: the
   carriageway has 3 lanes plus a merge lane at the gore. Also 302761815 (3 vs 4), 43172615 (3 vs 4,
   no markings, 0.3) and 46874457 (5 vs 4, 0.3).
@@ -89,17 +99,23 @@ The audit crops are on disk (247, `data/imagery/v2-audit/`), but none were read.
   carriageway, already noted in attempt 1. 134839727 reads 3 against tag 2.
 
 Sensitivity check, recorded in the eval file and **not used for the gate**: without Prince Majid
-Road, the calibration rule picks threshold 0.45 with 83.3 % on 18 kept crops. The holdout at 0.45
-is 87.0 % (20/23). So whether the audit can go ahead comes down to one fact: how many lanes per
-direction Prince Majid Road has.
+Road, the calibration rule picks threshold 0.45 with 83.3 % on 18 kept crops. That is effectively
+a motorway-only threshold: only 6 trunk ways remain, 2 agreed, none correct. The holdout at 0.45 is
+87.0 % (20/23), or 85.0 % (17/20) without its Prince Majid ways. The block therefore comes down to
+the six Prince Majid sections read as 4 or 6, plus weak evidence on other trunk roads.
 
 ### What would unblock it
 
-1. **A person checks Prince Majid Road**, on site or on recent dated imagery: 3 or 4 through lanes
-   per direction on the sampled sections. If it has 4, correct the OSM tag (and add a reviewed
-   fix). Then re-run `evaluate-two-reads`: the calibration reaches 31/38 agreed (81.6 %), and the
-   rule picks threshold 0.75 (12 of 15 kept, exactly 80 %, so only just). If it has 3, the reading
-   method overcounts wide urban trunk roads, and the trunk class should stay out of the audit.
+1. **A person checks the six Prince Majid Road sections** read as 4 or 6 (1432320656,
+   1432320655, 1024884983, 444383287, 646811886, 41519535), on site or on dated imagery. The
+   number of lanes may vary along the road, so these sections need checking one by one. If only
+   the five sections read as 4 really have 4 lanes, fix their tags (or add reviewed fixes) and re-run
+   `evaluate-two-reads`. The calibration then reaches 31/38 agreed (81.6 %), and the rule picks
+   threshold 0.75 (12 of 15 kept, exactly 80 %, so only just). If the whole road has 4, the seven
+   sections read as 3 become errors and the calibration drops to 24/38 (63.2 %). If those sections
+   have 3, the method overcounts on wide urban trunk roads, and trunk should stay out of the audit.
+   A motorway-only pass then needs its own fresh motorway holdout: it was not pre-declared here,
+   and the motorway figures (calibration 19/23, holdout 12/15) were seen.
 2. The audit is then ready to run: 26 analyst calls (247 crops x 2 reads), then
    `write-fixes`, `rebuild`, the after-smoke, and the network-effect table below.
 3. Not tried: a geometry check that drops samples whose ticks do not fall on the carriageway

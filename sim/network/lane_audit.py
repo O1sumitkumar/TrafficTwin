@@ -1135,6 +1135,7 @@ def evaluate_two_reads_cmd(
         # every agreed count (threshold 0) and recorded for information; it cannot pass.
         info = evaluate_two_reads(_set_ways(holdout_set), *_reads(holdout_set), threshold=0.0)
         info["passed"] = False
+        info["threshold"] = None  # no threshold was chosen; precision covers all agreed counts
         report["holdout_info_no_threshold"] = info
     if sensitivity_exclude_road:
         # Information only, never used for the gate: the calibration without one named road.

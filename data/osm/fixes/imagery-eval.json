@@ -983,7 +983,7 @@
       }
     ],
     "min_kept": 10,
-    "threshold": 0.0,
+    "threshold": null,
     "kept_at_threshold": 28,
     "correct_at_threshold": 23,
     "precision_at_threshold": 0.8214,
