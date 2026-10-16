@@ -37,12 +37,12 @@ from sim.common import (
     file_hash,
     load_yaml,
     python_tool_cmd,
-    rel,
     run_cmd,
     sumo_bin,
     sumo_home,
     sumo_version,
 )
+from sim.common import rel as _resolved_rel
 from sim.network.build_window import boundary_arg, cut_window, load_window
 from sim.network.netinfo import net_stats
 
@@ -52,6 +52,19 @@ LOGS_DIR = REPO_ROOT / "logs"
 TLS_TYPES = ("traffic_light", "traffic_light_unregulated", "traffic_light_right_on_red")
 SERVICE_PREFIX = "svc_"
 SPLIT_NODE_PREFIX = "svcj_"
+
+
+def rel(path: Path) -> str:
+    """Repo-relative path, also for paths under symlinked dirs (data/jeddah -> main checkout).
+
+    sim.common.rel resolves symlinks first, which turns data/jeddah/... into an absolute path
+    outside this checkout; compare the unresolved absolute path before falling back to it.
+    """
+    absolute = Path(path) if Path(path).is_absolute() else REPO_ROOT / path
+    try:
+        return str(absolute.relative_to(REPO_ROOT))
+    except ValueError:
+        return _resolved_rel(path)
 
 
 def link_config() -> dict[str, Any]:

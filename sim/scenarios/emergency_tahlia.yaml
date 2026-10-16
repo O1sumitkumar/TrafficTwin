@@ -1,5 +1,5 @@
 # FICTIONAL demo scenario (PROJECT.md section 11): ambulance trip and crash are invented.
-# The baseline runs the same ambulance trip without the crash (decision B-D-007).
+# The baseline runs the same ambulance trip without the crash (decision B-D-012).
 # Synthetic demand, uncalibrated.
 id: emergency_tahlia
 kind: scenario

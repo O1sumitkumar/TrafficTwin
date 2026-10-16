@@ -243,3 +243,27 @@ def test_gridlock_rules() -> None:
     assert sustained_halt_onset(series, g) == 10
     series["halted"] = [100 if i % 100 else 0 for i in range(n)]
     assert sustained_halt_onset(series, g) is None
+
+
+def test_scenario_vtype_mix_override(tmp_path: Path) -> None:
+    lib = load_library()
+    mix = resolve_mix({"normal": 0.6, "truck": 0.3, "bus": 0.1}, lib)
+    assert mix == {"normal": 0.6, "truck": 0.3, "bus": 0.1}
+    text = write_vtypes_additional(tmp_path / "b.xml", mix, "B", lib).read_text()
+    assert 'vTypes="normal truck bus" probabilities="0.6 0.3 0.1"' in text
+
+
+def test_throughput_collapse_rule() -> None:
+    from sim.scenarios.kpis import gridlock_params, throughput_collapse_onset
+
+    g = gridlock_params()
+    bin_s = int(g["throughput_bin_s"])
+    times = list(range(1, 4 * bin_s + 1))
+    base = {"series": {"time": times, "arrived": [1 if t % 5 == 0 else 0 for t in times]}}
+    # same arrivals: no collapse; arrivals stop in the third bin: collapse at its start
+    assert throughput_collapse_onset(base, base) is None
+    stalled = [
+        a if t <= 2 * bin_s else 0 for t, a in zip(times, base["series"]["arrived"], strict=True)
+    ]
+    scen = {"series": {"time": times, "arrived": stalled}}
+    assert throughput_collapse_onset(base, scen) == 2 * bin_s

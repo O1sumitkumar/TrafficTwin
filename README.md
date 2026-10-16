@@ -89,6 +89,7 @@ uv run python -m sim.link check --window tahlia --tier-a runs/tierA-exit-<hash>/
 # a scenario against the window baseline (same seed): runs/<id>/scenario_report.{json,md}
 uv run python -m sim.runner --scenario accident_tahlia --window tahlia --seed 1
 ```
-`runs/source-smoke-A/routes.rou.xml` is a copy of a Tier A smoke run's `routes.rou.xml`. Demo
+Create the source route set first: `uv run python -m sim.runner --smoke --tier A --seed 1`, then
+`mkdir -p runs/source-smoke-A && cp runs/smoke-A-s1-*/routes.rou.xml runs/source-smoke-A/`. Demo
 scenarios: `sim/scenarios/{accident,rain,flood,motorcade,emergency}_tahlia.yaml` (fictional).
 Results and caveats: `docs/events.md`.
