@@ -98,6 +98,300 @@
         "total_s": 633.8
       },
       "candidate": "C1"
+    },
+    "loop_c2": {
+      "label": "synthetic demand, uncalibrated",
+      "run_id": "loop_c2",
+      "policy": "loop_c2",
+      "mode": "shuttle",
+      "alignments": [
+        "C2"
+      ],
+      "compare": "baseline-weekday-f0.1-s1-e5f1906a-65fac195-f124c5",
+      "params": {
+        "speed_kmh": 90.0,
+        "capacity": "measured",
+        "occupancy": 2.0,
+        "headway_s": 5.314,
+        "pair_capacity_pph": 1355.0,
+        "wait_min": 12.5,
+        "mode": "shuttle",
+        "alpha": 0.5,
+        "radius_o_m": 1500.0,
+        "radius_d_m": 1500.0,
+        "dwell_s": 30.0,
+        "empty_reposition_factor": 0.3,
+        "shift_modes": [
+          "car",
+          "ridehail"
+        ],
+        "min_trip_km": 2.0,
+        "walk_speed_kmh": 4.5,
+        "detour_factor": 1.3
+      },
+      "tunnel_km": 10.69,
+      "stations": 5,
+      "capex_usd_m": {
+        "low": 160.3,
+        "central": 267.1,
+        "high": 427.4
+      },
+      "capex_sar_m": {
+        "low": 601.1,
+        "central": 1001.6,
+        "high": 1602.8
+      },
+      "vht_saved_per_day": 46923,
+      "vht_saved_pct": 1.71,
+      "road_vht_saved_per_day": 48026,
+      "shuttle_vht_per_day": 1103,
+      "shuttle_vkt_per_day": 74864,
+      "am_peak_delay_change_s": -2.2,
+      "am_peak_delay_change_pct": -0.11,
+      "mean_delay_change_pct": -2.35,
+      "city_am_peak_delay_change_pct": -0.34,
+      "vkt_change_pct": -0.08,
+      "vht_saved_per_km": 4391.1,
+      "vht_saved_per_usd_m": {
+        "low": 292.72,
+        "central": 175.68,
+        "high": 109.79
+      },
+      "annual_vht_saved": 11730750,
+      "passengers_per_day": 18790,
+      "car_vehicles_removed_per_day": 18790,
+      "cars_rerouted": null,
+      "flags": {
+        "teleport_share": 0.487205,
+        "teleport_share_compare": 0.505334,
+        "pair_exceedance_share": 0.0,
+        "peak_pair_pph": 240.0,
+        "segment_peak_utilisation": 0.649,
+        "segment_exceedance_share": 0.0,
+        "connect_flags": 0,
+        "share_slower_than_car": 0.6386
+      },
+      "riders": {
+        "riders": 1879,
+        "compared": 1879,
+        "mean_loop_door_to_door_min": 49.0,
+        "mean_car_min": 47.3,
+        "share_slower_than_car": 0.6386,
+        "mean_shuttle_ride_min": 5.5,
+        "mean_shuttle_depart_delay_s": 2.1,
+        "mean_access_egress_m": 1787.0
+      },
+      "headline": "loop_c2 (shuttle, 10.69 km): VHT saved 46,923/day (+1.71 %), 175.7 VHT/day per USD M (capex USD 160-427 M); synthetic demand, uncalibrated",
+      "wall_s": 685.3,
+      "policy_hash": "bf4df6e418f71298",
+      "free_gb_before": 4.5,
+      "timings": {
+        "transforms_s": 26.3,
+        "merge_s": 21.4,
+        "simulation": {
+          "wall_s": 562.8,
+          "peak_rss_mb": 2946.2
+        },
+        "report_s": 71.6,
+        "total_s": 682.9
+      },
+      "candidate": "C2"
+    },
+    "loop_c3": {
+      "label": "synthetic demand, uncalibrated",
+      "run_id": "loop_c3",
+      "policy": "loop_c3",
+      "mode": "shuttle",
+      "alignments": [
+        "C3"
+      ],
+      "compare": "baseline-weekday-f0.1-s1-e5f1906a-65fac195-f124c5",
+      "params": {
+        "speed_kmh": 90.0,
+        "capacity": "measured",
+        "occupancy": 2.0,
+        "headway_s": 5.314,
+        "pair_capacity_pph": 1355.0,
+        "wait_min": 12.5,
+        "mode": "shuttle",
+        "alpha": 0.5,
+        "radius_o_m": 1500.0,
+        "radius_d_m": 1500.0,
+        "dwell_s": 30.0,
+        "empty_reposition_factor": 0.3,
+        "shift_modes": [
+          "car",
+          "ridehail"
+        ],
+        "min_trip_km": 2.0,
+        "walk_speed_kmh": 4.5,
+        "detour_factor": 1.3
+      },
+      "tunnel_km": 17.28,
+      "stations": 8,
+      "capex_usd_m": {
+        "low": 259.2,
+        "central": 432.0,
+        "high": 691.2
+      },
+      "capex_sar_m": {
+        "low": 972.0,
+        "central": 1620.0,
+        "high": 2592.0
+      },
+      "vht_saved_per_day": -9793,
+      "vht_saved_pct": -0.36,
+      "road_vht_saved_per_day": -7065,
+      "shuttle_vht_per_day": 2727,
+      "shuttle_vkt_per_day": 152349,
+      "am_peak_delay_change_s": -1.2,
+      "am_peak_delay_change_pct": -0.06,
+      "mean_delay_change_pct": 1.05,
+      "city_am_peak_delay_change_pct": -0.52,
+      "vkt_change_pct": -0.25,
+      "vht_saved_per_km": -566.7,
+      "vht_saved_per_usd_m": {
+        "low": -37.78,
+        "central": -22.67,
+        "high": -14.17
+      },
+      "annual_vht_saved": -2448250,
+      "passengers_per_day": 35320,
+      "car_vehicles_removed_per_day": 35320,
+      "cars_rerouted": null,
+      "flags": {
+        "teleport_share": 0.503155,
+        "teleport_share_compare": 0.505334,
+        "pair_exceedance_share": 0.0,
+        "peak_pair_pph": 280.0,
+        "segment_peak_utilisation": 0.797,
+        "segment_exceedance_share": 0.0,
+        "connect_flags": 0,
+        "share_slower_than_car": 0.7419
+      },
+      "riders": {
+        "riders": 3532,
+        "compared": 3526,
+        "mean_loop_door_to_door_min": 51.0,
+        "mean_car_min": 39.1,
+        "share_slower_than_car": 0.7419,
+        "mean_shuttle_ride_min": 7.1,
+        "mean_shuttle_depart_delay_s": 19.6,
+        "mean_access_egress_m": 1790.0
+      },
+      "headline": "loop_c3 (shuttle, 17.28 km): VHT saved -9,793/day (-0.36 %), -22.7 VHT/day per USD M (capex USD 259-691 M); synthetic demand, uncalibrated",
+      "wall_s": 687.8,
+      "policy_hash": "2341b1f3fa0e7854",
+      "free_gb_before": 5.3,
+      "timings": {
+        "transforms_s": 25.7,
+        "merge_s": 20.7,
+        "simulation": {
+          "wall_s": 567.5,
+          "peak_rss_mb": 3037.4
+        },
+        "report_s": 70.7,
+        "total_s": 685.4
+      },
+      "candidate": "C3"
+    },
+    "loop_c4": {
+      "label": "synthetic demand, uncalibrated",
+      "run_id": "loop_c4",
+      "policy": "loop_c4",
+      "mode": "shuttle",
+      "alignments": [
+        "C4"
+      ],
+      "compare": "baseline-weekday-f0.1-s1-e5f1906a-65fac195-f124c5",
+      "params": {
+        "speed_kmh": 90.0,
+        "capacity": "measured",
+        "occupancy": 2.0,
+        "headway_s": 5.314,
+        "pair_capacity_pph": 1355.0,
+        "wait_min": 12.5,
+        "mode": "shuttle",
+        "alpha": 0.5,
+        "radius_o_m": 1500.0,
+        "radius_d_m": 1500.0,
+        "dwell_s": 30.0,
+        "empty_reposition_factor": 0.3,
+        "shift_modes": [
+          "car",
+          "ridehail"
+        ],
+        "min_trip_km": 2.0,
+        "walk_speed_kmh": 4.5,
+        "detour_factor": 1.3
+      },
+      "tunnel_km": 16.2,
+      "stations": 7,
+      "capex_usd_m": {
+        "low": 243.1,
+        "central": 405.1,
+        "high": 648.2
+      },
+      "capex_sar_m": {
+        "low": 911.6,
+        "central": 1519.1,
+        "high": 2430.8
+      },
+      "vht_saved_per_day": 33196,
+      "vht_saved_pct": 1.21,
+      "road_vht_saved_per_day": 35121,
+      "shuttle_vht_per_day": 1925,
+      "shuttle_vkt_per_day": 129379,
+      "am_peak_delay_change_s": -20.1,
+      "am_peak_delay_change_pct": -0.96,
+      "mean_delay_change_pct": -1.02,
+      "city_am_peak_delay_change_pct": -1.36,
+      "vkt_change_pct": -0.07,
+      "vht_saved_per_km": 2048.5,
+      "vht_saved_per_usd_m": {
+        "low": 136.55,
+        "central": 81.95,
+        "high": 51.21
+      },
+      "annual_vht_saved": 8299000,
+      "passengers_per_day": 30810,
+      "car_vehicles_removed_per_day": 30810,
+      "cars_rerouted": null,
+      "flags": {
+        "teleport_share": 0.492436,
+        "teleport_share_compare": 0.505334,
+        "pair_exceedance_share": 0.0,
+        "peak_pair_pph": 290.0,
+        "segment_peak_utilisation": 0.797,
+        "segment_exceedance_share": 0.0,
+        "connect_flags": 0,
+        "share_slower_than_car": 0.8591
+      },
+      "riders": {
+        "riders": 3081,
+        "compared": 3081,
+        "mean_loop_door_to_door_min": 51.7,
+        "mean_car_min": 26.3,
+        "share_slower_than_car": 0.8591,
+        "mean_shuttle_ride_min": 5.7,
+        "mean_shuttle_depart_delay_s": 3.0,
+        "mean_access_egress_m": 1929.0
+      },
+      "headline": "loop_c4 (shuttle, 16.2 km): VHT saved 33,196/day (+1.21 %), 82.0 VHT/day per USD M (capex USD 243-648 M); synthetic demand, uncalibrated",
+      "wall_s": 525.1,
+      "policy_hash": "734c704fd4a3f7b4",
+      "free_gb_before": 6.7,
+      "timings": {
+        "transforms_s": 25.8,
+        "merge_s": 20.4,
+        "simulation": {
+          "wall_s": 406.4,
+          "peak_rss_mb": 3090.8
+        },
+        "report_s": 68.9,
+        "total_s": 522.4
+      },
+      "candidate": "C4"
     }
   }
 }

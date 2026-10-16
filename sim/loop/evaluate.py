@@ -28,6 +28,8 @@ LOOP_DIR = Path(__file__).resolve().parent
 RESULTS = LOOP_DIR / "results"
 DISK = Path("/System/Volumes/Data")
 MIN_FREE_GB = 3.0
+NOOP = {"type": "remote_work", "share": 0.0, "days_per_week": 1, "eligible_sectors": ["government"],
+        "assumption": "no-op transform: replicate run (TA-018 noise)"}  # fmt: skip
 
 
 class DiskFull(RuntimeError):
@@ -136,6 +138,30 @@ def defaults(cfg: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def baseline_replicate(runs_dir: Path, sim_seed: int, sample: float = 0.10, seed: int = 1,
+                       quiet: bool = False) -> dict[str, Any]:  # fmt: skip
+    """The weekday baseline re-simulated with another sim seed, no policy (Track A's replicate
+    machinery, TA-018 noise check); reused when present. Returns its meta.json."""
+    from sim.policies.run import run_policy
+    from sim.schemas import Policy
+
+    rid = f"loop_noise_baseline_s{sim_seed}"
+    meta_path = runs_dir / rid / "meta.json"
+    if not meta_path.exists():
+        gb = free_gb()
+        if gb < MIN_FREE_GB:
+            raise DiskFull(f"{gb:.1f} GB free < {MIN_FREE_GB} GB")
+        null = Policy.model_validate({
+            "id": "loop_noise", "kind": "policy", "daytype": "weekday",
+            "title": f"Baseline replicate, simulation seed {sim_seed} (noise band)",
+            "transforms": [NOOP]})  # fmt: skip
+        run_policy(null, "weekday", sample, seed, runs_dir, quiet=quiet, force_simulate=True,
+                   sim_seed=sim_seed, run_id=rid)  # fmt: skip
+        for name in ("edgedata.parquet", "emissions.parquet"):
+            (runs_dir / rid / name).unlink(missing_ok=True)
+    return json.loads(meta_path.read_text())
+
+
 def blocked(reason: str) -> None:
     from sim.loop.status import append_status
 
@@ -158,6 +184,7 @@ def main(
     sample: float = typer.Option(0.10),
     seed: int = typer.Option(1),
     keep_outputs: bool = typer.Option(False, help="keep edge/emission Parquet of each run"),
+    sim_seed: int | None = typer.Option(None, help="replicate: re-simulate with this sim seed"),
     results: Path = typer.Option(RESULTS / "evaluation.json"),
 ) -> None:
     cfg = loop_config()
@@ -170,6 +197,13 @@ def main(
     else:
         params = {"speed_kmh": speed, "capacity": capacity, "toll_sar": toll}
     runs_dir = REPO_ROOT / "runs"
+    rep_base = None
+    if sim_seed is not None and sim_seed != seed:
+        try:
+            rep_base = baseline_replicate(runs_dir, sim_seed, sample, seed)
+        except DiskFull as e:
+            blocked("disk")
+            raise typer.Exit(f"stopped: {e}") from e
     for cid in todo:
         c = cands[cid]
         pid = eval_id(cid, mode, params, defaults(cfg))
@@ -177,11 +211,23 @@ def main(
                           params)  # fmt: skip
         typer.echo(f"[{pid}] {c['name']}, {c['tunnel_km']} km; {free_gb():.1f} GB free")
         try:
-            rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs)
+            if rep_base is None:
+                rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs)
+            else:
+                rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs,
+                              sim_seed=sim_seed, run_id=f"{pid}-sim{sim_seed}")  # fmt: skip
         except DiskFull as e:
             blocked("disk")
             raise typer.Exit(f"stopped: {e}") from e
         rep["candidate"] = cid
+        rep["sim_seed"] = sim_seed or seed
+        if rep_base is not None:
+            # paired estimate: policy and baseline both simulated with this sim seed
+            meta = json.loads((runs_dir / rep["run_id"] / "meta.json").read_text())
+            rep["vht_saved_vs_replicate"] = round(
+                float(rep_base["result"]["vht"]) - float(meta["result"]["vht"])
+            )
+            rep["replicate_baseline"] = rep_base["run_id"]
         merge_results(results, [rep])
         typer.echo("  " + rep["headline"])
 

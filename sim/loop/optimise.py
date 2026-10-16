@@ -116,6 +116,23 @@ def overlap(a: dict[str, Any], b: dict[str, Any], cfg: dict[str, Any]) -> bool:
     return overlaps(pd.Series({"sx": ax, "sy": ay}), [pd.Series({"sx": bx, "sy": by})], cfg)
 
 
+def per_km(e: dict[str, Any]) -> float:
+    """VHT saved per tunnel-km, on the two-seed mean when the replicate exists."""
+    v = e.get("vht_mean", e["vht_saved_per_day"])
+    return float(v) / float(e["tunnel_km"]) if e["tunnel_km"] else -1e9
+
+
+def pair_seeds(evals: dict[str, dict[str, Any]], runs: dict[str, dict[str, Any]]) -> None:
+    """Attach the sim-seed-2 estimate (vs the seed-2 baseline replicate) and the two-seed mean."""
+    for e in evals.values():
+        r2 = runs.get(f"{e['run_id']}-sim2")
+        if r2 is None or r2.get("vht_saved_vs_replicate") is None:
+            continue
+        e["vht_s2"] = int(r2["vht_saved_vs_replicate"])
+        e["vht_mean"] = round((e["vht_saved_per_day"] + e["vht_s2"]) / 2.0)
+        e["per_usd_mean"] = round(e["vht_mean"] / e["capex_usd_m"]["central"], 2)
+
+
 def greedy(
     cands: dict[str, dict[str, Any]],
     evals: dict[str, dict[str, Any]],
@@ -123,7 +140,7 @@ def greedy(
     noise_vht: float,
     cfg: dict[str, Any],
 ) -> tuple[list[str], list[dict[str, Any]]]:
-    order = sorted(evals, key=lambda c: -(evals[c]["vht_saved_per_km"] or -1e9))
+    order = sorted(evals, key=lambda c: -per_km(evals[c]))
     chosen: list[str] = []
     used = 0.0
     log = []
@@ -131,8 +148,11 @@ def greedy(
         e, c = evals[cid], cands[cid]
         km = float(e["tunnel_km"])
         why = "selected"
-        if e["vht_saved_per_day"] <= noise_vht:
-            why = f"saving {e['vht_saved_per_day']:,} <= noise {noise_vht:,.0f} VHT/day"
+        s1, s2 = e["vht_saved_per_day"], e.get("vht_s2")
+        if s2 is not None and min(s1, s2) <= 0:
+            why = f"not consistent across sim seeds ({s1:,} / {s2:,} VHT/day)"
+        elif s2 is None and s1 <= noise_vht:
+            why = f"saving {s1:,} <= noise {noise_vht:,.0f} VHT/day (one seed)"
         elif used + km > budget:
             why = f"over budget ({used + km:.1f} > {budget:g} km)"
         elif any(overlap(c, cands[o], cfg) for o in chosen):
@@ -144,7 +164,7 @@ def greedy(
             {
                 "candidate": cid,
                 "km": km,
-                "vht_saved_per_km": e["vht_saved_per_km"],
+                "vht_saved_per_km": round(per_km(e), 1),
                 "decision": why,
                 "cumulative_km": round(used, 2),
             }
@@ -152,54 +172,20 @@ def greedy(
     return chosen, log
 
 
-def noise_runs(runs_dir: Path, base_vht: float, quiet: bool) -> dict[str, Any]:
+def noise_runs(runs_dir: Path, base_vht: float, base_tele: float, quiet: bool) -> dict[str, Any]:
     """Baseline replicate with sim seed 2 (Track A machinery), reused when present."""
-    from sim.policies.run import run_policy
-    from sim.schemas import Policy
+    from sim.loop.evaluate import baseline_replicate
 
-    rid = "loop_noise_baseline_s2"
-    meta_path = runs_dir / rid / "meta.json"
-    if not meta_path.exists():
-        null = Policy.model_validate(
-            {
-                "id": "loop_noise",
-                "kind": "policy",
-                "daytype": "weekday",
-                "title": "Baseline replicate, simulation seed 2 (noise band)",
-                "transforms": [
-                    {
-                        "type": "remote_work",
-                        "share": 0.0,
-                        "days_per_week": 1,
-                        "eligible_sectors": ["government"],
-                        "assumption": "no-op transform: replicate run (TA-018 noise)",
-                    }
-                ],
-            }
-        )
-        run_policy(
-            null,
-            "weekday",
-            SAMPLE,
-            SEED,
-            runs_dir,
-            quiet=quiet,
-            force_simulate=True,
-            sim_seed=2,
-            run_id=rid,
-        )
-        for name in ("edgedata.parquet", "emissions.parquet"):
-            (runs_dir / rid / name).unlink(missing_ok=True)
-    meta = json.loads(meta_path.read_text())
+    meta = baseline_replicate(runs_dir, 2, SAMPLE, SEED, quiet)
     vht = float(meta["result"]["vht"])
-    am = float(meta["result"]["am_peak_mean_delay_s"])
     return {
-        "run": rid,
+        "run": meta["run_id"],
         "vht": vht,
         "vht_delta": round(vht - base_vht),
         "noise_vht": round(abs(vht - base_vht)),
-        "am_peak_delay_s": am,
+        "am_peak_delay_s": float(meta["result"]["am_peak_mean_delay_s"]),
         "teleport_share": meta["result"]["teleport_share"],
+        "teleport_share_delta": round(meta["result"]["teleport_share"] - base_tele, 4),
     }
 
 
@@ -244,11 +230,16 @@ def table(rows: list[dict[str, Any]], cols: list[tuple[str, str]]) -> str:
     return "\n".join([head, sep, *body])
 
 
+def per_usd_text(e: dict[str, Any]) -> str:
+    v = float(e.get("vht_mean", e["vht_saved_per_day"]))
+    c = e["capex_usd_m"]
+    return f"{v / c['central']:.1f} ({v / c['high']:.1f} to {v / c['low']:.1f})"
+
+
 def rank_rows(cands: dict[str, dict[str, Any]], evals: dict[str, dict[str, Any]]) -> list[dict]:
     rows = []
     for cid, e in evals.items():
         c = cands[cid]
-        per = e["vht_saved_per_usd_m"]
         rows.append(
             {
                 "id": cid,
@@ -258,11 +249,13 @@ def rank_rows(cands: dict[str, dict[str, Any]], evals: dict[str, dict[str, Any]]
                 "stations": e["stations"],
                 "pax": e["passengers_per_day"],
                 "vht": e["vht_saved_per_day"],
+                "vht2": e.get("vht_s2"),
+                "vht_mean": e.get("vht_mean", e["vht_saved_per_day"]),
                 "vht_pct": e["vht_saved_pct"],
                 "road_vht": e["road_vht_saved_per_day"],
                 "am": e["am_peak_delay_change_pct"],
-                "per_km": e["vht_saved_per_km"],
-                "per_usd": f"{per['central']:.1f} ({per['high']:.1f}-{per['low']:.1f})",
+                "per_km": round(per_km(e), 1),
+                "per_usd": per_usd_text(e),
                 "capex": f"{e['capex_usd_m']['low']:,.0f}-{e['capex_usd_m']['high']:,.0f}",
                 "exceed": e["flags"].get("pair_exceedance_share"),
                 "slower": e["flags"].get("share_slower_than_car"),
@@ -283,8 +276,10 @@ RANK_COLS = [
     ("km", "tunnel-km"),
     ("stations", "stations"),
     ("pax", "passengers/day"),
-    ("vht", "city VHT saved/day"),
-    ("vht_pct", "VHT %"),
+    ("vht", "city VHT saved/day (seed 1)"),
+    ("vht2", "seed 2"),
+    ("vht_mean", "mean"),
+    ("vht_pct", "VHT % (seed 1)"),
     ("road_vht", "road VHT saved/day"),
     ("am", "AM-peak delay %"),
     ("per_km", "VHT/day per km"),
@@ -354,6 +349,7 @@ def optimise(run: bool = True, budget: float | None = None, quiet: bool = False)
         for r in ev_doc["runs"].values()
         if r.get("candidate") and r["run_id"] == f"loop_{r['candidate'].lower()}"
     }
+    pair_seeds(evals, ev_doc["runs"])
     missing = sorted(set(cands) - set(evals))
     if missing and run:
         for cid in missing:
@@ -367,7 +363,12 @@ def optimise(run: bool = True, budget: float | None = None, quiet: bool = False)
         (runs_dir / next(iter(evals.values()))["compare"] / "meta.json").read_text()
     )
     noise = (
-        noise_runs(runs_dir, float(base_meta["result"]["vht"]), quiet)
+        noise_runs(
+            runs_dir,
+            float(base_meta["result"]["vht"]),
+            base_meta["result"]["teleport_share"],
+            quiet,
+        )
         if run
         else (json.loads((RESULTS / "optimise.json").read_text())["noise"])
     )
