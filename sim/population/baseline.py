@@ -115,8 +115,15 @@ def tier_a_options(cfg: dict[str, Any] | None = None) -> list[str]:
     cfg = cfg or baseline_config()
     rc = runner_config()
     opts = [*flatten(rc["sumo_common"]), *flatten(rc["tier_A"]["options"])]
-    replace = cfg.get("tier_A_overrides", {}).get("replace", {})
-    return [replace.get(o, o) for o in opts]
+    over = cfg.get("tier_A_overrides", {})
+    replace = over.get("replace", {})
+    opts = [replace.get(o, o) for o in opts]
+    for flag, value in over.get("set", {}).items():
+        if flag in opts:
+            opts[opts.index(flag) + 1] = str(value)
+        else:
+            opts += [flag, str(value)]
+    return opts
 
 
 def dua_command(
@@ -149,6 +156,8 @@ def dua_command(
     )  # fmt: skip
     if tls is not None:
         cmd += ["--meso-tls-penalty", tls]
+    if int(a.get("inc_base", 0)) > 0:
+        cmd += ["--inc-base", str(a["inc_base"]), "--inc-max", "1"]
     cmd += ["duarouter--routing-threads", str(a["routing_threads"])]
     for k in range(0, len(tau_opts), 2):
         cmd += [f"sumo{tau_opts[k]}", tau_opts[k + 1]]
