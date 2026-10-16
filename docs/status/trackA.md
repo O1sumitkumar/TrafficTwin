@@ -289,7 +289,7 @@ Measured (all synthetic):
 - City check (weekday 10 % baseline as candidates, 389,289 vehicles; counts derived from the
   baseline's own edgeData with `sim.adapters.baseline_counts`, 50 edges, A-cal-006): hours 10-11
   only 80.0 % (FAIL: the first hour has no warm-up traffic, 64 %, volume 0.81; second hour 96 %),
-  78 s (run calibrate-weekday-s1-403c1c1c-334e0110); full day 0-23, 1,200 counts: 87.7 % PASS
+  78-114 s over two identical-result runs (run calibrate-weekday-s1-3589cd5a-334e0110); full day 0-23, 1,200 counts: 87.7 % PASS
   (hourly 62-96 %, mean GEH 2.48), 101,578 vehicles sampled, 508 s with routeSampler 399 s, peak
   RSS routeSampler 4.2 GB, SUMO 2.6 GB (run calibrate-weekday-s1-f40885bc-334e0110; identical GEH
   in an earlier run before the run-id fix).
@@ -324,3 +324,10 @@ or detectors that do not map one-to-one to SUMO edges; whether the GEH target ho
 baseline network capacity issue (TA-011) is fixed.
 Integration notes: new files only (no shared file touched); README demo commands to add at
 integration; `docs/calibration.md` is the page to link from the README.
+- Verifier round 2: PASS on all criteria (ruff clean, 87 passed, determinism re-checked from scratch,
+  city numbers matched). Its two minor notes were fixed after: travel-time output now says
+  "segment-hours" (10 segments x 2 h) instead of "segments"; the hours 10-11 city run was
+  regenerated from the committed generator (run id 3589cd5a, identical GEH).
+
+Verifier: PASS (round 2, 2026-10-16).
+M8: done

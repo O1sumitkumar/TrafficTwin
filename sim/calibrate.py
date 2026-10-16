@@ -342,7 +342,8 @@ def write_markdown(meta: dict[str, Any], path: Path) -> None:
     if meta.get("travel_times"):
         t = meta["travel_times"]
         lines.append(
-            f"- Travel times: {t['matched']}/{t['segments']} segments matched; within "
+            f"- Travel times: {t['matched']}/{t['segment_hours']} segment-hours matched "
+            f"({t['segments']} segments); within "
             f"+/-{t['tolerance']:.0%}: {t['share_within_tolerance']}; mean abs rel error "
             f"{t['mean_abs_rel_error']}"
         )

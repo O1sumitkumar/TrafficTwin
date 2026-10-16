@@ -105,7 +105,8 @@ def compare(
         )
     n = len(rows)
     return {
-        "segments": len(records),
+        "segment_hours": len(records),
+        "segments": len({r.segment_id for r in records}),
         "matched": n,
         "unmatched": unmatched,
         "tolerance": tolerance,

@@ -92,7 +92,7 @@ uv run python -m sim.calibrate --counts /tmp/city24/counts.csv --daytype weekday
 
 | run (id) | eligible edges | counts | GEH < 5 | mean GEH | sampled vehicles | wall; peak RSS |
 |---|---|---|---|---|---|---|
-| hours 10-11 (`calibrate-weekday-s1-403c1c1c-334e0110`) | 4,845 | 100 | 80.0 % (FAIL); hour 10: 64 %, volume 0.81; hour 11: 96 %, volume 1.00 | 3.51 | 6,938 | 78 s; routeSampler 4.2 GB |
+| hours 10-11 (`calibrate-weekday-s1-3589cd5a-334e0110`) | 4,845 | 100 | 80.0 % (FAIL); hour 10: 64 %, volume 0.81; hour 11: 96 %, volume 1.00 | 3.51 | 6,938 | 78-114 s; routeSampler 3.8-4.2 GB (two identical-result runs) |
 | full day 0-23 (`calibrate-weekday-s1-f40885bc-334e0110`) | 7,535 | 1,200 | **87.7 % (PASS)**; hourly 62-96 % | 2.48 | 101,578 | 508 s (routeSampler 399 s); routeSampler 4.2 GB, SUMO 2.6 GB |
 
 The full-day result was identical in two runs (before and after the run-id fix). Wall times were
