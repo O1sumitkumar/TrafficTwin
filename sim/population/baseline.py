@@ -188,6 +188,8 @@ def run_baseline(
     end: int | None = None,
     zone_dir: Path | None = None,
     quiet: bool = False,
+    routing_threads: int | None = None,
+    gz: bool = False,
 ) -> dict[str, Any]:
     from sim import metrics
     from sim.metrics import xml_content_hash
@@ -196,6 +198,10 @@ def run_baseline(
     cfg = baseline_config()
     if iterations is not None:
         cfg["assignment"]["iterations"] = iterations
+    if routing_threads:
+        # not repeatable: the run records routes_deterministic false (TA-015)
+        cfg["assignment"] = {**cfg["assignment"], "routing_threads": routing_threads}
+    ext = ".xml.gz" if gz else ".xml"  # gzip: 10 % city outputs are ~3 GB uncompressed (TA-016)
     net = Path(net or REPO_ROOT / cfg["net"])
     runs_dir = Path(runs_dir or REPO_ROOT / "runs")
     sim_end = int(end if end is not None else cfg["end"])
@@ -271,10 +277,10 @@ def run_baseline(
     add = out / "outputs.add.xml"
     add.write_text(
         "<additional>\n"
-        f'    <edgeData id="ed" freq="{cfg["edgedata_freq_s"]}" file="edgedata.xml" '
+        f'    <edgeData id="ed" freq="{cfg["edgedata_freq_s"]}" file="edgedata{ext}" '
         f'excludeEmpty="true" begin="0" end="{run_end}"/>\n'
         f'    <edgeData id="em" type="emissions" freq="{cfg["emissions_freq_s"]}" '
-        f'file="emissions.xml" excludeEmpty="true" begin="0" end="{run_end}"/>\n'
+        f'file="emissions{ext}" excludeEmpty="true" begin="0" end="{run_end}"/>\n'
         "</additional>\n"
     )
     args = [
@@ -284,7 +290,7 @@ def run_baseline(
         "--begin", str(cfg["begin"]),
         "--end", str(run_end),
         "--seed", str(seed),
-        "--tripinfo-output", str(out / "tripinfo.xml"),
+        "--tripinfo-output", str(out / f"tripinfo{ext}"),
         "--device.emissions.probability", "1",
         "--statistic-output", str(out / "stats.xml"),
         "--log", str(out / "sumo.log"),

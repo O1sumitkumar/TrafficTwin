@@ -38,7 +38,8 @@ def resolve_events(
     for ev in scenario.events:
         if isinstance(ev, Evacuation):
             raise NotImplementedError(
-                f"event {ev.id}: evacuation is milestone M7 and cannot run yet"
+                f"event {ev.id}: evacuation scenarios run through sim.events.evacuation.run "
+                "(sim.runner --scenario dispatches there; B-D-026)"
             )
         if isinstance(ev, Accident):
             plans.append(accident.resolve(ev, idx, ids))
@@ -58,6 +59,10 @@ def baseline_plans(plans: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def build_events(plans: list[dict[str, Any]]) -> list[Event]:
+    if any(p["type"] == "evacuation" for p in plans) and "evacuation" not in EVENT_CLASSES:
+        from sim.events.evacuation import register_event_classes  # lazy: avoids an import cycle
+
+        register_event_classes()
     return [EVENT_CLASSES[p["type"]](p) for p in plans]
 
 

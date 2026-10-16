@@ -18,6 +18,10 @@ SOURCES = (
     "sim/events/weather.yaml",
     "sim/events/events.yaml",
     "sim/scenarios/kpis.yaml",
+    # integration (B-D-024, B-D-031): strategist and evacuation rows join the track register
+    "strategist/strategist.yaml",
+    "strategist/weights.yaml",
+    "sim/scenarios/evac_settings.yaml",
 )
 # Rows whose values live in a file another agent maintains (data/jeddah_flood_sites.yaml).
 EXTRA_ROWS = (

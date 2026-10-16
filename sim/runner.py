@@ -282,9 +282,19 @@ def print_report(meta: dict[str, Any], out: Path) -> None:
 def run_scenario_cli(
     scenario: str, window: str | None, seed: int, runs_dir: Path, serial: bool = False
 ) -> None:
-    """Scenario on a focus window vs its baseline (M5); logic in sim/scenarios/run.py."""
-    from sim.scenarios.run import run_scenario
+    """Scenario on a focus window vs its baseline (M5); logic in sim/scenarios/run.py.
 
+    Scenarios with an evacuation event run through sim.events.evacuation (M7, B-D-026).
+    """
+    from sim.scenarios.run import load_scenario, run_scenario
+    from sim.scenarios.schema import Evacuation
+
+    if any(isinstance(ev, Evacuation) for ev in load_scenario(scenario).events):
+        from sim.events.evacuation import run as run_evacuation
+
+        res = run_evacuation(scenario, window, seed, runs_dir=runs_dir, parallel=not serial)
+        typer.echo((res["out"] / "evacuation_report.md").read_text())
+        return
     run_scenario(scenario, window, seed, runs_dir, parallel=not serial)
 
 
@@ -316,6 +326,10 @@ def main(
     sample: float = typer.Option(0.10, help="population sample for --baseline"),
     iterations: int | None = typer.Option(None, help="override duaIterate steps (--baseline)"),
     policy: str | None = typer.Option(None, help="policy id or YAML path (Tier A, M4)"),
+    routing_threads: int | None = typer.Option(
+        None, help="--baseline: override duarouter threads (routes then not repeatable, TA-015)"
+    ),
+    gzip: bool = typer.Option(False, "--gzip", help="--baseline: gzip SUMO outputs (TA-016)"),
 ) -> None:
     if scenario is not None:
         return run_scenario_cli(scenario, window, seed, runs_dir, serial)
@@ -326,7 +340,10 @@ def main(
     if baseline:
         from sim.population.baseline import run_baseline
 
-        run_baseline(daytype, seed, sample, net, runs_dir, iterations, end)
+        run_baseline(
+            daytype, seed, sample, net, runs_dir, iterations, end,
+            routing_threads=routing_threads, gz=gzip,
+        )  # fmt: skip
         return
     if not smoke:
         raise typer.BadParameter("only --smoke is implemented in M1 (baselines arrive in M2)")
