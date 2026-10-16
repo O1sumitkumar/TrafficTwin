@@ -1,0 +1,44 @@
+# Calibration settings (python -m sim.calibrate). Every behavioural or acceptance value carries an
+# assumption id registered in docs/assumptions-trackA.md. All results stay labelled
+# "synthetic demand, uncalibrated" until a calibration against real counts has been reviewed.
+
+geh:
+  threshold: 5.0            # A-cal-001
+  target_share: 0.85        # A-cal-001
+travel_time:
+  tolerance: 0.15           # A-cal-002: simulated segment time within +/-15 % of observed
+counts:
+  interval_s: 3600          # the count CSV is hourly (PROJECT.md 9.12)
+  # A-cal-003: two detectors reporting the same edge and hour are taken as repeated measurements
+  # of one flow and averaged (lane detectors must be summed upstream, in the partner's export)
+  duplicate_policy: mean
+  max_hour: 47              # allows the after-midnight tail of a day (runs end at 26:00)
+
+route_sampler:
+  # SUMO's routeSampler.py: greedy sampling of candidate routes against edge counts. The
+  # linear-programming optimiser (--optimize) needs scipy, which is not a project dependency.
+  edgedata_attribute: count
+  # --keep-attributes is NOT used: it restores each candidate's original depart time, which breaks
+  # the hourly placement. Sampled vehicles get one vType (below, copied from the candidate file if
+  # defined there; SUMO's default type otherwise); the candidates' mode mix is not preserved.
+  vehicle_type: car
+  extra_options: []
+
+# Simulation of the calibrated routes (round trip). Tier A = meso, with the baseline's capacity
+# scaling when the counts are fitted on a population sample.
+simulation:
+  measure_attribute: entered
+  tail_s: 1800              # simulate past the last counted hour so vehicles finish
+
+# Synthetic counts for the round-trip test (python -m sim.adapters.synthetic). Not real data.
+# The truth demand and the candidate routes come from different random-trip seeds, so the fit is
+# not a copy of the truth: routeSampler must choose among unrelated candidate routes.
+synthetic:
+  min_hourly_count: 30      # A-cal-004: only edges with at least this flow get a "detector"
+  detectors: 40
+  travel_time_segments: 10
+  begin: 0
+  end: 7200                 # two counted hours, so the hourly intervals are exercised
+  truth_trips: {period: 2.0, fringe_factor: 5, min_distance: 300, vclass: passenger}
+  candidate_trips: {period: 0.5, fringe_factor: 5, min_distance: 300, vclass: passenger}
+  candidate_seed_offset: 1000
