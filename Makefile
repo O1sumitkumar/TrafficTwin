@@ -20,7 +20,7 @@ CITY_NET := data/jeddah/jeddah.net.xml
 M2_NET := data/jeddah/jeddah.m2.net.xml
 
 .PHONY: demo setup city-net demo-runs ingest serve city city-baseline test screenshots stop clean-demo \
-	movies movie showreel movies-check
+	movies movie showreel movies-check movies-docs
 
 demo: setup $(if $(filter 1,$(CITY)),city-net) demo-runs ingest serve
 
@@ -96,5 +96,8 @@ movies: movies-check
 	mkdir -p logs
 	set -o pipefail; $(UV) run python -m scripts.movies.render --all $(MOVIE_FLAGS) 2>&1 | tee logs/movies.log
 	$(UV) run python -m scripts.movies.showreel
+	$(UV) run python -m scripts.movies.assets
 showreel:
 	$(UV) run python -m scripts.movies.showreel
+movies-docs:
+	$(UV) run python -m scripts.movies.assets

@@ -290,3 +290,19 @@ def test_render_smoke_ten_frames_deterministic(tmp_path: Path) -> None:
         assert set(meta["frame_sha256_16"]) == {"0", "5", "9"}
     # same spec + same run => identical first, middle and last frames
     assert metas[0]["frame_sha256_16"] == metas[1]["frame_sha256_16"]
+
+
+def test_settings_assumptions_are_registered() -> None:
+    import re
+
+    import yaml
+
+    settings = (REPO_ROOT / "scripts" / "movies" / "settings.yaml").read_text()
+    ids = set(re.findall(r"A-mov-\d{3}", settings))
+    register = (REPO_ROOT / "docs" / "assumptions-trackE.md").read_text()
+    assert ids and ids <= set(re.findall(r"^\| (A-mov-\d{3}) ", register, re.M))
+    for block in yaml.safe_load(settings).values():
+        if isinstance(block, dict):
+            for v in block.values():
+                if isinstance(v, dict) and "id" in v:
+                    assert "source" in v or "assumption" in v, v["id"]
