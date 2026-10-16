@@ -6,13 +6,15 @@ All results: **synthetic demand, uncalibrated.** Tier A (meso), 10 % weekday bas
 ## LOOP — in progress (2026-10-16)
 
 Decisions:
-- TD-001 Loop policies extend Track A's `Policy` (`sim/loop/schema.py: LoopPolicy`, two new
-  transforms `loop_shuttle`, `loop_private`) and run through Track A's `run_policy` unchanged:
+- TD-001 Loop policies extend Track A's policy schema with two transforms (`loop_shuttle`,
+  `loop_private`, `sim/loop/schema.py`) and run through Track A's `run_policy` unchanged:
   `sim/loop/run.py` swaps in a dispatcher that knows the Loop transforms for the duration of the
-  call (same run-time override pattern as Track A's `baseline_launch`). No Track A file edited;
-  Track A's transform dispatch is an if-chain, not a registry, so no registration line was needed.
-  `python -m sim.validate` does not know Loop policies; use `LoopPolicy` (integration may add
-  the two transforms to `sim.schemas.Transform`).
+  call (same run-time override pattern as Track A's `baseline_launch`) and caps one-shot
+  re-routing at 4 threads (machine rule). Track A's `sim.schemas.Transform` union is the transform
+  registry: Track A's test validates every `sim/policies/*.yaml` with `Policy`, so the Loop
+  transforms are registered with the one allowed appended line in `sim/schemas.py`
+  (`import sim.loop.schema`), which adds them to `Policy.transforms` and rebuilds the model. No
+  other Track A file is edited.
 - TD-002 Tunnel network (`sim/loop/network.py`): per alignment a tunnel node under each station,
   one 1-lane tunnel edge per direction between consecutive stations (crow distance x 1.15), and
   a down ramp (loading, 30 s stop) and up ramp per station to the nearest non-signalised junction

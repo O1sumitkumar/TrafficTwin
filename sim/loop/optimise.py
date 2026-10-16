@@ -47,6 +47,7 @@ from sim.policies.edges import utm_xy
 
 LOOP_DIR = Path(__file__).resolve().parent
 DOC = REPO_ROOT / "docs" / "loop.md"
+RECOMMENDED = REPO_ROOT / "sim" / "policies" / "loop_recommended.yaml"
 SAMPLE, SEED = 0.10, 1
 
 # (run suffix, mode, params, role, what it tests)
@@ -395,9 +396,25 @@ def optimise(run: bool = True, budget: float | None = None, quiet: bool = False)
             prev = RESULTS / "optimise.json"
             if prev.exists():
                 result["replicate"] = json.loads(prev.read_text()).get("replicate")
+    if best is not None:
+        suffix, mode, params = next((s, m, p) for s, m, p, _, _ in SWEEP if s == best["suffix"])
+        write_policy_yaml(sweep_policy(suffix, mode, params, chosen, tag), RECOMMENDED, best)
     (RESULTS / "optimise.json").write_text(json.dumps(result, indent=2, default=float))
     render(result, cands, evals, cfg)
     return result
+
+
+def write_policy_yaml(pol: Any, path: Path, best: dict[str, Any]) -> None:
+    """The recommended configuration as a reusable policy file (python -m sim.loop.run ...)."""
+    import yaml
+
+    doc = pol.model_dump(exclude_none=True, exclude={"report"})
+    doc["id"] = path.stem
+    head = (
+        f"# Recommended Loop configuration (python -m sim.loop.optimise; run {best['run']}).\n"
+        f"# {SYNTHETIC_LABEL}. Run: uv run python -m sim.loop.run {path.stem}\n"
+    )
+    path.write_text(head + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=100))
 
 
 def band(

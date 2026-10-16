@@ -98,6 +98,24 @@ LoopTransform = Annotated[
 ]
 
 
+def register_loop_transforms() -> None:
+    """Add the Loop transforms to Track A's `Policy` transform union (sim.schemas registers them
+    with one appended import line, so `python -m sim.validate` and `load_policy` accept Loop
+    policies). Idempotent."""
+    from pydantic.fields import FieldInfo
+
+    if getattr(Policy, "_loop_registered", False):
+        return
+    ann = list[LoopTransform]
+    Policy.__annotations__["transforms"] = ann
+    Policy.model_fields["transforms"] = FieldInfo.from_annotated_attribute(ann, Field(min_length=1))
+    Policy.model_rebuild(force=True)
+    Policy._loop_registered = True  # type: ignore[attr-defined]
+
+
+register_loop_transforms()
+
+
 class LoopPolicy(Policy):
     transforms: list[LoopTransform] = Field(min_length=1)  # type: ignore[assignment]
 

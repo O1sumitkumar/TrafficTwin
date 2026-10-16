@@ -60,7 +60,8 @@ def test_shuttle_demo_report_and_determinism(lenv: dict, tmp_path: Path) -> None
     assert rep["mode"] == "shuttle" and rep["passengers_per_day"] > 0
     assert rep["car_vehicles_removed_per_day"] == rep["passengers_per_day"]
     assert rep["capex_usd_m"]["low"] < rep["capex_usd_m"]["central"] < rep["capex_usd_m"]["high"]
-    assert rep["tunnel_km"] == pytest.approx(sum(m["net_change"]["alignment_km"].values()), abs=0.01)
+    km = sum(m["net_change"]["alignment_km"].values())
+    assert rep["tunnel_km"] == pytest.approx(km, abs=0.01)
     for k in ("teleport_share", "pair_exceedance_share", "segment_peak_utilisation",
               "share_slower_than_car"):  # fmt: skip
         assert k in rep["flags"]
