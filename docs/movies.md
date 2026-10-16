@@ -209,20 +209,20 @@ is constant within a segment: rate = (sim_t1 - sim_t0) / (t1 - t0).
 ## Performance (M3 Pro, 1920x1080, 30 fps)
 
 Budgets: browser at most 2 GB RSS, at most 1 GB per film on disk during the render (bundle plus one
-chunk of 150 PNG frames), no frames left behind. Measured on the full render of 16 Oct 2026
+chunk of 150 PNG frames), no frames left behind. Measured on the final full render of 16 Oct 2026 (`make movies`)
 (`movies/<film>.json`; hardware WebGL, ANGLE Metal on the Apple M3 Pro; another agent was
 simulating in parallel):
 
 | film | size | frames | duration | MP4 | GIF | per frame | total | browser RSS max | disk max |
 |---|---|---|---|---|---|---|---|---|---|
-| `city-24h` | 1920x1080 | 1200 | 40.00 s | 85.4 MB | 2.49 MB | 0.17 s | 257 s | 1188 MB | 278 MB |
-| `tahlia-street` | 1920x1080 | 900 | 30.00 s | 21.6 MB | 2.19 MB | 0.12 s | 156 s | 1230 MB | 177 MB |
-| `incident` | 1920x1080 | 960 | 32.00 s | 30.1 MB | 2.25 MB | 0.14 s | 182 s | 1171 MB | 152 MB |
-| `events` | 1920x1080 | 1080 | 36.00 s | 37.0 MB | 1.81 MB | 0.13 s | 203 s | 1063 MB | 158 MB |
-| `strategist` | 1920x1080 | 1200 | 40.00 s | 28.1 MB | 2.43 MB | 0.13 s | 215 s | 1004 MB | 119 MB |
-| `evacuation` | 1920x1080 | 1200 | 40.00 s | 49.0 MB | 2.79 MB | 0.18 s | 270 s | 1216 MB | 195 MB |
-| `policy-lab` | 1920x1080 | 1080 | 36.00 s | 41.2 MB | 2.57 MB | 0.17 s | 236 s | 1163 MB | 241 MB |
-| `showreel` | 1920x1080 | 5241 | 174.7 s | 173.5 MB | 2.92 MB | - | about 3 min | - | - |
+| `city-24h` | 1920x1080 | 1200 | 40.00 s | 85.4 MB | 2.49 MB | 0.16 s | 253 s | 1133 MB | 278 MB |
+| `tahlia-street` | 1920x1080 | 900 | 30.00 s | 21.6 MB | 2.83 MB | 0.12 s | 154 s | 1009 MB | 97 MB |
+| `incident` | 1920x1080 | 960 | 32.00 s | 30.1 MB | 2.25 MB | 0.14 s | 180 s | 1119 MB | 152 MB |
+| `events` | 1920x1080 | 1080 | 36.00 s | 37.0 MB | 2.19 MB | 0.13 s | 197 s | 1036 MB | 158 MB |
+| `strategist` | 1920x1080 | 1200 | 40.00 s | 28.1 MB | 2.43 MB | 0.13 s | 205 s | 1134 MB | 119 MB |
+| `evacuation` | 1920x1080 | 1200 | 40.00 s | 49.0 MB | 2.42 MB | 0.18 s | 269 s | 1216 MB | 195 MB |
+| `policy-lab` | 1920x1080 | 1080 | 36.00 s | 41.2 MB | 2.20 MB | 0.17 s | 234 s | 1475 MB | 241 MB |
+| `showreel` | 1920x1080 | 5241 | 174.7 s | 173.5 MB | 2.60 MB | - | about 3 min | - | - |
 
 "per frame" is draw + screenshot; "total" adds the bundle, chunk encoding, concat and GIF. All
 seven films render in about 25 minutes; the bundles take 1-10 s each (the first build of a

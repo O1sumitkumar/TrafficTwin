@@ -26,6 +26,10 @@ synthetic demand, uncalibrated.
   Track A's matched-control policy runs and Track B's event runs (rain, flood, motorcade,
   emergency) and the strategist recommendation `rec-20261016T114454Z-22d13986`. All read only.
   `data/windows` is a symlink to the main checkout (window networks).
+- **E-D-006 Previews and hashes.** The poster is the middle frame of the shot holding the film's
+  midpoint (the midpoint itself can fall on a cut and be black); determinism hashes are taken on the
+  first, middle and last frames with content (not fully faded). GIFs are 10 fps so they last
+  exactly 6 s (GIF delays are hundredths of a second; 8 or 12 fps gave 6.01 s).
 - **E-D-007 One new SUMO run.** The M7 evacuation runs are "as written" (simultaneous release, no
   contraflow), so the evacuation film had nothing to show for contraflow and phasing. One window run
   was added: the strategist's `near_first_full` candidate written into a copy of the scenario
@@ -53,3 +57,39 @@ synthetic demand, uncalibrated.
 - **E-D-013 Loop.** `docs/loop.md` does not exist on this branch (Track D not merged):
   `movies/specs/loop.yaml` is a validated stub (`stub: true`), skipped by `make movies` and the
   showreel. `.worktrees/trackD` was not touched.
+- **E-D-014 Register merge.** `tests/test_integration.py` requires every `docs/assumptions-*.md`
+  row in `docs/assumptions.md`; the A-mov rows were added there as a new "Movies (Track E)"
+  section (additive, before the notes), as the brief asks to register them in the register.
+- **E-D-015 Showreel length.** All films back to back with cards ran 264 s; each spec now names a
+  `showreel: [start, end]` excerpt (22-24 s), giving 2 min 55 s. Title cards are drawn with Pillow:
+  Homebrew's ffmpeg has no `drawtext`.
+
+## MOVIES — 2026-10-16
+Built: `scripts/movies/` (spec schema + validator, keyframed camera paths, NOAA sun and lighting,
+offline basemap from the Geofabrik PBF with buildings and a sea built from coastlines, data bundles
+from the run registry, render driver with chunked H.264 encode, showreel, preview server, README
+asset export), `web/src/cinema/` (deck.gl renderer at `?cinema=<film>`, `window.__cinema`
+load/renderFrame/frameCount, HUD), `web/scripts/cinema.mjs` (frame stepper), 8 specs in
+`movies/specs/` (7 films + the loop stub), `make movies` / `make movie FILM=` / `make movies-docs`,
+`docs/movies.md`, README "Movies" section with GIF previews (`docs/img/movies/`), A-mov-001..008,
+`tests/test_movies.py` (20 tests incl. the 10-frame render smoke test, run twice for determinism).
+Measured (final `make movies`, M3 Pro, ANGLE Metal, another agent simulating): 7 films at 1920x1080,
+30 fps, exactly their spec length (30-40 s), 0.12-0.18 s per frame, 154-269 s per film, about 25 min
+in all; browser RSS max 1.0-1.5 GB (budget 2 GB); disk max 97-278 MB per film (budget 1 GB); no
+frames left; GIFs exactly 6.00 s, 2.2-2.9 MB; README GIFs 0.93-1.09 MB (8 MB in git with the
+stills); showreel 174.7 s (2 min 55 s), 7 films + cards with crossfades. Determinism:
+`tahlia-street` rendered three times (two by me, one from scratch by the verifier): identical mid
+frame hash 9c84b771766bcacf and bundle hashes; the smoke test's two renders match.
+Tests: 292 passed, 1 skipped (full suite, 4 min 06 s); ruff and tsc clean.
+Verifier: first pass, the from-scratch render of `tahlia-street` PASS (30.000 s, 1920x1080,
+h264 yuv420p CRF 18, footer visible in the 15 s frame, no frames left, identical hashes); one FAIL
+(GIFs 6.01 s at 8-12 fps) plus notes (hashes on black fade frames, six films rendered before the
+last render.py, stale numbers). Fixed in E-D-006, all films re-rendered with the final code, numbers
+above re-measured.
+Could not verify: whether frames are bit-identical on another GPU or Chrome version; the 4K and
+60 fps flags (implemented, not rendered).
+Open: the incident run re-routes instead of queueing (E-D-008), so the film has no shockwave; a
+crash with `lanes_closed: 1` (as in emergency_tahlia) would show one. The strategist HUD quotes the
+strategist's reason text verbatim, including raw edge ids. The loop film waits for Track D.
+Next: integration — merge trackE (movies/specs, scripts/movies, web/src/cinema, the main.tsx branch,
+the Makefile targets); render `loop` once Track D's docs/loop.md and runs are on the branch.
