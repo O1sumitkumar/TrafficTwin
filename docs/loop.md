@@ -18,8 +18,10 @@ toll) gives the most relief per riyal?
 ```
 uv run python -m sim.loop.site                                   # candidates + map (seconds)
 uv run python -m sim.loop.evaluate --candidates sim/loop/candidates.yaml   # one city run each
+uv run python -m sim.loop.evaluate --sim-seed 2                  # seed-2 replicates
 uv run python -m sim.loop.optimise                               # greedy + sweep, fills this page
-uv run python -m sim.loop.run loop_demo --sample 1.0             # demo policy (demo window)
+uv run python -m sim.loop.run loop_demo --demo                   # demo policy, demo window, ~10 s
+uv run python -m sim.loop.run loop_recommended                   # recommended policy, city 10 %
 ```
 
 Runs go to `runs/<policy id>/` (`loop_report.md`, Track A's `policy_report.md`). Machine-readable
@@ -72,12 +74,27 @@ tunnel-km with an overlap rule. KAIA airport, Al Balad/Corniche, Tahlia/Al Andal
 added as sites without any bonus: an anchor not covered by a data-driven pick gets its best
 alignment as an explicit test candidate.
 
+**Objective: congestion relief.** City VHT falls simply because shifted cars disappear; counting
+their hours as "saved" would reward removing trips, not relieving traffic. The decision metric is
+therefore *congestion relief*: the hours (travel time plus departure delay) saved by the vehicles
+that are on the road in both runs (same vehicle, shuttles excluded), per USD M of capex. Riders'
+extra door-to-door time against their own baseline car trip is reported as net person-hours
+(relief minus riders' extra time). City VHT saved is shown for reference.
+
 **Evaluation and optimisation.** Each candidate is one city policy run (shuttle, alpha 0.5,
-90 km/h, measured capacity) against the baseline. The greedy step takes candidates by VHT saved per
-tunnel-km within the 25 km budget, skipping overlaps and savings inside the noise band, and runs
-the selected set together. The sweep varies the levers (mode, speed, toll) and, separately, the
-uncertainties (alpha, access radius, capacity). The recommendation is the lever setting with the
-most VHT saved per USD M at central assumptions that passes the quality thresholds.
+90 km/h, measured capacity) against the baseline, and again with simulation seed 2 against the
+seed-2 baseline replicate (Track A's replicate machinery): single runs near gridlock are noisy
+(a sim-seed change alone moves city VHT by about 1 %). Candidates are ranked on the two-seed mean
+relief per tunnel-km. The greedy step takes them in that order within the 25 km budget, skipping
+overlaps and any candidate whose two seeds disagree in sign or whose mean is inside the two-seed
+noise; if one corridor alone relieves more than the whole per-km greedy set (the budget left
+after the first pick may fit nothing), it is taken instead (standard knapsack correction). The
+selected set is run together. The sweep varies the levers (mode, tunnel speed, toll) and,
+separately, the uncertainties (alpha, access radius, capacity, and a time-competitive shift in
+which only legs faster by Loop than by car may shift, under measured and vendor speeds and
+waits). The recommendation is the lever setting with the most relief per USD M at central
+assumptions that passes the quality gate (pair and tunnel-segment capacity exceedance at most
+10 %, teleports not worse than the comparison beyond the replicate's change, positive relief).
 
 ## Candidate corridors
 
@@ -88,9 +105,10 @@ most VHT saved per USD M at central assumptions that passes the quality threshol
 
 ## Ranking (one city run per candidate)
 
-Shuttle mode, alpha 0.5, 90 km/h, measured capacity, 10 % sample. VHT and passengers are
-city-equivalent per weekday; "road VHT" excludes the shuttles themselves. Capex at USD 15 / 25 /
-40 M per km; the per-USD-M range runs from high to low capex.
+Shuttle mode, alpha 0.5, 90 km/h, measured capacity, 10 % sample. Relief, VHT and passengers are
+city-equivalent per weekday. "Relief seed 1" is against the baseline, "seed 2" against the seed-2
+baseline replicate; ranking is on the mean per tunnel-km. Capex at USD 15 / 25 / 40 M per km; the
+per-USD-M range runs from high to low capex. Flags are from the seed-1 run.
 
 <!-- LOOP:ranking -->
 <!-- /LOOP:ranking -->
