@@ -8,7 +8,7 @@ re-routed (sim/policies/run.py). Random draws use streams keyed by the seed and 
 type, not by the policy, so a sweep over `share` selects nested sets of people.
 
     remote_work      drop the work tour of hybrid workers at home today; induced non-work tours
-    staggered_hours  shift the main tours of whole institutions of one segment
+    staggered_hours  shift the main tours of one segment, institutions grouped by district
     daytype          handled by the runner: the run starts from that day type's baseline
     pt_line          bus line via ptlines2flows.py + fixed car-to-bus shift in the catchment
     road_pricing     cordon: suppressed / re-timed crossing trips + routing penalty on the cordon
@@ -280,7 +280,9 @@ def staggered_hours(plan: Plan, t: StaggeredHours) -> dict[str, Any]:
     trips = plan.trips
     seg = trips[(trips["segment"].astype(str) == t.segment) & (trips["person_id"] >= 0)]
     tours = seg.groupby("tour_id", sort=True)["person_id"].first()
-    primary = plan.pop.persons.set_index("person_id")["primary_edge"]
+    # the population has no school or employer ids: institutions are grouped by the district of
+    # the school / workplace, so siblings' escort runs and colleagues shift together (TA-017)
+    primary = plan.pop.persons.set_index("person_id")["primary_zone"]
     inst = primary.reindex(tours.to_numpy()).astype(str).to_numpy()
     uniq = np.unique(inst)
     rng = stream(plan.seed, f"policy:staggered_hours:{t.segment}")

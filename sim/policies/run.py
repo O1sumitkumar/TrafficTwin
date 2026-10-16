@@ -15,6 +15,7 @@
 
 from __future__ import annotations
 
+import gzip
 import json
 import os
 import shutil
@@ -370,6 +371,12 @@ def run_policy(
     timings["total_s"] = round(time.perf_counter() - t0, 1)
     meta["result"] = report["summary"]
     (out / "meta.json").write_text(json.dumps(meta, indent=2, default=str))
+    for name in ("sumo.log", "build.log"):  # teleport warnings make these tens of MB
+        log = out / name
+        if log.exists():
+            with log.open("rb") as src, gzip.open(out / f"{name}.gz", "wb") as dst:
+                shutil.copyfileobj(src, dst)
+            log.unlink()
     say(policy_report["headline"])
     say(f"  report runs/{run_id}/policy_report.md")
     return meta
