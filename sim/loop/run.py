@@ -5,7 +5,8 @@
 `sim.policies.run.run_policy` does the work (baselines, transforms, incremental routing, matched
 control, meso run, policy report); this module only swaps in a transform dispatcher that also
 knows `loop_shuttle` and `loop_private` (sim/loop/transforms.py) for the duration of the call, the
-same run-time override pattern as Track A's baseline_launch. Afterwards it writes
+same run-time override pattern as Track A's baseline_launch, and caps one-shot re-routing at 4
+threads (Track D machine rule). Afterwards it writes
 `loop_report.json` / `.md` in the run directory (sim/loop/kpis.py).
 """
 
@@ -20,6 +21,10 @@ import typer
 
 from sim.loop.schema import LoopPolicy, load_loop_policy
 
+# machine rule for Track D (shared 18 GB laptop): one-shot re-routing uses at most 4 threads;
+# one-shot routing on fixed weights is thread-count independent (Track A test), so routes match.
+ROUTING_THREADS = 4
+
 app = typer.Typer(add_completion=False, help=__doc__)
 
 
@@ -28,12 +33,19 @@ def loop_dispatch() -> Iterator[None]:
     import sim.policies.run as PR
     from sim.loop.transforms import apply
 
-    orig = PR.apply
-    PR.apply = apply
+    orig_apply, orig_cfg = PR.apply, PR.run_config
+
+    def run_config(path: Path = PR.RUN_CONFIG) -> dict[str, Any]:
+        cfg = orig_cfg(path)
+        rr = cfg["reroute"]
+        cfg["reroute"] = {**rr, "routing_threads": min(int(rr["routing_threads"]), ROUTING_THREADS)}
+        return cfg
+
+    PR.apply, PR.run_config = apply, run_config
     try:
         yield
     finally:
-        PR.apply = orig
+        PR.apply, PR.run_config = orig_apply, orig_cfg
 
 
 def run_loop_policy(
