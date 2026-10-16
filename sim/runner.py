@@ -159,6 +159,7 @@ def run_smoke(
     runs_dir: Path = RUNS_DIR,
     quiet: bool = False,
     period: float | None = None,
+    fcd: bool = False,
 ) -> dict[str, Any]:
     cfg = runner_config()
     smoke = cfg["smoke"]
@@ -222,6 +223,8 @@ def run_smoke(
         *flatten(cfg["sumo_common"]),
         *flatten(cfg[tier_key]["options"]),
     ]
+    if fcd:  # Tier B trajectories for the viewer (geo coordinates); the guard bars it in Tier A
+        args += ["--fcd-output", str(out / "fcd.xml"), "--fcd-output.geo", "true"]
     assert_tier_options(tier, args, [additional], cfg)
     t1 = time.perf_counter()
     run_cmd([sumo_bin("sumo"), *args], log=log)
@@ -288,12 +291,13 @@ def main(
     end: int | None = typer.Option(None, help="override the end time (s)"),
     period: float | None = typer.Option(None, help="override the random-trips period (s)"),
     runs_dir: Path = typer.Option(RUNS_DIR),
+    fcd: bool = typer.Option(False, "--fcd", help="write FCD (Tier B only) for the viewer"),
 ) -> None:
     if tier not in ("A", "B"):
         raise typer.BadParameter("tier must be A or B")
     if not smoke:
         raise typer.BadParameter("only --smoke is implemented in M1 (baselines arrive in M2)")
-    meta = run_smoke(tier, seed, net, end, runs_dir, period=period)
+    meta = run_smoke(tier, seed, net, end, runs_dir, period=period, fcd=fcd)
     if not meta["teleport_ok"]:
         raise typer.Exit(code=2)
 

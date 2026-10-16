@@ -3,20 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TrafficTwin Jeddah: network viewer</title>
-    <link rel="stylesheet" href="/src/style.css" />
+    <title>TrafficTwin Jeddah viewer (synthetic demand, uncalibrated)</title>
   </head>
   <body>
-    <div id="map"></div>
-    <aside id="panel">
-      <h1>TrafficTwin Jeddah</h1>
-      <p class="sub">Tier A network (M1 stub). Synthetic demand, uncalibrated.</p>
-      <div id="stats">Loading network...</div>
-      <label><input type="checkbox" id="basemap" checked /> OSM basemap</label>
-      <label><input type="checkbox" id="districts" checked /> Districts</label>
-      <div id="legend"></div>
-      <p class="attr">Network and districts (c) OpenStreetMap contributors, ODbL.</p>
-    </aside>
-    <script type="module" src="/src/main.ts"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
