@@ -273,20 +273,27 @@ Built:
   optional travel-time check and `--before` reference; writes report.md, meta.json (seed, config,
   counts, network, routes hashes, SUMO version), geh.csv, mismatch.xml; exit code 2 on a miss.
 - `sim/adapters/synthetic.py`: synthetic truth counts + unrelated candidate routes for the round trip.
-- Config `sim/adapters/config/calibrate.yaml`; assumptions A-cal-001..004 in
+- `sim/adapters/baseline_counts.py`: counts derived from a baseline run's edgeData for the
+  city-scale mechanics check (not data).
+- Config `sim/adapters/config/calibrate.yaml` (with an `assumptions:` block: `source:` /
+  `assumption:` per id, values checked against the settings by a test); assumptions A-cal-001..006 in
   docs/assumptions-trackA.md; docs/calibration.md (pipeline, results, limits, partner data request).
 
 Measured (all synthetic):
 - Demo round trip (meso, seed 1; 40 detectors x 2 h = 80 counts; 14,400 candidate vehicles from
   another seed): GEH < 5 on 100 % (mean 0.32, max 0.74); candidates unchanged 0 % (mean 18.8);
-  2,802 vehicles sampled; travel times 20/20 within 15 % (mean abs error 1.8 %). Also 100 % with
+  2,802 vehicles sampled; travel times 20/20 rows (10 segments x 2 h) within 15 % (mean abs error
+  1.8 %). Also 100 % with
   `--sample 0.5` and with `--mode micro`. About 3 s per calibration. Same seed twice: identical
-  calibrated routes hash and report.
-- City check (weekday 10 % baseline as candidates, 389,289 vehicles; counts from the baseline's own
-  edgeData, 50 edges): hours 10-11 only 72.0 % (FAIL: first hour has no warm-up traffic, 52 %;
-  second hour 92 %), 97 s; full day 0-23, 1,200 counts: 87.7 % PASS (hourly 62-96 %, mean GEH 2.48),
-  101,578 vehicles sampled, 397 s, routeSampler peak RSS about 4.1 GB.
-- Tests: ruff clean; pytest 84 passed (12 new in tests/test_calibrate.py), about 1.6 min.
+  calibrated routes hash, run id and GEH report.
+- City check (weekday 10 % baseline as candidates, 389,289 vehicles; counts derived from the
+  baseline's own edgeData with `sim.adapters.baseline_counts`, 50 edges, A-cal-006): hours 10-11
+  only 80.0 % (FAIL: the first hour has no warm-up traffic, 64 %, volume 0.81; second hour 96 %),
+  78 s (run calibrate-weekday-s1-403c1c1c-334e0110); full day 0-23, 1,200 counts: 87.7 % PASS
+  (hourly 62-96 %, mean GEH 2.48), 101,578 vehicles sampled, 508 s with routeSampler 399 s, peak
+  RSS routeSampler 4.2 GB, SUMO 2.6 GB (run calibrate-weekday-s1-f40885bc-334e0110; identical GEH
+  in an earlier run before the run-id fix).
+- Tests: ruff clean; pytest 87 passed (15 in tests/test_calibrate.py), about 1.8 min.
 
 Decisions:
 - TA-030 Counts are measured in a re-simulation of the sampled routes (edge `entered` per hour), not
@@ -302,6 +309,11 @@ Decisions:
   fitted, not reviewed` and keep "synthetic demand, uncalibrated" until a human reviews a fit
   against real counts.
 - TA-035 Duplicate detectors on one edge and hour are averaged (A-cal-003).
+- TA-036 Run ids hash the candidate routes by content (SUMO headers ignored), so regenerated but
+  identical candidates give the same run id; count CSVs are written with LF line endings.
+- Verifier round 1: FAIL on the YAML assumption format (comments instead of `source:` /
+  `assumption:`), plus doc fixes (travel-time row count, unreproducible "7,535 edges" without a
+  committed generator, unrecorded peak RSS, run-id determinism). All fixed above.
 
 Commands: `uv run python -m sim.adapters.synthetic --out runs/synthetic-demo` then
 `uv run python -m sim.calibrate --counts runs/synthetic-demo/counts.csv --net data/demo/demo.net.xml

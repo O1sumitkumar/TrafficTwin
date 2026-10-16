@@ -40,10 +40,10 @@ from sim.common import (
     file_hash,
     python_tool_cmd,
     rel,
-    run_cmd,
     sumo_bin,
     sumo_version,
 )
+from sim.population.baseline import run_measured
 from sim.runner import RUNS_DIR, assert_tier_options, flatten, runner_config
 
 # ---------------------------------------------------------------------------- GEH
@@ -196,8 +196,8 @@ def simulate(
     vtypes: Path | None = None,
     interval_s: int = 3600,
     log: Path | None = None,
-) -> Path:
-    """Run SUMO on `routes` with hourly edgeData; return the edgeData path."""
+) -> tuple[Path, dict[str, float]]:
+    """Run SUMO on `routes` with hourly edgeData; return the edgeData path and wall/peak RSS."""
     out.mkdir(parents=True, exist_ok=True)
     add = out / "measure.add.xml"
     add.write_text(
@@ -218,8 +218,8 @@ def simulate(
         *sim_options(mode, sample),
     ]  # fmt: skip
     assert_tier_options("A" if mode == "meso" else "B", args, [add], runner_config())
-    run_cmd([sumo_bin("sumo"), *args], log=log or out / "sumo.log")
-    return out / "edgedata_hourly.xml"
+    timing = run_measured([sumo_bin("sumo"), *args], log or out / "sumo.log")
+    return out / "edgedata_hourly.xml", timing
 
 
 def run_route_sampler(
@@ -232,7 +232,7 @@ def run_route_sampler(
     mismatch: Path,
     log: Path,
     vtype: str | None = None,
-) -> None:
+) -> dict[str, float]:
     cfg = calibrate_config()["route_sampler"]
     args = [
         "-r", str(routes),
@@ -248,7 +248,7 @@ def run_route_sampler(
     ]  # fmt: skip
     if vtype:
         args += ["-a", f'type="{vtype}"']
-    run_cmd(python_tool_cmd("routeSampler.py", *args), log=log)
+    return run_measured(python_tool_cmd("routeSampler.py", *args), log)
 
 
 def count_vehicles(routes: Path) -> int:
@@ -391,7 +391,7 @@ def calibrate(
         "sample": sample,
         "mode": mode,
         "calibrate": cfg,
-        "routes_hash": file_hash(routes),
+        "routes_hash": content_hash(routes),
     }
     chash = config_hash(run_cfg)
     run_id = f"calibrate-{daytype}-s{seed}-{counts_hash[:8]}-{chash[:8]}"
@@ -407,18 +407,14 @@ def calibrate(
     vtypes, vtype = extract_vtypes(routes, out / "vtypes.add.xml")
     calibrated = out / "calibrated.rou.xml"
     say(f"routeSampler: {len(targets)} targets over hours {hours[0]}-{hours[-1]}")
-    t1 = time.perf_counter()
-    run_route_sampler(
+    sampler = run_route_sampler(
         routes, edgedata, calibrated, seed, begin, end, out / "mismatch.xml", log, vtype
     )
-    sampler_s = time.perf_counter() - t1
 
     say(f"simulating calibrated routes ({mode})")
-    t2 = time.perf_counter()
-    measured = simulate(
+    measured, sim_timing = simulate(
         net, calibrated, out / "sim", seed, begin, end + tail, mode, sample, vtypes, interval, log
     )
-    sim_s = time.perf_counter() - t2
     entered = read_edgedata(measured, cfg["simulation"]["measure_attribute"], interval)
     report = geh_report(targets, entered, scale=sample)
 
@@ -436,7 +432,7 @@ def calibrate(
         "counts_hash": counts_hash,
         "counts_source": counts_source,
         "network": rel(net),
-        "network_hash": content_hash(net) if not str(net).endswith(".gz") else file_hash(net),
+        "network_hash": content_hash(net),
         "routes": rel(routes),
         "routes_hash": run_cfg["routes_hash"],
         "baseline_run": baseline_run,
@@ -446,12 +442,12 @@ def calibrate(
         "candidate_vehicles": count_vehicles(routes),
         "calibrated_vehicles": count_vehicles(calibrated),
         "hours": hours,
-        "timings": {"route_sampler_s": round(sampler_s, 1), "simulation_s": round(sim_s, 1)},
+        "timings": {"route_sampler": sampler, "simulation": sim_timing},
         "geh": {k: v for k, v in report.items() if k != "rows"},
     }
     if before:
         say("simulating candidate routes unchanged (before-calibration reference)")
-        ref = simulate(
+        ref, _ = simulate(
             net, routes, out / "sim_before", seed, begin, end + tail, mode, sample, None, interval
         )
         ref_report = geh_report(targets, read_edgedata(ref, "entered", interval), scale=sample)

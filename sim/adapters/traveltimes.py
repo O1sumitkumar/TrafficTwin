@@ -65,7 +65,7 @@ def read_travel_times(path: Path, max_hour: int | None = None) -> list[TravelTim
 def write_travel_times(records: list[TravelTimeRecord], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as fh:
-        writer = csv.writer(fh)
+        writer = csv.writer(fh, lineterminator="\n")
         writer.writerow(COLUMNS)
         for r in records:
             writer.writerow(

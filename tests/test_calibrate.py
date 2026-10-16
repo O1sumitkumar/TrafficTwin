@@ -167,10 +167,59 @@ def test_round_trip_reaches_geh_target(round_trip: dict[str, Any]) -> None:
 def test_round_trip_is_deterministic(round_trip: dict[str, Any]) -> None:
     a, b = round_trip["a"], round_trip["b"]
     assert a["calibrated_routes_hash"] == b["calibrated_routes_hash"]
-    assert a["geh"] == b["geh"]
+    assert a["run_id"] == b["run_id"] and a["geh"] == b["geh"]
+
+
+def test_synthetic_inputs_regenerate_identically(
+    round_trip: dict[str, Any], tmp_path: Path, demo_net: Path
+) -> None:
+    again = make_synthetic(demo_net, tmp_path / "syn", seed=1, quiet=True)
+    for key in ("counts_hash", "candidate_routes_hash", "truth_routes_hash"):
+        assert again[key] == round_trip["syn"][key], key
 
 
 def test_sample_scaling(round_trip: dict[str, Any]) -> None:
     half = round_trip["half"]
     assert half["geh"]["passed"]
     assert half["calibrated_vehicles"] < 0.6 * round_trip["a"]["calibrated_vehicles"]
+
+
+def test_assumptions_block_matches_settings() -> None:
+    from sim.adapters import calibrate_config
+
+    cfg = calibrate_config()
+    reg = (Path(__file__).parent.parent / "docs" / "assumptions-trackA.md").read_text()
+    for aid, entry in cfg["assumptions"].items():
+        assert f"| {aid} |" in reg, aid
+        assert "source" in entry or "assumption" in entry, aid
+    a = cfg["assumptions"]
+    assert a["A-cal-001"]["value"] == [cfg["geh"]["threshold"], cfg["geh"]["target_share"]]
+    assert a["A-cal-002"]["value"] == cfg["travel_time"]["tolerance"]
+    assert a["A-cal-003"]["value"] == cfg["counts"]["duplicate_policy"]
+    syn = cfg["synthetic"]
+    hours = (syn["end"] - syn["begin"]) // cfg["counts"]["interval_s"]
+    assert a["A-cal-004"]["value"] == [syn["min_hourly_count"], syn["detectors"], hours]
+    assert a["A-cal-005"]["value"] == cfg["route_sampler"]["vehicle_type"]
+    bc = cfg["baseline_counts"]
+    assert a["A-cal-006"]["value"] == [bc["detectors"], bc["min_each_hour"], bc["min_mean_hour"]]
+
+
+def test_counts_from_baseline(tmp_path: Path) -> None:
+    import pandas as pd
+
+    from sim.adapters.baseline_counts import counts_from_baseline, parse_hours
+
+    assert parse_hours("0-2,7") == [0, 1, 2, 7]
+    run = tmp_path / "baseline-weekday-x"
+    run.mkdir()
+    (run / "meta.json").write_text(json.dumps({"sample": 0.1}))
+    rows = [  # 300 s bins: busy edge "a" (40/h), quiet edge "b" (8/h), "c" empty in hour 8
+        {"begin": float(b), "edge_id": e, "entered": float(n)}
+        for b in range(7 * 3600, 9 * 3600, 300)
+        for e, n in (("a", 40 / 12), ("b", 8 / 12), ("c", 60 / 12 if b < 8 * 3600 else 0))
+    ]
+    pd.DataFrame(rows).to_parquet(run / "edgedata.parquet")
+    meta = counts_from_baseline(run, [7, 8], tmp_path / "c.csv", quiet=True)
+    assert meta["eligible_edges"] == 1  # b is too quiet on average, c has an empty hour
+    records = read_counts(tmp_path / "c.csv")
+    assert [(r.edge_id, r.hour, r.count) for r in records] == [("a", 7, 400.0), ("a", 8, 400.0)]

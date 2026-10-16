@@ -23,6 +23,7 @@ travel-time CSV (optional) ─────────────────�
 | fit routes to counts | `sim/calibrate.py` → SUMO `routeSampler.py` | candidates = newest `runs/baseline-<daytype>-*` routes unless `--routes` is given |
 | re-simulate and score | `sim/calibrate.py` | Tier A meso with the baseline's capacity scaling; GEH per (edge, hour) |
 | synthetic counts | `sim/adapters/synthetic.py` | round-trip test only; never presented as data |
+| counts from a baseline run | `sim/adapters/baseline_counts.py` | city mechanics check only (A-cal-006); not data |
 
 Commands:
 
@@ -63,11 +64,12 @@ vehicles):
 | counts with GEH < 5 | **100 % (80 of 80)**, mean GEH 0.32, max 0.74 |
 | candidate routes simulated unchanged (`--before`) | 0 % with GEH < 5, mean GEH 18.8 (4x too much traffic) |
 | sampled vehicles | 2,802 of 14,400 candidates |
-| travel times (20 single-edge segments) | 100 % within ± 15 %, mean abs error 1.8 % |
+| travel times (10 single-edge segments x 2 hours = 20 rows) | 20 of 20 within ± 15 %, mean abs error 1.8 % |
 | same with a 50 % sample (`--sample 0.5`) and in micro (`--mode micro`) | 100 % with GEH < 5 |
 | runtime | about 4 s for the synthetic counts, about 3 s per calibration (with `--before`) |
 
-Same seed twice gives identical calibrated routes (content hash) and an identical report (test).
+Same seed twice gives identical calibrated routes (content hash), the same run id and an identical
+GEH report (test; candidate routes are hashed without SUMO's timestamped header).
 
 What the round trip does **not** prove: the demo has light traffic, so travel times match
 trivially; real counts carry measurement error, missing hours and detectors on edges the OSM
@@ -76,22 +78,32 @@ only places vehicles that pass a counted edge in a counted hour).
 
 ## City-scale check (Tier A, weekday baseline, 10 % sample)
 
-To check the default `--daytype weekday` path at city scale, synthetic counts were taken from the
-weekday 10 % baseline's own edgeData (counts = `entered` / 0.1, 50 edges picked with seed 1 among
-7,535 edges carrying traffic in every hour), and fitted against the 389,289 baseline routes.
-Counts files stayed in `/tmp` (derived data, not committed); runs under `runs/` (untracked).
+To check the default `--daytype weekday` path at city scale, counts were derived from the weekday
+10 % baseline's own edgeData with `python -m sim.adapters.baseline_counts` (A-cal-006: 50 edges
+picked with seed 1 among edges carrying at least 1 vehicle in every selected hour and at least 30
+per hour on average, in sample units; counts = `entered` / 0.1), then fitted against the 389,289
+baseline routes. The counts files stay in `/tmp` (derived, not committed); runs are under `runs/`
+(untracked).
 
-| run | counts | GEH < 5 | mean GEH | sampled vehicles | runtime |
-|---|---|---|---|---|---|
-| hours 10-11 only | 100 | 72.0 % (FAIL); hour 10: 52 %, volume 0.80; hour 11: 92 % | 3.76 | 6,981 | 97 s |
-| full day, hours 0-23 | 1,200 | **87.7 % (PASS)**; hourly 62-96 % | 2.48 | 101,578 | 397 s (routeSampler 322 s, peak RSS about 4.1 GB) |
+```bash
+uv run python -m sim.adapters.baseline_counts --daytype weekday --hours 0-23 --out /tmp/city24/counts.csv
+uv run python -m sim.calibrate --counts /tmp/city24/counts.csv --daytype weekday --seed 1
+```
+
+| run (id) | eligible edges | counts | GEH < 5 | mean GEH | sampled vehicles | wall; peak RSS |
+|---|---|---|---|---|---|---|
+| hours 10-11 (`calibrate-weekday-s1-403c1c1c-334e0110`) | 4,845 | 100 | 80.0 % (FAIL); hour 10: 64 %, volume 0.81; hour 11: 96 %, volume 1.00 | 3.51 | 6,938 | 78 s; routeSampler 4.2 GB |
+| full day 0-23 (`calibrate-weekday-s1-f40885bc-334e0110`) | 7,535 | 1,200 | **87.7 % (PASS)**; hourly 62-96 % | 2.48 | 101,578 | 508 s (routeSampler 399 s); routeSampler 4.2 GB, SUMO 2.6 GB |
+
+The full-day result was identical in two runs (before and after the run-id fix). Wall times were
+measured with another track's SUMO run on the same machine.
 
 Reading: the 2-hour fit misses in its first hour because nothing departs before 10:00, while in
 the baseline trips that started earlier (mean trip about 18 min) still cross the detectors after
 10:00. Partner counts must therefore cover the whole day (or the fitted window must start with an
 uncounted warm-up hour); the data request asks for 24 hours. In the full-day fit the weakest
 hours are 00:00 (72 %) and 05:00 (62 %, the start of the morning ramp, where routeSampler's uniform
-departures within the hour miss the steep rise). These are synthetic counts from an uncalibrated,
+departures within the hour miss the steep rise). These counts come from an uncalibrated,
 congested baseline (TA-011): the check proves the mechanics at city scale, not Jeddah realism.
 
 ## Known limits and decisions

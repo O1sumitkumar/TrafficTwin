@@ -63,7 +63,7 @@ def read_counts(path: Path, max_hour: int | None = None) -> list[CountRecord]:
 def write_counts(records: list[CountRecord], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as fh:
-        writer = csv.writer(fh)
+        writer = csv.writer(fh, lineterminator="\n")
         writer.writerow(COLUMNS)
         for r in records:
             count = int(r.count) if float(r.count).is_integer() else r.count

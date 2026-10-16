@@ -47,7 +47,7 @@ def make_synthetic(
     make_random_trips(
         net, out / "truth.trips.xml", syn["truth_trips"], seed, begin, end, truth, log
     )
-    measured = simulate(net, truth, out / "truth_sim", seed, begin, end + tail, mode, 1.0, None,
+    measured, _ = simulate(net, truth, out / "truth_sim", seed, begin, end + tail, mode, 1.0, None,
                         interval, log)  # fmt: skip
     entered = read_edgedata(measured, "entered", interval)
     traveltime = read_edgedata(measured, "traveltime", interval)
