@@ -71,7 +71,9 @@ def ensure_web_build(force: bool = False) -> None:
 
 
 class _Handler(http.server.SimpleHTTPRequestHandler):
-    bundles: Path = movies_runs_dir()
+    @property
+    def bundles(self) -> Path:
+        return movies_runs_dir()
 
     def translate_path(self, path: str) -> str:
         clean = path.split("?", 1)[0].split("#", 1)[0]

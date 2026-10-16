@@ -15,7 +15,8 @@ uv run python -m scripts.movies.spec validate        # check every spec
 
 Needs ffmpeg (`make movies-check` installs it with brew), Google Chrome (the same headless Chrome
 the screenshot scripts use; `CHROME_PATH` overrides) and the runs named in the specs under `runs/`
-(`TT_RUNS_DIR` overrides). Output goes to `movies/` (git-ignored except `movies/specs/`).
+(`TT_RUNS_DIR` overrides). Output goes to `movies/` (git-ignored except `movies/specs/`); bundles and
+frames are cached in `runs/movies/` (`TT_MOVIES_DIR` overrides; the render smoke test uses a temp dir).
 
 ## The films
 

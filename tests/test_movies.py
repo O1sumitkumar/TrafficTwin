@@ -280,6 +280,8 @@ def test_render_smoke_ten_frames_deterministic(
     monkeypatch.setenv("TT_RUNS_DIR", str(REPO_ROOT / "runs"))
     monkeypatch.delenv("TT_CACHE_DIR", raising=False)
     monkeypatch.setenv("TT_RUNS_READONLY", "1")
+    # the 640x360 bundle and frames go to tmp, not the real runs/movies cache
+    monkeypatch.setenv("TT_MOVIES_DIR", str(tmp_path / "movies"))
 
     metas = []
     for k in range(2):
@@ -291,7 +293,7 @@ def test_render_smoke_ten_frames_deterministic(
         assert (info["width"], info["height"], info["frames"]) == (640, 360, 10)
         assert info["codec"] == "h264" and info["pix_fmt"] == "yuv420p"
         assert info["duration_s"] == pytest.approx(10 / 30, abs=0.05)
-        frames_dir = REPO_ROOT / "runs" / "movies" / "tahlia-street" / "frames"
+        frames_dir = tmp_path / "movies" / "tahlia-street" / "frames"
         assert not frames_dir.exists() or not any(frames_dir.iterdir())  # no frames left behind
         meta = json.loads((out / "tahlia-street.json").read_text())
         # first, middle, last frame free of fades (after the title card)

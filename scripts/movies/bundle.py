@@ -64,7 +64,8 @@ def runs_root() -> Path:
 
 
 def movies_runs_dir() -> Path:
-    return REPO_ROOT / "runs" / "movies"
+    """Bundles and frames; TT_MOVIES_DIR overrides it (tests keep the real cache untouched)."""
+    return Path(os.environ.get("TT_MOVIES_DIR") or REPO_ROOT / "runs" / "movies")
 
 
 def road_class(edge_type: str) -> int:
