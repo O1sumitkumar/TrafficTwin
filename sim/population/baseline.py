@@ -127,7 +127,7 @@ def tier_a_options(cfg: dict[str, Any] | None = None) -> list[str]:
 
 
 def dua_command(
-    net: Path, trips: Path, end: int, cfg: dict[str, Any], tau_opts: list[str]
+    net: Path, trips: Path, end: int, cfg: dict[str, Any], tau_opts: list[str], seed: int
 ) -> list[str]:
     a = cfg["assignment"]
     rc_opts = tier_a_options(cfg)
@@ -158,7 +158,9 @@ def dua_command(
         cmd += ["--meso-tls-penalty", tls]
     if int(a.get("inc_base", 0)) > 0:
         cmd += ["--inc-base", str(a["inc_base"]), "--inc-max", "1"]
+    # the run seed reaches every router and simulation step, so routes follow from the seed
     cmd += ["duarouter--routing-threads", str(a["routing_threads"])]
+    cmd += ["duarouter--seed", str(seed), "sumo--seed", str(seed)]
     for k in range(0, len(tau_opts), 2):
         cmd += [f"sumo{tau_opts[k]}", tau_opts[k + 1]]
     cmd += ["sumo--ignore-route-errors", "true"]
@@ -253,7 +255,9 @@ def run_baseline(
         if work.exists():
             shutil.rmtree(work)
         work.mkdir(parents=True)
-        cmd = dua_command(net.resolve(), (out / "trips.xml").resolve(), run_end, cfg, tau_opts)
+        cmd = dua_command(
+            net.resolve(), (out / "trips.xml").resolve(), run_end, cfg, tau_opts, seed
+        )
         if not quiet:
             print(f"[{run_id}] duaIterate x{cfg['assignment']['iterations']} -> {rel(work)}")
         timings["assignment"] = run_measured(cmd, out / "dua.log", cwd=work)
@@ -313,6 +317,9 @@ def run_baseline(
         "trips_hash": tmeta["trips_hash"],
         "vehicles_hash": demand["vehicles_hash"],
         "route_key": route_key,
+        # multi-threaded duarouter is not repeatable even with a seed; such routes are reproducible
+        # from the route cache only (TA-013)
+        "routes_deterministic": int(cfg["assignment"]["routing_threads"]) == 1,
         "routes_hash": xml_content_hash(out / "routes.rou.xml.gz"),
         "sumo_version": sumo_version(),
         "sim_end_s": sim_end,

@@ -115,8 +115,9 @@ limited junction control, capacity x10, 3 incremental duaIterate steps, 120 s te
   city-equivalent, 1.05 per resident), top-hour share 9.6 % (06:00).
 - KPIs (city-equivalent): 3.85 M trips completed (99.2 %), VKT 56.1 M, VHT 2.74 M (2.01 M delay),
   mean trip 14.6 km / 42.7 min, mean delay 31.3 min, mean speed 20.5 km/h, CO2 26,185 t, NOx 16,217 kg.
-- Quality flag: 196,721 jam teleports (0.51 per loaded vehicle), concentrated on motorway ramps
-  (`AddedOffRampEdge`) and in both peaks; evening speeds 13-15 km/h. The baseline is
+- Quality flag: 196,721 jam teleports (0.51 per loaded vehicle). Where (from sumo.log): motorway
+  ramps (`Added*RampEdge`) 33k (17 %), inside junction clusters 42k (21 %), other edges 122k (62 %).
+  When: ~125k (64 %) between 18:00 and 24:00, ~34k in 06:00-09:00; evening speeds 13-15 km/h. The baseline is
   gridlock-affected (TA-011: network capacity), labelled synthetic demand, uncalibrated. The top open
   issue for integration is network capacity (untagged lanes, ramps, junction clusters), not demand.
 - Outputs: meta.json, metrics.json, report.md (with the fidelity caveats), tripinfo/edgedata/
@@ -124,11 +125,14 @@ limited junction control, capacity x10, 3 incremental duaIterate steps, 120 s te
   person). Raw XML is deleted after conversion (disk).
 
 ### 25 % sample: runtime measured as a lower bound, not completed
-Attempt 1 (05:57, parallel to the 10 % run) died silently in step-0 routing under memory pressure.
-Attempt 2 was stopped by the overnight monitor at 06:27 for disk and memory pressure (data volume
-99 % full, swap 8.3/9.2 GB, load ~46); step-0 routing exceeded 45 min under contention (10 %: 24
-min). Per logs/INTERVENTION.md it is not re-run in this session; the machine needs ~15 GB free first.
-Estimate for an uncontended 25 % run: 3-4 h (routing scales ~linearly with trips, ~970k).
+One attempt, started 05:40 alongside the 10 % run (log `logs/baseline-weekday-f0.25-s1.log`, empty).
+It was stopped by the overnight monitor at 06:27 for disk and memory pressure (data volume 99 % full,
+swap 8.3/9.2 GB, load ~46; logs/INTERVENTION.md), still in step-0 routing after 45 min (10 %: 24 min
+for the same step). Correction: the 06:25 note above ("died silently", "started again at 05:57")
+was written before the monitor's account and is superseded by it. Per the monitor it is not re-run
+in this session; the machine needs ~15 GB free first.
+Estimate for an uncontended 25 % run with 8 routing threads: 3-4 h (routing scales ~linearly with
+trips, ~970k); with the deterministic 1-thread default (TA-013) about 4x the routing time, 8-12 h.
 
 ### Sampling decision (default `--sample`)
 TA-012 Default for Tier A baselines and policy runs: `--sample 0.10` with consistent capacity
@@ -136,3 +140,16 @@ scaling (`--scale` equivalent: length+minGap and meso tau x10, A-sim-101). Reaso
 only sample that fits the 18 GB machine alongside other work within ~2 h; the 25 % run needs ~2x the
 routing time and memory. Use 0.25 for final reported comparisons once disk/memory allow; 1.0 is not
 planned on this machine.
+
+### Determinism of the assignment (verifier finding, fixed)
+TA-013 The verifier found that two from-scratch demo assignments gave different routes: the seed did
+not reach duaIterate, and multi-threaded duarouter is not repeatable. Fix: the run seed now goes to
+every duarouter and sumo step (`duarouter--seed`, `sumo--seed`), and `routing_threads` defaults to 1.
+With the seed alone, 8 threads still differed on the demo; with 1 thread the routes and tripinfo are
+identical (new test `test_baseline_assignment_reproducible_from_seed`, empty caches, 2 steps).
+Cost measured on the city net (21k trips, A*, free flow): 1 thread 427 s / 3.1 GB, 8 threads 106 s
+/ 3.6 GB, so 1 thread routes ~4x slower. The 10 % baseline above was routed with 8 threads before
+this fix: its routes (routes_hash in meta.json) are reproducible from the route cache
+`data/population/routes/9724fafeab351805` only, not from the seed; the final simulation on them is
+seeded and repeatable. It is not re-run now (disk, and ~5 h at 1 thread). A run that sets
+`routing_threads: 8` records `routes_deterministic: false` in meta.json.

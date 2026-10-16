@@ -240,3 +240,26 @@ def test_baseline_demo_end_to_end_and_reproducible(caches: Path) -> None:
     assert m2["timings"]["assignment"]["cached"] is True
     assert metrics2["tripinfo_hash"] == metrics["tripinfo_hash"]
     assert metrics2["summary"] == s
+
+
+def test_baseline_assignment_reproducible_from_seed(
+    caches: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Two assignments from empty route caches give identical routes and tripinfo (9.2)."""
+    kw = {
+        "daytype": "weekday",
+        "seed": 1,
+        "sample": 1.0,
+        "net": DEMO_NET,
+        "iterations": 2,
+        "zone_dir": caches / "zones",
+        "quiet": True,
+    }
+    results = []
+    for k in range(2):
+        monkeypatch.setattr(baseline, "ROUTE_CACHE", tmp_path / f"routes{k}")
+        m = baseline.run_baseline(runs_dir=tmp_path / f"runs{k}", **kw)
+        assert m["timings"]["assignment"]["cached"] is False
+        metrics = json.loads((tmp_path / f"runs{k}" / m["run_id"] / "metrics.json").read_text())
+        results.append((m["routes_hash"], metrics["tripinfo_hash"]))
+    assert results[0] == results[1]
