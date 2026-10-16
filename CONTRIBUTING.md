@@ -7,7 +7,7 @@ real counts (M8). Please keep it that way in code, docs and screenshots.
 ## Getting started
 
 ```bash
-git clone <this repo> && cd TrafficTwin
+git clone https://github.com/OWNER/TrafficTwin.git && cd TrafficTwin
 make demo CITY=0      # setup, demo-window runs (about 30 s), API on :8000, viewer on :5173
 make test             # ruff, ruff format --check, pytest (demo window, about 3 min), web typecheck
 ```
