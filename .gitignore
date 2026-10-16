@@ -28,3 +28,4 @@ run_claude.sh
 data/imagery/
 # Esri World Imagery crops: kept locally, not redistributed (integration)
 docs/img/lane-audit/
+movies/
