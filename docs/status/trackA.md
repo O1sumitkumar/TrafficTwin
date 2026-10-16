@@ -196,3 +196,15 @@ Decisions (M4):
 - Network variants of `network_change` go to `data/jeddah/jeddah.m2.<policy>-<hash>.net.xml.gz`
   (new names; the base network is untouched); netconvert with the window cutter's structural
   options reproduces the base network body byte for byte on an empty patch.
+- TA-018 Routing-gain bias and matched controls. A placebo policy that re-routes 8 % of unchanged
+  weekday vehicles one-shot (no trip changed) cut mean delay by 20 %, VHT 13 %: the 3-step
+  baseline assignment is far from equilibrium, so re-routed vehicles gain. Policies that re-route
+  baseline vehicles (staggered hours, cordon, closure) are therefore compared with a matched
+  control run (same vehicles re-routed at their baseline times, no policy); reports show the
+  raw-baseline comparison too. Same-class vType changes (car -> ride-hail) now keep their route
+  (the first ride-hail run re-routed ~17k converted vehicles and showed a spurious -12 % delay).
+- Noise: re-simulating the weekday baseline with sim seed 2 changes mean delay +1.8 %, VHT +1.3 %.
+- Friday baseline restarted with 8 threads after the Ramadan run (09:50; the 1-thread Friday
+  assignment needed ~1.5 h per step under contention). Baseline final runs go through a launcher
+  that gzips SUMO outputs (`/tmp/baseline_gz.py`, recorded in logs); integration should make
+  `sim/population/baseline.py` write `.xml.gz` (metrics already reads it).

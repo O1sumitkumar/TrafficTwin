@@ -26,11 +26,20 @@ uv run python -m sim.runner --policy remote_work_30 --daytype weekday --sample 0
    routing on fixed weights draws no random numbers, so it is repeatable with any thread count
    (tested). There is no re-equilibration: drivers do not move into capacity the policy frees,
    so deltas are first-order.
-4. **Simulation** with exactly the baseline's options (meso, limited junction control, 120 s
+4. **Matched control** (TA-018). The baseline's 3-step assignment is far from equilibrium: a
+   placebo run that re-routes 8 % of unchanged vehicles one-shot (no trip changed) cuts city mean
+   delay by 20 % (`runs/placebo_reroute_8pct`). Any policy that re-routes baseline vehicles
+   (re-timed school runs, cordon crossers, closure detours) would be credited with that routing
+   gain. So when a policy re-routes vehicles that exist in the baseline, the runner also runs a
+   control (`runs/<id>--control`): the baseline demand with exactly those vehicles re-routed at
+   their baseline times on the same weights, no policy. The report compares the policy with the
+   control and shows the raw-baseline comparison in a folded section. New trips (induced tours,
+   deadhead legs) need no control.
+5. **Simulation** with exactly the baseline's options (meso, limited junction control, 120 s
    teleport time, capacity scaling); a policy that changes nothing reproduces the baseline
    tripinfo bit for bit (test `test_null_policy_reproduces_the_baseline`). A daytype-only policy
    reuses the day type's baseline outputs (hard links).
-5. **Report** `runs/<id>/policy_report.json` and `.md`: city KPIs vs the baseline (mean delay,
+6. **Report** `runs/<id>/policy_report.json` and `.md`: city KPIs vs the baseline (mean delay,
    AM-peak delay, speed, VKT, VHT, delay hours, throughput, peak hour, top-hour share, CO2, NOx,
    teleports), peak spreading (AM 06-09, PM 16-19, baseline peak hour, hourly table), per-district
    winners and losers (origin district, change in mean delay per trip, districts with >= 1,000
@@ -74,6 +83,18 @@ RESULTS_TABLE
 
 SWEEP_SECTION
 
+## Noise and bias checks
+
+| run | what it measures | mean delay | AM-peak delay | VKT | VHT | CO2 |
+|---|---|---|---|---|---|---|
+NOISE_ROWS
+
+- **Run-to-run noise**: the weekday baseline re-simulated with simulation seed 2 (same routes).
+  Policy deltas smaller than this are not distinguishable from noise.
+- **Routing gain**: the placebo re-routes 8 % of baseline vehicles one-shot without changing any
+  trip. Its large "improvement" is why policies that re-route baseline vehicles are compared with
+  a matched control (TA-018).
+
 ## Limitations
 
 - One-shot routing, no re-equilibration (A-pol-090); deltas are first-order.
@@ -84,6 +105,9 @@ SWEEP_SECTION
 - Bus vehicles are not capacity-scaled (A-pol-091); no bus passenger KPIs (no person-level PT
   simulation in v1).
 - Road pricing is indicative (PROJECT.md section 7): constant elasticity, no destination choice.
-- Ramadan baseline routes were assigned with 8 routing threads (TA-015), like the M2 weekday
-  baseline: reproducible from the route cache, not from the seed alone. The Friday baseline used 1
-  thread (deterministic).
+- The baseline assignment (3 duaIterate steps) is far from user equilibrium (placebo above);
+  absolute delays and the size of any re-routing effect depend on it. More assignment steps are
+  the fix once compute allows (each step ~30-45 min at 10 %).
+- All three city baselines (weekday from M2, Friday, Ramadan) were assigned with 8 routing threads
+  (TA-015): reproducible from the route cache, not from the seed alone; policy runs on them are
+  deterministic given those routes.
