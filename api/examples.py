@@ -79,7 +79,7 @@ def build_examples(run: Path, baseline: str | None, seed: int) -> dict[str, dict
     run_id = run.name
 
     def label(i: int) -> str:
-        return names[i] or index.edge_ids[i]
+        return names[i] or f"edge {index.edge_ids[i]}"
 
     assign, info = district_map(index)
     present = sorted({int(d) for d in assign if d >= 0})

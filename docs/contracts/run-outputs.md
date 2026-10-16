@@ -178,8 +178,10 @@ Edge index: the order of non-internal edges in the run's `.net.xml` (the same or
 | ... | float32 `[2 * n_points]` | lon, lat pairs |
 
 The browser builds a deck.gl `PathLayer` with binary attributes (`startIndices` + `getPath` buffer);
-colours are a `Uint8` RGBA buffer rebuilt per bin. Size: about 4 MB per 100k edges plus 0.6 MB per
-bin and metric for the full city (156k edges): about 7 MB per simulated hour per metric.
+colours are a `Uint8` RGBA buffer rebuilt per bin. Measured on the full city (156,126 edges,
+434,982 points): `edges.bin` 4.10 MB (2.07 MB gzip), `edges.json` 7.27 MB (0.43 MB gzip); one bin of
+one metric 0.62 MB raw (37-44 KB gzip, as most edges are NaN in a 1 h smoke run), so 7.5 MB raw /
+about 0.5 MB gzip per simulated hour per metric.
 
 TripsLayer JSON:
 ```json
@@ -189,8 +191,42 @@ TripsLayer JSON:
 ```
 
 ## 10. Ingest and cache
-`python -m api.ingest runs/<run_id>` (or `--all`) converts `edgedata.xml` -> `edgedata.parquet` and
-`fcd.xml` -> `fcd.parquet` (streaming, `iterparse`), and builds the edge index for the run's network.
-The API calls the same functions lazily on first request. Derived caches (edge index, dense per-metric
-bin arrays) live under `TT_CACHE_DIR` (default `data/viewer-cache/`, gitignored) keyed by network hash
-and run id; deleting the cache is always safe. `TT_RUNS_DIR` overrides `runs/`.
+`python -m api.ingest runs/<run_id>` (or `--all`, `--force`) converts `edgedata.xml` -> `edgedata.parquet`
+and `fcd.xml` -> `fcd.parquet` (streaming `iterparse`, Parquet row groups; FCD is sorted by an
+external DuckDB sort), builds the edge index for the run's network and the dense bin arrays. The
+API calls the same functions lazily on first request (one builder per artefact; concurrent requests
+wait). Parquet files are rebuilt when the XML is newer.
+
+Derived caches live under `TT_CACHE_DIR`, default **`<TT_RUNS_DIR>/_viewer-cache`** (that is
+`runs/_viewer-cache`; `runs/` is the writable mount in docker-compose, `data/` is read-only). The run
+listing ignores it because the name starts with `_`. Deleting the cache is always safe.
+
+| path under the cache | content |
+|---|---|
+| `<network_hash>/edges.bin`, `edges.json` | edge index (§9) |
+| `<network_hash>/districts-<districts file hash>/` | edge -> district map (`edge_district.npy`, int32, -1 = none) |
+| `runs/<run_id>/<metric>.npy` | float32 `[n_bins, n_edges]`, NaN = no data (read with mmap) |
+| `runs/<run_id>/bins.json` | the `/bins` metadata incl. p5/p50/p95 per metric |
+
+`TT_RUNS_DIR`, `TT_CACHE_DIR` and `TT_LOGS_DIR` (job logs, default `logs/`) may be relative; they
+resolve against the repo root, so the API runs unchanged from `/app` in the container. `meta.json`
+`network` paths are repo-relative for the same reason.
+
+## 11. Implementation notes (v1, API side)
+- `/bins/{i}` responses carry headers `X-Metric`, `X-Bin-Begin-S`, `X-Bin-End-S`, `X-N-Edges`,
+  `X-Network-Hash`, `X-Label` (exposed via CORS). Out-of-range `i` = 404, unknown metric = 422.
+- `/bins` adds `run_id`, `label`, `units`, `rows`, `unmatched_edges` (edgedata ids not in the index).
+- `/district-effects`: a `policy_report.json` with the metric wins when no `baseline` is given or the
+  given baseline equals the report's; otherwise the computed metric (only `mean_speed_delta_pct`;
+  other metrics = 404). No baseline (query or `meta.baseline_run_id`) = 422; runs with different
+  `network_hash` = 422. Computed rows add `run_mean_speed_ms` and `baseline_mean_speed_ms`.
+  An edge belongs to the district containing its path midpoint (first polygon if they overlap).
+- `/trajectories` adds `n_vehicles`; `step >= 1` (422 otherwise); 404 for Tier A runs.
+- `/geo/buildings` adds `"attribution"` (OSM, ODbL); bad bbox = 422; header `X-Feature-Count`.
+- `/api/jobs`: `fcd: true` with tier A = 422; one job at a time by default (`TT_MAX_JOBS`, 409
+  beyond it). The job status JSON also carries `request`, `error`, `created`, `label`. A new run is
+  ingested before the job reports `done`. Exit code != 0 (including the runner's teleport gate,
+  exit 2) = `failed`, with `run_id` still set when the run directory exists.
+- `/metrics` fallback adds `"source": "meta.result"`; units derive from key suffixes (`_ms` m/s,
+  `_s` s, `_m` m, `_share`/`_factor` -), else `""`.
+- JSON and binary responses are gzip-compressed when the client accepts it (SSE excluded).
