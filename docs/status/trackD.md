@@ -65,3 +65,24 @@ pruning (run dir 47 MB + 42 MB variant network, now deleted after each run).
   faster by Loop (walk + wait + loading + ramps + ride) than by car in the baseline. C1 showed
   69 % of shifted legs slower than by car under the measured 12.5 min wait, so the fixed-alpha
   result is optimistic; the competitive runs are where speed and wait (vendor vs measured) bite.
+- TD-010 Preliminary verifier (13:30): 4 of 8 checks failed; fixed:
+  (a) Objective. City VHT saved counts the removed cars' own hours as savings. The decision
+  metric is now **congestion relief** = hours (travel + departure delay) saved by the vehicles
+  that are on the road in both runs (same vehicle id, shuttles excluded), per USD M of capex.
+  Riders' extra door-to-door time is reported as net person-hours (relief minus riders' extra
+  time vs their baseline car trip). City VHT saved stays in the tables. Finished runs are
+  recomputed from their outputs (`python -m sim.loop.evaluate --rebuild`, no re-simulation).
+  (b) Shuttle dispatch had no time window (pooling waits up to hours at 10 %): a shuttle now
+  leaves when full or 180 s after its first passenger (A-loop-019). Road KPIs of the seed-1
+  candidate runs C1-C8 are unaffected (only shuttle departure times change); the seed-2 and
+  sweep runs use the window.
+  (c) Greedy: both seeds must agree on the sign and the mean must exceed the two-seed noise
+  (replicate noise / sqrt 2); empty selection handled. Quality gate also checks tunnel-segment
+  exceedance (headway is per segment and direction; the 1,355 pph figure is applied per station
+  pair for the flag, as the brief says, and per tunnel direction as the headway).
+  (d) Demo CLI: `python -m sim.loop.run loop_demo --demo` builds demo-window zones (Track A's
+  fidelity setup) and caches under `runs/loop-demo/` and runs in ~10 s.
+  (e) Register: lanes, overlap and selection heuristics, budget (A-loop-018), dispatch window
+  (A-loop-019) moved to YAML and registered; the sweep reads the YAML sweep lists.
+  Known limitation kept: `python -m sim.policies.run loop_demo` validates (schema registration)
+  but fails at apply; Loop policies run through `python -m sim.loop.run`.
