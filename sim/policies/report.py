@@ -181,7 +181,7 @@ def headline(meta: dict[str, Any], kpis: list[dict[str, Any]]) -> str:
 
 
 POLICY_CAVEATS = """\
-- Incremental routing (TA-014): vehicles whose trip the policy does not touch keep their
+- Incremental routing (TA-014, A-pol-090): vehicles whose trip the policy does not touch keep their
   baseline route; new, re-timed, re-moded or affected vehicles get a one-shot shortest path on the
   starting baseline's congested travel times. There is no re-equilibration, so drivers who would
   re-route into freed (or away from added) congestion do not: deltas are first-order.

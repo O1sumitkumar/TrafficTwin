@@ -283,6 +283,7 @@ def run_policy(
             routing["weights_rows"] = nweights
             timings["reroute_s"] = round(time.perf_counter() - t1, 1)
             (out / "reroute.trips.xml").unlink()
+            (out / "reroute.rou.alt.xml.gz").unlink(missing_ok=True)
             (out / "weights.xml.gz").unlink()
         t2 = time.perf_counter()
         counts = R.merge_routes(plan.base_routes, new_routes, reuse, out / "routes.rou.xml.gz",
@@ -294,10 +295,10 @@ def run_policy(
         add = out / "outputs.add.xml"
         add.write_text(
             "<additional>\n"
-            f'    <edgeData id="ed" freq="{bcfg["edgedata_freq_s"]}" file="edgedata.xml" '
+            f'    <edgeData id="ed" freq="{bcfg["edgedata_freq_s"]}" file="edgedata.xml.gz" '
             f'excludeEmpty="true" begin="0" end="{run_end:.0f}"/>\n'
             f'    <edgeData id="em" type="emissions" freq="{bcfg["emissions_freq_s"]}" '
-            f'file="emissions.xml" excludeEmpty="true" begin="0" end="{run_end:.0f}"/>\n'
+            f'file="emissions.xml.gz" excludeEmpty="true" begin="0" end="{run_end:.0f}"/>\n'
             "</additional>\n"
         )
         route_files = [out / "routes.rou.xml.gz", *plan.extra_routes]
@@ -309,7 +310,7 @@ def run_policy(
             "--begin", str(bcfg["begin"]),
             "--end", f"{run_end:.0f}",
             "--seed", str(seed),
-            "--tripinfo-output", str(out / "tripinfo.xml"),
+            "--tripinfo-output", str(out / "tripinfo.xml.gz"),
             "--device.emissions.probability", "1",
             "--statistic-output", str(out / "stats.xml"),
             "--log", str(out / "sumo.log"),

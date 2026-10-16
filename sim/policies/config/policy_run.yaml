@@ -3,7 +3,7 @@
 kind: policy_run
 label: "synthetic demand, uncalibrated"
 
-# Incremental re-routing (TA-014): vehicles whose trip is unchanged keep their baseline route; new,
+# Incremental re-routing (TA-014, A-pol-090): vehicles whose trip is unchanged keep their baseline route; new,
 # re-timed, re-moded or affected vehicles get a one-shot shortest path on the baseline's congested
 # travel times (edgedata of the matching baseline run, aggregated per interval). No re-equilibration.
 reroute:

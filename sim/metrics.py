@@ -56,6 +56,18 @@ def xml_content_hash(path: Path, length: int = 16) -> str:
     return digest.hexdigest()[:length]
 
 
+def _xml_source(path: Path):  # noqa: ANN202 - path or binary file object for iterparse
+    return gzip.open(path, "rb") if str(path).endswith(".gz") else path
+
+
+def find_output(out: Path, name: str) -> Path | None:
+    """`<name>.xml` or `<name>.xml.gz` in a run dir (policy runs write gzipped outputs)."""
+    for cand in (out / f"{name}.xml", out / f"{name}.xml.gz"):
+        if cand.exists():
+            return cand
+    return None
+
+
 def parse_tripinfo(path: Path) -> pd.DataFrame:
     cols: dict[str, list] = {
         k: []
@@ -73,7 +85,7 @@ def parse_tripinfo(path: Path) -> pd.DataFrame:
             "nox_g",
         )
     }
-    for _, el in ET.iterparse(path, events=("end",)):
+    for _, el in ET.iterparse(_xml_source(path), events=("end",)):
         if el.tag != "tripinfo":
             continue
         cols["veh_id"].append(el.get("id"))
@@ -106,7 +118,7 @@ def edgedata_to_parquet(xml: Path, out: Path, fields: tuple[str, ...] = EDGE_FIE
     begin = end = 0.0
     buf: dict[str, list] = {k: [] for k in schema.names}
     try:
-        for ev, el in ET.iterparse(xml, events=("start", "end")):
+        for ev, el in ET.iterparse(_xml_source(xml), events=("start", "end")):
             if ev == "start":
                 if el.tag == "interval":
                     begin, end = float(el.get("begin", 0)), float(el.get("end", 0))
@@ -333,14 +345,15 @@ def process_run(out: Path, meta: dict[str, Any], keep_xml: bool = False) -> dict
     out = Path(out)
     sample = float(meta.get("sample", 1.0))
     sim_end = float(meta.get("sim_end_s", 86400))
-    if (out / "tripinfo.xml").exists():
-        ti = parse_tripinfo(out / "tripinfo.xml")
+    ti_xml = find_output(out, "tripinfo")
+    if ti_xml is not None:
+        ti = parse_tripinfo(ti_xml)
         ti.to_parquet(out / "tripinfo.parquet", index=False)
     else:
         ti = pd.read_parquet(out / "tripinfo.parquet")
     for name in ("edgedata", "emissions"):
-        xml = out / f"{name}.xml"
-        if xml.exists():
+        xml = find_output(out, name)
+        if xml is not None:
             fields = EDGE_FIELDS if name == "edgedata" else ("CO2_abs", "NOx_abs")
             edgedata_to_parquet(xml, out / f"{name}.parquet", fields)
     veh = pd.read_parquet(out / "vehicles.parquet")
@@ -386,8 +399,9 @@ def process_run(out: Path, meta: dict[str, Any], keep_xml: bool = False) -> dict
 
     validation_plots(out, trips, sample)
     if not keep_xml:
-        for name in ("tripinfo.xml", "edgedata.xml", "emissions.xml"):
-            (out / name).unlink(missing_ok=True)
+        for name in ("tripinfo", "edgedata", "emissions"):
+            for sfx in (".xml", ".xml.gz"):
+                (out / f"{name}{sfx}").unlink(missing_ok=True)
     return report
 
 
