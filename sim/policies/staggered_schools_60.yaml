@@ -1,0 +1,12 @@
+# Half of all schools start 60 minutes later (whole schools shift; escort legs follow).
+id: staggered_schools_60
+kind: policy
+title: "Staggered school hours: half of the schools start 60 min later"
+daytype: weekday
+transforms:
+  - type: staggered_hours
+    segment: schools
+    offset_minutes: 60
+    spread_minutes: 10
+    share: 0.5
+    assumption: "A-pol-010: policy design, not behaviour: 50 % of schools (chosen at random, whole schools so siblings' escort runs stay together) move their timetable 60 min later; each shifted school varies by sd 10 min (bell times are not identical). Pupils' and escorts' return legs shift with the school. Range offset 30-90 min, share 0.3-0.7."

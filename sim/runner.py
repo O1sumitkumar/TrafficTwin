@@ -276,6 +276,13 @@ def print_report(meta: dict[str, Any], out: Path) -> None:
     typer.echo("\n".join(lines))
 
 
+def run_policy_cli(policy: str, daytype: str, sample: float, seed: int, runs_dir: Path) -> None:
+    """Policy at Tier A vs the matching baseline (M4); logic in sim/policies/run.py."""
+    from sim.policies.run import run_policy
+
+    run_policy(policy, daytype, sample, seed, runs_dir)
+
+
 app = typer.Typer(add_completion=False, help=__doc__)
 
 
@@ -292,7 +299,10 @@ def main(
     daytype: str = typer.Option("weekday", help="day type for --baseline"),
     sample: float = typer.Option(0.10, help="population sample for --baseline"),
     iterations: int | None = typer.Option(None, help="override duaIterate steps (--baseline)"),
+    policy: str | None = typer.Option(None, help="policy id or YAML path (Tier A, M4)"),
 ) -> None:
+    if policy is not None:
+        return run_policy_cli(policy, daytype, sample, seed, runs_dir)
     if tier not in ("A", "B"):
         raise typer.BadParameter("tier must be A or B")
     if baseline:
