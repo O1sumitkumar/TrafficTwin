@@ -77,7 +77,47 @@ run differs from the policy's defaults). Policy outputs are gzipped (TA-016).
 
 ## Results (10 % sample, seed 1)
 
-RESULTS_TABLE
+Changes vs the matching baseline, same seed (synthetic demand, uncalibrated).
+
+| policy | vs baseline | mean delay | AM-peak delay | VKT | VHT | CO2 | top-hour share | trips | teleports/veh (base -> policy) |
+|---|---|---|---|---|---|---|---|---|---|
+| `remote_work_30` | weekday | -9.3 % | -9.4 % | -1.6 % | -7.7 % | -6.9 % | -1.0 % | -1.3 % | 0.51 -> 0.45 |
+| `staggered_schools_60` | weekday (matched control) | -1.1 % | -9.1 % | +0.2 % | -0.7 % | -0.6 % | -19.1 % | +0.1 % | 0.48 -> 0.47 |
+| `friday` | weekday | -14.9 % | -98.0 % | -3.3 % | -12.5 % | -13.0 % | -7.2 % | -2.5 % | 0.51 -> 0.60 |
+| `ramadan_weekday` | weekday | -3.8 % | -33.1 % | +13.8 % | +12.5 % | +12.4 % | -2.2 % | +16.0 % | 0.51 -> 0.48 |
+| `bus_line_tahlia` | weekday | +2.5 % | +0.7 % | -0.2 % | +1.9 % | +1.7 % | +0.1 % | -0.0 % | 0.51 -> 0.52 |
+| `cordon_center` | weekday (matched control) | +20.1 % | +8.6 % | -0.4 % | +12.4 % | +10.4 % | +1.4 % | -1.3 % | 0.47 -> 0.64 |
+| `close_corniche_road` | weekday (matched control) | +1.1 % | +0.7 % | -0.1 % | +0.7 % | +0.6 % | +0.0 % | -0.1 % | 0.51 -> 0.51 |
+| `ramadan_remote_30` | ramadan_weekday | -9.8 % | -13.9 % | -1.2 % | -7.9 % | -7.2 % | -2.0 % | -1.1 % | 0.48 -> 0.43 |
+| `ridehail_plus_10` | weekday | +1.5 % | -0.5 % | +2.7 % | +5.2 % | +4.7 % | -2.1 % | +4.5 % | 0.51 -> 0.52 |
+
+Reading the table (deltas in % of the matching baseline; the run-to-run noise is about +/-2 % on
+delay and VHT, see below):
+
+- **Remote work 30 %** removes 7,370 work tours in the sample (18 % of eligible workers at home
+  today) and adds 2,635 induced tours: VKT -1.6 %, delay -9 %, CO2 -7 %. Delay falls far more than
+  VKT because the network is gridlocked in the peaks (non-linear response).
+- **Staggered schools** spreads the morning peak (top-hour share -19 %) and cuts AM-peak delay
+  by 9 % against its matched control; the daily effect (-1 %) is within noise. Compared with the
+  raw baseline it would have shown -21 % AM-peak delay, most of it the routing gain.
+- **Friday** has almost no morning peak (-98 % AM-peak delay); the peak hour moves to 11:00
+  (Jumu'ah travel); fewer trips and VKT, but more teleports per vehicle (midday gridlock).
+- **Ramadan weekday**: 16 % more vehicle trips (late-night activity and iftar visits) and +14 %
+  VKT, yet a flatter morning (AM-peak delay -33 %) and slightly lower mean delay.
+- **Bus line on Tahlia** shifts only 11 tours in the 10 % sample (both ends within 500 m of
+  different stops); its effect is within noise. A corridor line moves little city-wide traffic
+  under a fixed 10 % shift; the buses themselves load the road (A-pol-091).
+- **Cordon** (matched control): +20 % delay, +12 % VHT. Suppression is small (9.6 % of 33,718
+  charged tours) while the 15-min penalty re-routes ~42,700 crossers onto perimeter roads that are
+  already gridlocked. Indicative only: no destination or mode choice, one charge level.
+- **Corniche closure**: 412 vehicles re-routed, 125 unroutable (trip ends cut off by the
+  closure); city-wide effect within noise (+1 % delay), local detours in the corridor tables.
+- **Ramadan + 30 % remote** (vs the Ramadan baseline): -10 % delay, -14 % AM-peak delay, close to
+  the weekday remote-work effect.
+- **Ride-hail +10 %** (P1): converted tours keep their routes; the 17,729 empty legs add 2.7 %
+  VKT and 5 % VHT, CO2 +5 %.
+
+Per-policy detail (districts, corridors, hourly profile): `runs/<policy>/policy_report.md`.
 
 ## Response curve: remote-work share
 
@@ -85,9 +125,13 @@ SWEEP_SECTION
 
 ## Noise and bias checks
 
-| run | what it measures | mean delay | AM-peak delay | VKT | VHT | CO2 |
-|---|---|---|---|---|---|---|
-NOISE_ROWS
+| run | vs | mean delay | AM-peak delay | VKT | VHT | CO2 | top-hour share | trips | teleports/veh |
+|---|---|---|---|---|---|---|---|---|---|
+| noise replicate (sim seed 2) | weekday | +1.8 % | +1.3 % | +0.0 % | +1.3 % | +1.1 % | +0.0 % | +0.0 % | 0.51 -> 0.51 |
+| placebo: 8 % re-routed | weekday | -20.1 % | -12.6 % | +2.0 % | -13.3 % | -11.5 % | -0.2 % | +0.3 % | 0.51 -> 0.38 |
+| control of staggered_schools_60 | weekday | -4.7 % | -12.8 % | +0.3 % | -3.0 % | -2.6 % | +0.1 % | +0.0 % | 0.51 -> 0.48 |
+| control of cordon_center | weekday | -13.7 % | -11.2 % | +1.9 % | -8.7 % | -7.6 % | -0.2 % | +0.3 % | 0.51 -> 0.47 |
+| control of close_corniche_road | weekday | -0.1 % | +0.1 % | +0.1 % | +0.1 % | +0.1 % | +0.0 % | +0.0 % | 0.51 -> 0.51 |
 
 - **Run-to-run noise**: the weekday baseline re-simulated with simulation seed 2 (same routes).
   Policy deltas smaller than this are not distinguishable from noise.

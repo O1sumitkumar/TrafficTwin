@@ -34,7 +34,9 @@ def row(report: dict) -> str:
 
     tele = k.get("teleport_share", {})
     tele_txt = f"{tele.get('baseline', 0):.2f} -> {tele.get('policy', 0):.2f}" if tele else "n/a"
-    base = report["compare_baseline"].split("-f")[0].removeprefix("baseline-")
+    ctrl = report.get("control")
+    ref = ctrl["raw_baseline"] if ctrl else report["compare_baseline"]
+    base = ref.split("-f")[0].removeprefix("baseline-") + (" (matched control)" if ctrl else "")
     cells = [f"`{report['policy']}`", base, *[cell(c) for c, _ in COLUMNS], tele_txt]
     return "| " + " | ".join(cells) + " |"
 
