@@ -17,7 +17,7 @@ time cannot be re-applied after loadState (M6 B-D-017), and the strategy changes
 do not exist yet at the order time.
 
 score = w_t90 x T90 + w_t100 x T100 (s after the order; not reached = A-evac-026 x horizon)
-      + w_delay x background veh-h added versus no strategy + w_contraflow x reversed lane-km
+      + w_delay x max(0, background veh-h added versus no strategy) + w_contraflow x lane-km
       + w_signal x signals retimed + w_order x extra staged orders                 (lower = better)
 """
 
@@ -203,7 +203,7 @@ def score(res: dict[str, Any], base: dict[str, Any], cand: dict[str, Any],
     terms = {
         "t90": w["w_t90"] * V.effective(c, "t90_s"),
         "t100": w["w_t100"] * V.effective(c, "t100_s"),
-        "delay": w["w_delay"] * added,
+        "delay": w["w_delay"] * max(0.0, added),  # side-effect penalty only (A-evac-029)
         "contraflow": w["w_contraflow"] * lane_km,
         "signals": w["w_signal"] * len(res["signals_retimed"]),
         "orders": w["w_order"] * staged,
@@ -278,7 +278,14 @@ def explain(
         f"{fmt(b['t100_s'])})."
     )
     d90 = V.effective(c, "t90_s") - V.effective(b, "t90_s")
-    if d90 < 0:
+    if c["t90_s"] is None:
+        lines.append(
+            f"Does not get 90 % out before the run ends ({c['out']} of {c['vehicles']} out)"
+            + (", nor does no strategy." if b["t90_s"] is None else ".")
+        )
+    elif b["t90_s"] is None:
+        lines.append("Gets 90 % out, which no strategy does not before the run ends.")
+    elif d90 < 0:
         lines.append(f"Clears 90 % {abs(d90) / 60:.1f} min faster than no strategy.")
     elif d90 > 0:
         lines.append(f"Clears 90 % {d90 / 60:.1f} min slower than no strategy.")
@@ -295,6 +302,13 @@ def explain(
         if other is None or other == cand["id"]:
             continue
         oc = results[other]["clearance"]
+        if oc["t90_s"] is None or c["t90_s"] is None:
+            lines.append(
+                f"{LEVER_NAMES[lever][0].upper()}{LEVER_NAMES[lever][1:]}: 90 % not reached "
+                f"{'with' if c['t90_s'] is None else 'without'} it; out by the run end "
+                f"{c['out']} with it, {oc['out']} without it ({other})."
+            )
+            continue
         saving = V.effective(oc, "t90_s") - V.effective(c, "t90_s")
         name = LEVER_NAMES[lever]
         if saving > 0:

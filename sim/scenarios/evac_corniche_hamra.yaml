@@ -1,12 +1,12 @@
 # FICTIONAL evacuation (PROJECT.md section 11): a generic waterfront event crowd in the Al Hamra
 # part of the Tahlia window (the window covers Tahlia / Al Andalus / Al Hamra). The zone is a
-# generic box over the waterfront car parks, not a real venue; crowd size, timing and exits are
+# generic box over the waterfront car parks and the adjacent street grid, not a real venue; crowd size, timing and exits are
 # invented. Real-site evacuation plans stay private. Synthetic demand, uncalibrated.
 id: evac_corniche_hamra
 kind: scenario
 window: tahlia
 daytype: weekday
-label: "Fictional waterfront festival crowd evacuating the Al Hamra Corniche car parks (Tahlia window)"
+label: "Fictional waterfront festival crowd evacuating the Al Hamra Corniche car parks and nearby streets (Tahlia window)"
 fictional: true
 begin: 0
 end: 7200
@@ -14,7 +14,7 @@ events:
   - type: evacuation
     id: corniche_crowd
     start: 900
-    zone: [[39.1400, 21.5280], [39.1500, 21.5280], [39.1500, 21.5400], [39.1400, 21.5400]]
+    zone: [[39.1450, 21.5300], [39.1600, 21.5300], [39.1600, 21.5420], [39.1450, 21.5420]]
     vehicles: 2000
     exits: auto
     phasing: simultaneous

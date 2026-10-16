@@ -40,7 +40,7 @@ def spec(**kw: Any) -> V.EvacSpec:
 
 
 def plan(ana: dict[str, Any], **kw: Any) -> dict[str, Any]:
-    return V.resolve(spec(**kw), ana, 1, 0.0, "dist", {}, 1500.0)
+    return V.resolve(spec(**kw), ana, 1, 0.0, {"normal": 0.8, "slow": 0.2}, {}, 1500.0)
 
 
 # --- spec ---------------------------------------------------------------------------------------
@@ -143,6 +143,16 @@ def test_plan_vehicles_and_release(ana: dict[str, Any]) -> None:
     assert all(300 <= v[2] < 300 + release for v in p["vehicles"])
     assert set(p["routes"]) == {v[1] for v in p["vehicles"]}
     assert p["start"] == 0.0 and p["order_t"] == 300.0
+    assert {v[5] for v in p["vehicles"]} <= {"normal", "slow"}
+
+
+def test_evacuee_types_are_cars() -> None:
+    from sim.vtypes.loader import load_library, resolve_mix
+
+    lib = load_library()
+    t = V.evacuee_types(resolve_mix(None, lib), lib)
+    assert t and all(lib.types[n].vClass == "passenger" for n in t)
+    assert sum(t.values()) == pytest.approx(1.0, abs=1e-5)
 
 
 @pytest.mark.parametrize("order", ["near_first", "far_first"])
@@ -162,7 +172,8 @@ def test_phased_release_order(ana: dict[str, Any], order: str) -> None:
 def test_balanced_assignment_respects_detour(ana: dict[str, Any]) -> None:
     p = plan(ana, exit_assignment="balanced")
     factor = V.value("assignment", "balanced_max_detour")
-    for (*_rest, x), o in zip(p["vehicles"], ana["sampled"], strict=True):
+    for v, o in zip(p["vehicles"], ana["sampled"], strict=True):
+        x = v[4]
         best = min(ana["reach"][o].values())
         assert ana["reach"][o][x] <= factor * best + 1e-9
     near = plan(ana)

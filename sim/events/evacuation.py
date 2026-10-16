@@ -666,11 +666,12 @@ def resolve(
     ana: dict[str, Any],
     seed: int,
     begin: float,
-    vtype: str,
+    vtypes: dict[str, float],
     tls_nodes: dict[str, str],
     run_end: float,
 ) -> dict[str, Any]:
-    """JSON plan for the worker. `tls_nodes`: edge id -> TLS id of its to-node (window net)."""
+    """JSON plan for the worker. `vtypes`: evacuee type shares (passenger-class members of the
+    scenario mix, A-evac-034). `tls_nodes`: edge id -> TLS controlling movements out of it."""
     overridden = set()
     if spec.release_s is not None:
         overridden.add(param("event", "release_s").id)
@@ -688,12 +689,15 @@ def resolve(
     route_of: dict[tuple[str, str], str] = {}
     vehicles = []
     prefix = f"{EVENT_VEHICLE_PREFIX}{spec.id}."
+    trng = random.Random(f"vtype:{seed}:{spec.id}")
+    names = sorted(vtypes)
+    types = trng.choices(names, weights=[vtypes[n] for n in names], k=len(exits))
     for i, (o, x) in enumerate(zip(ana["sampled"], exits, strict=True)):
         if (o, x) not in route_of:
             rid = f"{prefix}r{len(route_of)}"
             route_of[(o, x)] = rid
             routes[rid] = EvacNet.path(o, x, ana["trees"][x])
-        vehicles.append([f"{prefix}{i}", route_of[(o, x)], times[i], band[i], x])
+        vehicles.append([f"{prefix}{i}", route_of[(o, x)], times[i], band[i], x, types[i]])
     if "all" in spec.contraflow:
         active = [c["id"] for c in ana["corridors"]]
     else:
@@ -733,7 +737,7 @@ def resolve(
             "min_green_s": float(value("signals", "min_green_s")),
             "max_green_s": float(value("signals", "max_green_s")),
         },
-        "vtype_distribution": vtype,
+        "vtypes": vtypes,
         "routes": routes,
         "vehicles": vehicles,
         "moves": [list(m) for m in moves],
@@ -747,6 +751,16 @@ def resolve(
         "reference": False,
         "assumption_ids": list(dict.fromkeys(ids)),
     }
+
+
+def evacuee_types(mix: dict[str, float], lib: Any) -> dict[str, float]:
+    """Evacuees are private cars: the passenger-class members of the mix, renormalised
+    (A-evac-034); trucks and buses may not enter car-park service roads."""
+    cars = {n: s for n, s in mix.items() if s > 0 and lib.types[n].vClass == PASSENGER}
+    if not cars:
+        raise ValueError("the scenario's vType mix has no passenger-class type for evacuees")
+    total = sum(cars.values())
+    return {n: round(s / total, 6) for n, s in sorted(cars.items())}
 
 
 def reference_plan(plan: dict[str, Any]) -> dict[str, Any]:
@@ -826,10 +840,10 @@ class EvacuationEvent(Event):
         p = self.plan
         for rid, edges in p["routes"].items():
             conn.route.add(rid, edges)
-        for vid, rid, depart, _band, _x in p["vehicles"]:
+        for vid, rid, depart, _band, _x, vtype in p["vehicles"]:
             try:
                 conn.vehicle.add(
-                    vid, rid, typeID=p["vtype_distribution"], depart=f"{max(depart, ctx.t):.1f}",
+                    vid, rid, typeID=vtype, depart=f"{max(depart, ctx.t):.1f}",
                     departLane="best", departPos="random", departSpeed="0",
                 )  # fmt: skip
             except TraCIException:
@@ -1205,7 +1219,7 @@ class Situation(BaseModel):
     other_plans: list[dict[str, Any]]
     other_ids: list[str]
     tls_nodes: dict[str, str]
-    vtype: str
+    vtypes: dict[str, float]
     run_cfg: dict[str, Any]
     lib: Any
     mix: dict[str, float]
@@ -1213,7 +1227,7 @@ class Situation(BaseModel):
     def plan(self, **strategy: Any) -> dict[str, Any]:
         spec = self.spec.model_copy(update=strategy)
         return resolve(
-            spec, self.analysis, self.seed, self.begin, self.vtype, self.tls_nodes, self.end
+            spec, self.analysis, self.seed, self.begin, self.vtypes, self.tls_nodes, self.end
         )
 
     def strategy(self) -> dict[str, Any]:
@@ -1261,7 +1275,7 @@ def situation(ref: str | Path, window: str | None = None, seed: int = 1,
         other_plans=others,
         other_ids=other_ids,
         tls_nodes=tls_nodes(idx),
-        vtype=lib.distribution_id,
+        vtypes=evacuee_types(mix, lib),
         run_cfg=runner_config(),
         lib=lib,
         mix=mix,
