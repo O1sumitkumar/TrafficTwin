@@ -11,6 +11,7 @@ row groups, so memory stays flat whatever the file size.
 
 from __future__ import annotations
 
+import json
 import math
 import os
 import time
@@ -234,8 +235,17 @@ def ensure_edgedata(run: Path, force: bool = False) -> Path | None:
     return out
 
 
+def _tier(run: Path) -> str | None:
+    try:
+        return json.loads((run / "meta.json").read_text()).get("tier")
+    except (OSError, ValueError):
+        return None
+
+
 def ensure_fcd(run: Path, force: bool = False) -> Path | None:
     out, xml = run / "fcd.parquet", run / "fcd.xml"
+    if _tier(run) == "A":  # trajectories are Tier B only (contract section 5)
+        return None
     if not force and not is_stale(out, xml):
         return out
     if not xml.exists():

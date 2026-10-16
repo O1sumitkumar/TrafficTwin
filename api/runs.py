@@ -76,10 +76,11 @@ def iter_runs() -> list[tuple[Path, dict[str, Any]]]:
     return out
 
 
-def has_files(path: Path) -> dict[str, bool]:
+def has_files(path: Path, tier: str | None = None) -> dict[str, bool]:
     has = {
         "edgedata": (path / "edgedata.parquet").exists() or (path / "edgedata.xml").exists(),
-        "fcd": (path / "fcd.parquet").exists() or (path / "fcd.xml").exists(),
+        # trajectories are Tier B only (contract section 5)
+        "fcd": tier != "A" and ((path / "fcd.parquet").exists() or (path / "fcd.xml").exists()),
     }
     has.update({k: (path / f).exists() for k, f in OPTIONAL_FILES.items()})
     return has
@@ -96,7 +97,7 @@ def summary(path: Path, meta: dict[str, Any]) -> dict[str, Any]:
         "sim_seconds": meta.get("sim_seconds"),
         "label": meta.get("label", settings.LABEL),
         "baseline_run_id": meta.get("baseline_run_id"),
-        "has": has_files(path),
+        "has": has_files(path, meta.get("tier")),
     }
 
 

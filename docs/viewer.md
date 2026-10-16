@@ -121,6 +121,9 @@ bins). Chrome memory is the RSS of the whole process tree (`ps`). Measured 2026-
 | Tier A difference (2 city runs), 300x, orbiting | 59.9 | 59.9 | 0 | 172 / 115 | 154 MB | 971 MB (416 / 133) | 2.4 ms mean |
 | Tier B trips (1,800 veh) + buildings, 60x, orbiting | 59.9 | 59.5 | 1 (50 ms, once) | 133 / 102 | 135 MB | 995 MB (463 / 133) | 0.05 ms |
 
+- Chrome RSS varies from run to run: an independent re-run by the verifier (10 s per scenario, same
+  flags, same day) measured 1,102-1,388 MB total RSS for the same four scenarios (JS heap 131-150 MB,
+  59.9 fps median, p5 59.5-59.9). Treat browser memory as **0.86-1.39 GB**, still under 2 GB.
 - Budget (60 fps on the M3 Pro with the full network, under 2 GB browser memory): **met**. Default
   runs are vsync-capped at 60 fps. The uncapped column (`TT_PERF_UNCAPPED=1`, adds
   `--disable-gpu-vsync --disable-frame-rate-limit`) shows the headroom: about 2.9x for the full city

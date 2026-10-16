@@ -116,7 +116,7 @@ def build_examples(run: Path, baseline: str | None, seed: int) -> dict[str, dict
 
     scenario = {
         **_header(run_id, baseline),
-        "scenario": {"id": "example-accident", "name": "Example accident (fictional)"},
+        "scenario": {"id": "example-accident", "name": "Example accident"},
         "events": [
             {
                 "id": "ev1",
