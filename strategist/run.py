@@ -108,6 +108,11 @@ def recommend(
     by_id = {c["id"]: c for c in cands}
     ns_cand, ns_res = by_id[NO_STRATEGY_ID], results[NO_STRATEGY_ID]
     halted_t = snap["measured_at_t"]["halted_by_edge"]
+    for sc in ranked["scores"]:
+        c = by_id[sc["candidate_id"]]
+        sc["classification"] = classify_option(c["actions"], results[c["id"]], sc["added_veh_h"])[
+            "classification"
+        ]
     options = []
     for s in ranked["top"]:
         c, r = by_id[s["candidate_id"]], results[s["candidate_id"]]
@@ -351,16 +356,16 @@ def render_md(r: dict[str, Any]) -> str:
         "## All what-if runs",
         "",
         _table_row(
-            ["candidate", "ambulance TT", "background veh-h", "added veh-h", "signals"]
-            + ["rescue edges", "junctions held", "teleports", "score"]
+            ["candidate", "classification", "ambulance TT", "background veh-h", "added veh-h"]
+            + ["signals", "rescue edges", "junctions held", "teleports", "score"]
         ),
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for sc in r["scores"]:
         m = r["results"][sc["candidate_id"]]
         out.append(
             _table_row(
-                [f"`{sc['candidate_id']}`", _fmt_s(m["travel_time_s"])]
+                [f"`{sc['candidate_id']}`", sc["classification"], _fmt_s(m["travel_time_s"])]
                 + [f"{m['background_veh_h']:.3f}", f"{sc['added_veh_h']:+.3f}"]
                 + [str(m["signals_preempted"]), str(m["rescue_lane_edges"])]
                 + [str(m["junctions_held"]), str(m["teleports"]), f"{sc['score']:.1f}"]
