@@ -49,3 +49,19 @@ netconvert of the city net ~1-2 min (first time per alignment), transforms ~2 mi
 sequential. Private-EV runs add a one-shot re-route and a matched control: ~35-45 min each.
 Optimisation: ~6 shuttle and ~3 private runs on the selected set plus 2 noise runs: ~4-5 h.
 No single run is expected to exceed 90 min. Disk checked before each run (stop under 3 GB).
+
+Measured (13:20): one shuttle candidate run = 10.6 min wall (transforms 35 s incl. netconvert,
+merge 20 s, 24 h meso 8.5 min at 2.9 GB peak RSS, KPIs/report 71 s); ~90 MB disk per run after
+pruning (run dir 47 MB + 42 MB variant network, now deleted after each run).
+- TD-008 Single-seed noise is of the same order as a corridor's effect: C3 removed 3,532 sampled
+  car trips yet came out at -0.4 % VHT, and Track A measured +1.3 % VHT from a sim-seed change
+  alone. So every candidate is also re-simulated with sim seed 2 and compared with the seed-2
+  baseline replicate (Track A's replicate machinery, `runs/loop_noise_baseline_s2`); candidates
+  are ranked on the two-seed mean and the greedy step skips any whose saving changes sign between
+  seeds. Estimate (recorded 13:30): replicate + 8 candidate runs ~1.7 h; then the optimiser:
+  13 sweep runs (3 private-EV with matched controls, ~25-30 min each), a network placebo and a
+  seed-2 replicate of the recommended configuration, ~3.5-4 h. No single run above 90 min.
+- TD-009 Added a time-competitive shift sensitivity (A-loop-017): only tours whose every leg is
+  faster by Loop (walk + wait + loading + ramps + ride) than by car in the baseline. C1 showed
+  69 % of shifted legs slower than by car under the measured 12.5 min wait, so the fixed-alpha
+  result is optimistic; the competitive runs are where speed and wait (vendor vs measured) bite.
