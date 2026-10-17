@@ -288,6 +288,10 @@ headway; vendor speed claims do not change road relief at all.
   robust than the absolute savings.
 - **Exogenous shift share.** alpha is assumed, not modelled; the rider-time flag shows how many
   shifted legs would be slower by Loop than by car. A real system would attract fewer of those.
+  Track H replaces alpha with a car-vs-Loop logit (`docs/loop-mode-choice.md`, `--mode-choice`):
+  C1 carries about 19,500 riders/day under the measured service (range 10,900-31,900 over value of
+  time, wait weight, ASC and fare) and 31,500 under the vendor service, against 28,820 at alpha
+  0.3; the city relief under mode choice is not yet re-simulated.
 - **No induced demand, no re-equilibration.** Freed road space is not refilled by new or re-routed
   trips (one-shot routing, A-pol-090), which flatters every option equally.
 - **Passengers are not simulated.** Walk, wait and transfers are estimated; there are no transfers

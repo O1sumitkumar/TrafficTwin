@@ -59,6 +59,8 @@ def resolve_params(
             "walk_speed_kmh": float(acc["walk_speed_kmh"]),
             "detour_factor": float(acc["detour_factor"]),
         }
+        if t.mode_choice:
+            p["mode_choice"] = t.mode_choice
     else:
         pr = cfg["private"]
         p |= {

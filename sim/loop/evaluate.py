@@ -2,6 +2,8 @@
 
     python -m sim.loop.evaluate --candidates sim/loop/candidates.yaml
     python -m sim.loop.evaluate --candidates sim/loop/candidates.yaml --ids C1,C3 --alpha 0.3
+    python -m sim.loop.evaluate --mode-choice sim/loop/config/mode_choice.yaml --ids C1
+    python -m sim.loop.evaluate --mode-choice sim/loop/config/mode_choice.yaml --demo
 
 Default configuration (brief): shuttle mode, alpha 0.5, speed 90 km/h, measured capacity, 10 %
 weekday sample, seed 1. Runs are sequential (one city-scale run at a time) and resumable: a run
@@ -68,8 +70,10 @@ def policy_hash(pol: LoopPolicy) -> str:
 
 def run_one(pol: LoopPolicy, sample: float, seed: int, runs_dir: Path, prune: bool,
             sim_seed: int | None = None, run_id: str | None = None, quiet: bool = False,
-            force: bool = False) -> dict[str, Any]:  # fmt: skip
-    """Run (or reuse) one Loop policy; returns its loop report plus run metadata."""
+            force: bool = False,
+            extra: dict[str, Any] | None = None) -> dict[str, Any]:  # fmt: skip
+    """Run (or reuse) one Loop policy; returns its loop report plus run metadata. `extra`: more
+    run_loop_policy keyword arguments (the demo environment)."""
     from sim.loop.run import run_loop_policy
     from sim.policies.run import run_name
 
@@ -88,7 +92,7 @@ def run_one(pol: LoopPolicy, sample: float, seed: int, runs_dir: Path, prune: bo
     if gb < MIN_FREE_GB:
         raise DiskFull(f"{gb:.1f} GB free < {MIN_FREE_GB} GB")
     t0 = time.perf_counter()
-    kw: dict[str, Any] = {"quiet": quiet}
+    kw: dict[str, Any] = {"quiet": quiet, **(extra or {})}
     if sim_seed is not None:
         kw |= {"sim_seed": sim_seed, "force_simulate": True}
     if run_id:
@@ -224,10 +228,22 @@ def main(
     rebuild: bool = typer.Option(False, "--rebuild", help="recompute reports of finished runs"),
     force: bool = typer.Option(False, "--force", help="re-run even if a matching run exists"),
     results: Path = typer.Option(RESULTS / "evaluation.json"),
-) -> None:
+    mode_choice: Path | None = typer.Option(None, "--mode-choice", help="mode-choice YAML: the "
+                                            "logit replaces alpha (shuttle mode, Track H)"),
+    service: str | None = typer.Option(None, help="mode-choice service case (default: the YAML's)"),
+    demo: bool = typer.Option(False, "--demo", help="mode choice on the demo window (seconds)"),
+) -> None:  # fmt: skip
     if rebuild:
         rebuild_results(results)
         return
+    if mode_choice is not None:
+        if results == RESULTS / "evaluation.json":
+            results = RESULTS / "evaluation_mode_choice.json"  # Track D's results stay untouched
+        mode_choice_main(mode_choice, service, demo, ids, candidates, speed, capacity, sample,
+                         seed, keep_outputs, force, results, sim_seed)  # fmt: skip
+        return
+    if demo:
+        raise typer.BadParameter("--demo needs --mode-choice")
     cfg = loop_config()
     cands = load_candidates(candidates)
     todo = [c.strip() for c in ids.split(",")] if ids else list(cands)
@@ -268,6 +284,96 @@ def main(
             pair_with_replicate(rep, runs_dir, rep_base)
         merge_results(results, [rep])
         typer.echo("  " + rep["headline"])
+
+
+def mode_choice_params(path: Path, service: str | None, speed: float | None,
+                       capacity: str | None) -> tuple[dict[str, Any], str]:  # fmt: skip
+    """Transform parameters of a mode-choice run and the id suffix naming service and config."""
+    from sim.loop.mode_choice import load_mode_choice, mc_hash
+
+    mc = load_mode_choice(path)
+    svc = service or mc["service"]
+    if svc not in mc["services"] or not isinstance(mc["services"][svc], dict):
+        raise typer.BadParameter(f"unknown service {svc!r} in {path}")
+    s = mc["services"][svc]
+    p = Path(path).resolve()
+    rel = str(p.relative_to(REPO_ROOT)) if p.is_relative_to(REPO_ROOT) else str(p)
+    params = {"speed_kmh": speed or float(s["speed_kmh"]), "capacity": capacity or s["capacity"],
+              "mode_choice": rel}  # fmt: skip
+    return params, f"_mc{svc}_{mc_hash(mc)}"
+
+
+def mode_choice_main(path: Path, service: str | None, demo: bool, ids: str | None,
+                     candidates: Path, speed: float | None, capacity: str | None, sample: float,
+                     seed: int, keep_outputs: bool, force: bool, results: Path,
+                     sim_seed: int | None = None) -> None:  # fmt: skip
+    """Shuttle-mode runs whose shifted tours come from the mode-choice logit (Track H): the same
+    transform, network, shuttles and reports as the alpha path; only the shift decision differs."""
+    params, suffix = mode_choice_params(path, service, speed, capacity)
+    runs_dir, cands = REPO_ROOT / "runs", None
+    if demo:
+        from sim.loop.demo import DEMO_RUNS
+        from sim.loop.schema import load_loop_policy
+
+        t = load_loop_policy("loop_demo").transforms[0]
+        cands = {
+            "demo": {
+                "id": t.alignments[0].id,
+                "name": t.alignments[0].name,
+                "tunnel_km": "-",
+                "stations": [s.model_dump() for s in t.alignments[0].stations],
+            }
+        }
+        params |= {"radius_o_m": t.radius_o_m, "radius_d_m": t.radius_d_m,
+                   "min_trip_km": t.min_trip_km}  # fmt: skip
+        runs_dir, sample = DEMO_RUNS / "runs", 1.0
+        if results == RESULTS / "evaluation_mode_choice.json":
+            results = DEMO_RUNS / "evaluation_mode_choice.json"
+    cands = cands or load_candidates(candidates)
+    rep_base = None
+    if sim_seed is not None and sim_seed != seed and not demo:
+        try:
+            rep_base = baseline_replicate(runs_dir, sim_seed, sample, seed)
+        except DiskFull as e:
+            blocked("disk")
+            raise typer.Exit(f"stopped: {e}") from e
+    todo = [c.strip() for c in ids.split(",")] if ids and not demo else list(cands)
+    for cid in todo:
+        c = cands[cid]
+        pid = f"loop_{cid.lower()}{suffix}"
+        if params["capacity"] != "measured" or params["speed_kmh"] != 90:
+            pid += f"_v{params['speed_kmh']:g}_cap{params['capacity']}"
+        pol = make_policy(pid, f"Loop {cid} {c['name']} (shuttle, mode choice {suffix[3:]}; "
+                          f"{SYNTHETIC_LABEL})", [c], "shuttle", params)  # fmt: skip
+        typer.echo(f"[{pid}] {c['name']}, {c['tunnel_km']} km; {free_gb():.1f} GB free")
+        try:
+            if demo:
+                from sim.loop.demo import demo_env
+
+                with demo_env() as kw:
+                    rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs,
+                                  force=force, extra=kw)  # fmt: skip
+            elif rep_base is None:
+                rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs, force=force)
+            else:
+                rep = run_one(pol, sample, seed, runs_dir, prune=not keep_outputs,
+                              sim_seed=sim_seed, run_id=f"{pid}-sim{sim_seed}",
+                              force=force)  # fmt: skip
+        except DiskFull as e:
+            blocked("disk")
+            raise typer.Exit(f"stopped: {e}") from e
+        rep["candidate"] = cid
+        rep["sim_seed"] = sim_seed or seed
+        if rep_base is not None:
+            pair_with_replicate(rep, runs_dir, rep_base)
+        merge_results(results, [rep])
+        typer.echo("  " + rep["headline"])
+        mc = rep.get("mode_choice") or {}
+        typer.echo(
+            f"  mode choice: {mc.get('riders_per_day')} riders/day "
+            f"({mc.get('riders_capped_per_day')} capped; "
+            f"{mc.get('eligible_legs')} eligible legs in the sample); {rep['run_id']}"
+        )
 
 
 if __name__ == "__main__":

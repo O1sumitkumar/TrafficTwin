@@ -11,9 +11,9 @@ Loop policy composes with every Track A transform and runs through `sim.policies
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, model_serializer, model_validator
 
 from sim.common import load_yaml
 from sim.schemas import (
@@ -73,6 +73,16 @@ class LoopShuttle(LoopBase):
     dwell_s: float | None = Field(None, ge=0)
     empty_reposition_factor: float | None = Field(None, ge=0)
     competitive_only: bool | None = None
+    # Track H: path to a mode-choice YAML (sim/loop/config/mode_choice.yaml); replaces alpha
+    mode_choice: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _drop_unset_mode_choice(self, handler: Any) -> dict[str, Any]:
+        """Leave `mode_choice` out when unset, so alpha-path policies keep their hashes."""
+        d = handler(self)
+        if isinstance(d, dict) and d.get("mode_choice") is None:
+            d.pop("mode_choice", None)
+        return d
 
 
 class LoopPrivate(LoopBase):
