@@ -48,6 +48,28 @@ Stills (poster frames, from the middle of each film):
 | ![strategist](img/movies/strategist.jpg) | ![evacuation](img/movies/evacuation.jpg) |
 | ![policy-lab](img/movies/policy-lab.jpg) | ![loop](img/movies/loop.jpg) |
 
+### Arabic edition (pass 8)
+
+Every film also exists with an Arabic voice-over and Arabic subtitles, for Arabic-speaking
+viewers: `movies/<film>.ar.mp4` (+ `.ar.srt`, `.ar.gif`, `.ar.json`, `.ar.poster.png`) and
+`movies/showreel.ar.mp4`. Same frames and figures as the English films; the voice is Chatterbox
+Multilingual (MIT) cloning a ClArTTS reader (CC-BY-4.0), offline. `make movie FILM=<film> LANG=ar`,
+`make movies-ar`; scripts in `movies/specs/<film>.narration.ar.yaml`. Choice of the voice, the
+checks, the scripts and what is not translated: [movies-arabic.md](movies-arabic.md).
+
+| film | English `<film>.mp4` | Arabic `<film>.ar.mp4` | Arabic / English length |
+|---|---|---|---|
+| `city-24h` | 45.87 s, 93.2 MB | 55.13 s, 107.9 MB | x1.20 |
+| `tahlia-street` | 30.00 s, 25.9 MB | 30.90 s, 26.5 MB | x1.03 |
+| `incident` | 41.53 s, 40.4 MB | 48.90 s, 46.1 MB | x1.18 |
+| `events` | 40.13 s, 44.6 MB | 47.17 s, 50.1 MB | x1.18 |
+| `strategist` | 47.10 s, 35.0 MB | 54.77 s, 40.1 MB | x1.16 |
+| `evacuation` | 52.37 s, 34.6 MB | 59.37 s, 37.5 MB | x1.13 |
+| `policy-lab` | 50.93 s, 51.9 MB | 58.17 s, 57.0 MB | x1.14 |
+| `loop` | 45.67 s, 93.7 MB | 53.53 s, 104.5 MB | x1.17 |
+| `obhur-bridge` | 80.37 s, 35.9 MB | 89.20 s, 37.7 MB | x1.11 |
+| `showreel` | 186.30 s, 195.5 MB | 186.33 s, 194.5 MB | x1.00 |
+
 ### What changed on network v2 (pass 7, 2026-10-17)
 
 `city-24h`, `policy-lab` and `obhur-bridge` were re-rendered on main for the network-v2 runs of

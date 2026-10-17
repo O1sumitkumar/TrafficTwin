@@ -140,7 +140,48 @@ Arabic figure is a documented figure.
 
 ## Films
 
-Filled in after the renders (pass 8).
+Rendered on main on 2026-10-17, one at a time (`logs/orch/pass8-renders.log`), 1920x1080, 30 fps.
+Checked with ffprobe: audio length = video length (to the frame), loudness of the muxed AAC
+track -16.2 to -16.5 LUFS (target -16 +/- 1), true peak -1.3 to -1.4 dBTP (no clipping), audio and
+subtitle tracks tagged `ara`, mov_text subtitles, `.ar.srt` beside each MP4. Every film is within
++25 % of its English length (the longest is `city-24h`, x1.20). The English films were not
+re-rendered.
+
+| film | English `<film>.mp4` | Arabic `<film>.ar.mp4` | Arabic / English length |
+|---|---|---|---|
+| `city-24h` | 45.87 s, 93.2 MB | 55.13 s, 107.9 MB | x1.20 |
+| `tahlia-street` | 30.00 s, 25.9 MB | 30.90 s, 26.5 MB | x1.03 |
+| `incident` | 41.53 s, 40.4 MB | 48.90 s, 46.1 MB | x1.18 |
+| `events` | 40.13 s, 44.6 MB | 47.17 s, 50.1 MB | x1.18 |
+| `strategist` | 47.10 s, 35.0 MB | 54.77 s, 40.1 MB | x1.16 |
+| `evacuation` | 52.37 s, 34.6 MB | 59.37 s, 37.5 MB | x1.13 |
+| `policy-lab` | 50.93 s, 51.9 MB | 58.17 s, 57.0 MB | x1.14 |
+| `loop` | 45.67 s, 93.7 MB | 53.53 s, 104.5 MB | x1.17 |
+| `obhur-bridge` | 80.37 s, 35.9 MB | 89.20 s, 37.7 MB | x1.11 |
+| `showreel` | 186.30 s, 195.5 MB | 186.33 s, 194.5 MB | x1.00 |
+
+- `evacuation`: its run `evac_obhur_film-obhur-s1-83e89905` is not in main's `runs/` (it lives in
+  the Track I worktree, where the English film was rendered). It was rendered with
+  `TT_RUNS_DIR=.worktrees/trackI/runs` (read-only) and `TT_CACHE_DIR=runs/_viewer-cache`; no SUMO
+  run was made.
+- `showreel.ar`: the first build cut the closing caveat (the obhur-bridge headline ended at 190.6 s
+  in a 186.3 s reel); the headline was shortened and `showreel.py` now fails when a headline runs
+  past the reel.
+- GIF previews (`.ar.gif`) are made: the burned-in Arabic subtitles make their frames differ from
+  the English GIFs.
+
+### Listen-check (Whisper back-transcription of the 56 final lines)
+
+Every number in the subtitles comes back from Whisper as the same digits or the same number words
+(`logs/tts-ar-asr-final.jsonl`), except one Whisper ambiguity worth a listen. Lines to check by ear:
+- `events`, flood line (from ~14 s): «مئة وثلاثة وعشرين فاصلة ثمانية» (123.8); Whisper wrote "103 و 20.8".
+- `showreel`, loop headline (~150 s): «ونفق لوب ... الممر سي واحد», heard as «ونسى قلوب».
+- `obhur-bridge`, last line: «فالحجم استرشادي» (heard «فالحب مستفشدي») and the caveat «غير معاير»
+  (heard «معاية»); `events`, last line: «غير معاير» (heard «معايع»).
+- `loop`, relief line: «السعة» (capacity) heard as «الساعة».
+- `strategist`, option 3: «المسار سي وحده» heard as «سي واحدة».
+- Names: شرم أبحر، طريق التحلية، طريق المدينة المنورة، حي السلامة، برج جدة came back right;
+  «TrafficTwin» is read «ترافيك توين» in the showreel's first headline.
 
 ## Credits
 

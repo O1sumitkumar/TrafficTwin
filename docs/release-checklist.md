@@ -83,21 +83,26 @@ Optional: Settings > Branches, protect `main` and require the `ci` checks.
 ## 5. Tag v0.1.0 and attach the films
 
 The MP4s are not in git; they live in the working checkout's `movies/` (rebuild with `make movies`
-if missing). The site and README link to `releases/download/v0.1.0/<film>.mp4`, so the asset names
-must stay as below.
+and, for the Arabic edition, `make movies-ar` if missing). Both editions are release assets: the
+English `<film>.mp4` for English speakers and the Arabic `<film>.ar.mp4` (Arabic voice-over and
+subtitles, docs/movies-arabic.md) for Arabic speakers. The site and README link to
+`releases/download/v0.1.0/<film>.mp4`, so the asset names must stay as below. Sizes as rendered on
+2026-10-17 (English: pass 7 / Track I; Arabic: pass 8); every file is under GitHub's 2 GiB asset
+limit, 1352.6 MB in all.
 
-| asset | size |
-|---|---|
-| `city-24h.mp4` | 85.4 MB |
-| `tahlia-street.mp4` | 21.6 MB |
-| `incident.mp4` | 30.1 MB |
-| `events.mp4` | 37.0 MB |
-| `strategist.mp4` | 28.1 MB |
-| `evacuation.mp4` | 49.0 MB |
-| `policy-lab.mp4` | 41.2 MB |
-| `loop.mp4` | 69.7 MB |
-| `showreel.mp4` | 186.3 MB |
-| **total** | **548.4 MB** (every file is under GitHub's 2 GiB asset limit) |
+| film | English asset | size | Arabic asset | size |
+|---|---|---|---|---|
+| `city-24h` | `city-24h.mp4` | 93.2 MB | `city-24h.ar.mp4` | 107.9 MB |
+| `tahlia-street` | `tahlia-street.mp4` | 25.9 MB | `tahlia-street.ar.mp4` | 26.5 MB |
+| `incident` | `incident.mp4` | 40.4 MB | `incident.ar.mp4` | 46.1 MB |
+| `events` | `events.mp4` | 44.6 MB | `events.ar.mp4` | 50.1 MB |
+| `strategist` | `strategist.mp4` | 35.0 MB | `strategist.ar.mp4` | 40.1 MB |
+| `evacuation` | `evacuation.mp4` | 34.6 MB | `evacuation.ar.mp4` | 37.5 MB |
+| `policy-lab` | `policy-lab.mp4` | 51.9 MB | `policy-lab.ar.mp4` | 57.0 MB |
+| `loop` | `loop.mp4` | 93.7 MB | `loop.ar.mp4` | 104.5 MB |
+| `obhur-bridge` | `obhur-bridge.mp4` | 35.9 MB | `obhur-bridge.ar.mp4` | 37.7 MB |
+| `showreel` | `showreel.mp4` | 195.5 MB | `showreel.ar.mp4` | 194.5 MB |
+| **total** | | **650.7 MB** | | **701.9 MB** |
 
 ```bash
 cd "$PUB"
@@ -105,7 +110,7 @@ git tag -a v0.1.0 -m "TrafficTwin Jeddah v0.1.0: first public release (synthetic
 git push origin v0.1.0
 awk '/^## \[0.1.0\]/{f=1;next} /^## \[/{f=0} f' CHANGELOG.md > /tmp/tt-notes.md
 gh release create v0.1.0 -R "$OWNER/$REPO" --title "TrafficTwin Jeddah v0.1.0" --notes-file /tmp/tt-notes.md \
-  "$SRC"/movies/{city-24h,tahlia-street,incident,events,strategist,evacuation,policy-lab,loop,showreel}.mp4
+  "$SRC"/movies/{city-24h,tahlia-street,incident,events,strategist,evacuation,policy-lab,loop,obhur-bridge,showreel}{,.ar}.mp4
 gh release view v0.1.0 -R "$OWNER/$REPO" --json assets --jq '.assets[] | "\(.name) \(.size)"'
 ```
 

@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-17 (integration pass 7: city-24h, policy-lab, obhur-bridge and the showreel re-rendered on the network-v2 runs; pass 6: Track I movies v2 and Track F network v2 merged; policy re-evaluation on v2)
+Last updated: 2026-10-17 (pass 8: Arabic voice-over edition of every film, `movies/<film>.ar.mp4`; pass 7: city-24h, policy-lab, obhur-bridge and the showreel re-rendered on the network-v2 runs; pass 6: Track I movies v2 and Track F network v2 merged; policy re-evaluation on v2)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -28,6 +28,7 @@ All results: **synthetic demand, uncalibrated**.
 | OBHUR_BRIDGE | Obhur Creek bridges (Track J) | done (Track J, window scale), merged in integration pass 5; B1 and B3 city runs on v2 in pass 6 (B2, 3+3 pending) | six `network_change` policies validate; window: no effect beyond +/- 20 s; city v2 (10 %, seed 1, matched control): B3 -178,909 VHT/day (-9.2 %), B1 -170,801 (-8.8 %), teleports about 0.30 per vehicle, B1 span saturated; docs/obhur-bridge.md |
 | MOVIES_V2 | Narration, map labels, Obhur evacuation (Track I) | done (Track I), merged in integration pass 6 | 8 films + showreel re-rendered with Kokoro voice-over, subtitles, street/district/landmark labels, compass, scale bar, callouts; audio = video length on all 9; evacuation film moved to Obhur (`evac_obhur`); docs/status/trackI.md. Pass 7 (v2 films): `city-24h` 45.87 s, `policy-lab` 50.93 s and `obhur-bridge` 80.37 s (first render on main, city-scale v2 result card) re-rendered on the v2 runs, showreel 186.3 s (9 films); all -16.1 to -16.4 LUFS, audio = video, subtitles, GIFs < 3 MB; docs/movies.md |
 | NETWORK_V2 | Tier A network v2 (Track F) | blocked - teleport target (Track F), merged in integration pass 6 as the default profile | v2 `jeddah.v2.net.xml` (ae764558): 10 % weekday baseline teleports 28.3 % vs 50.5 % on m2 (target < 10 % not reached), mean delay 1,172.6 s vs 1,876.5 s; v1 and m2 still build; docs/network-v2.md |
+| ARABIC_VO | Arabic voice-over edition of every film (pass 8) | done | Chatterbox Multilingual (MIT) cloning a ClArTTS reader (CC-BY-4.0), offline on CPU (RA-001, docs/movies-arabic.md); 9 films + showreel as `movies/<film>.ar.mp4`, x1.03-x1.20 of the English length, -16.2 to -16.5 LUFS, audio = video, `ara` tracks, `.ar.srt`; English films untouched |
 
 ## Integration — 2026-10-16
 Merged on `main`: trackC (c5b3203), trackB (46fc412), trackA (13ed16e), in that order. Conflicts only
@@ -230,6 +231,32 @@ Open (carried from the tracks):
   mode choice for the Loop); the issue can be narrowed to city-wide mode choice and road-time feedback.
 - Mode-choice city runs (`evaluate --mode-choice ... --ids C1`) not run on main; Track H's offline
   sweep read Track D's baseline (TH-004). Not started here (city runs belong to another agent).
+
+## Pass 8 (Arabic voice-over edition) — 2026-10-17
+Owner's request: Arabic films for Arabic speakers, English films for English speakers.
+- **Voice (RA-001).** Chatterbox Multilingual (Resemble AI, MIT, `ResembleAI/chatterbox` 5bb1f6ee)
+  cloning ClArTTS utterance 417 (MBZUAI, CC-BY-4.0), in its own venv `.venv-tts-ar` (torch 2.6),
+  CPU, seed 1, exaggeration 0.9, cfg 0.4; then pauses capped at 0.3 s and tempo x1.12 (ffmpeg
+  atempo). Compared with Chatterbox's built-in voice and Piper `ar_JO-kareem` (clips, 22 kHz,
+  unclear data licence); Fish S1-mini (CC-BY-NC-SA, gated) and XTTS-v2 (CPML) not tested.
+  Whisper back-transcription: 0 % CER on the test lines. Digits are misread, so numbers are spoken
+  as words (`say`) and shown as digits in the subtitles (`text`).
+- **Pipeline.** `--lang ar` through narrate/render/showreel (not a fork): `voice.ar` settings,
+  cache `runs/movies/_voice_ar/`, outputs `<film>.ar.*`, tracks tagged `ara`, HUD subtitles
+  `dir="auto"`; `make movie FILM=x LANG=ar`, `make movies-ar`, `make voice-setup-ar`. `narrate
+  validate` checks each Arabic script against its English one (anchors, subtitle digits, spoken
+  number words read back by `ar_numbers`, closing «طلب اصطناعي، غير معاير»).
+- **Measured.** Synthesis of 56 lines: about 1.5 min per line per worker on the CPU; 2 workers (4
+  swapped on 18 GB). Films: city-24h 55.13 s, tahlia-street 30.90 s, incident 48.90 s, events
+  47.17 s, strategist 54.77 s, evacuation 59.37 s, policy-lab 58.17 s, loop 53.53 s, obhur-bridge
+  89.20 s, showreel 186.33 s (x1.03-x1.20 of English; first plan was x1.30-x1.74 before the tempo
+  step and tighter lines). Renders 3-7 min each.
+- **Issues met.** The evacuation run is only in `.worktrees/trackI/runs` (rendered read-only with
+  TT_RUNS_DIR); the first Arabic showreel cut the closing caveat (fixed, and showreel.py now
+  fails on it). Listen-check list in docs/movies-arabic.md (123.8 in events, «ونفق لوب» in the
+  showreel, «فالحجم استرشادي», «غير معاير» in two caveats).
+- Not translated: title cards, captions, KPI labels, legend (English, from the specs); map labels
+  stay bilingual.
 
 ## Integration pass 6 (Track I movies v2, Track F network v2) — 2026-10-17
 Merged `trackI` (`MOVIES_V2: done`; 02c353a) then `trackF` (`NETWORK_V2: blocked` = teleport target

@@ -59,6 +59,10 @@ to the GitHub release, or rebuilt with `make movies` (needs the runs). Scenarios
 
 GIF previews are in [Movies](#movies); how the films are made: `docs/movies.md`.
 
+Two editions of every film: `movies/<film>.mp4` in English (voice Kokoro-82M, Apache-2.0) and
+`movies/<film>.ar.mp4` in Arabic (voice Chatterbox Multilingual, MIT, cloning a ClArTTS reader,
+CC-BY-4.0); both offline. Arabic edition: `make movies-ar`, see `docs/movies-arabic.md`.
+
 ## Results (headline numbers and their caveats)
 
 Weekday, **10 % population sample**, seed 1, **synthetic demand, uncalibrated**. Policy deltas
@@ -329,6 +333,7 @@ scale bar. Needs ffmpeg and Google Chrome; output in `movies/`.
 make voice-setup                    # once: offline TTS venv (.venv-tts)
 make movies                         # all films + movies/showreel.mp4 (MOVIE_FLAGS=--no-voice: silent)
 make movie FILM=tahlia-street       # one film; MOVIE_FLAGS="--4k --fps 60 --letterbox" optional
+make movies-ar                      # Arabic edition: movies/<film>.ar.mp4 + showreel.ar.mp4 (make voice-setup-ar once)
 ```
 
 | | |
