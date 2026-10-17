@@ -46,15 +46,15 @@ to the GitHub release, or rebuilt with `make movies` (needs the runs). Scenarios
 
 | film | what it shows | length | MP4 |
 |---|---|---|---|
-| `city-24h` | Tier A weekday baseline as a 24 h time-lapse, camera from the Corniche to the whole city | 40 s | 85.4 MB |
-| `tahlia-street` | Street level along Tahlia Street in the morning peak, vehicles coloured by speed | 30 s | 21.6 MB |
-| `incident` | A crash on the corridor into Madinah Road, split screen against its baseline | 32 s | 30.1 MB |
-| `events` | Heavy rain, a storm flood with closed flood sites, a motorcade | 36 s | 37.0 MB |
-| `strategist` | An 08:30 ambulance: no strategy, then the top 3 ranked options with reasons | 40 s | 28.1 MB |
-| `evacuation` | Al Hamra waterfront: phased release with contraflow, clearance times | 40 s | 49.0 MB |
-| `policy-lab` | Remote work, staggered schools and a cordon in difference mode | 36 s | 41.2 MB |
-| `loop` | The recommended Loop tunnel C1 against the weekday baseline | 34 s | 69.7 MB |
-| `showreel` | All eight as 20 s excerpts with title cards | 171 s | 186.3 MB |
+| `city-24h` | Tier A weekday baseline as a 24 h time-lapse, camera from the Corniche to the whole city | 40 s | 84.8 MB |
+| `tahlia-street` | Street level along Tahlia Street in the morning peak, vehicles coloured by speed | 30 s | 25.9 MB |
+| `incident` | A crash on the corridor into Madinah Road, split screen against its baseline | 41.5 s | 40.4 MB |
+| `events` | Heavy rain, a storm flood with closed flood sites, a motorcade | 40.1 s | 44.6 MB |
+| `strategist` | An 08:30 ambulance: no strategy, then the top 3 ranked options with reasons | 47.1 s | 35.0 MB |
+| `evacuation` | Obhur Creek mouth near the Jeddah Tower site: phased release with contraflow, clearance times (fictional) | 52.4 s | 34.6 MB |
+| `policy-lab` | Remote work, staggered schools and a cordon in difference mode | 45 s | 47.9 MB |
+| `loop` | The recommended Loop tunnel C1 against the weekday baseline | 45.7 s | 93.7 MB |
+| `showreel` | All eight as 20 s excerpts with title cards | 171 s | 192.0 MB |
 
 GIF previews are in [Movies](#movies); how the films are made: `docs/movies.md`.
 
@@ -73,7 +73,7 @@ are against the matching baseline on the same seed; run-to-run noise is about ±
 | Central cordon charge | mean delay +20 % (re-routing onto perimeter roads) | `docs/policies.md` |
 | Crash on Tahlia (Tier B, micro) | window mean delay +5.7 % | `docs/events.md` |
 | Emergency strategist | top 3 options in 11.6 s; best ambulance route 68 s vs 173 s with no strategy | `docs/strategist.md` |
-| Evacuation, Al Hamra waterfront | T50 / T90 / T100 = 1,264 / 2,399 / 3,004 s | `docs/evacuation.md` |
+| Evacuation, Obhur Creek mouth (fictional) | T50 / T90 / T100 = 933 / 1,702 / 2,115 s as written; strategist's balanced exits T90 1,402 s | `docs/evacuation.md` |
 | Loop tunnel C1 (17.9 km) | about 63,000 vehicle-hours/day saved (two-seed mean, band 23k-103k), 28,820 passengers/day | `docs/loop.md` |
 
 Caveats that matter:

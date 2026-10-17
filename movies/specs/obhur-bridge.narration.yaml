@@ -1,0 +1,17 @@
+# Narration for obhur-bridge (scripts/movies/narrate.py). Numbers only from the docs
+# (docs/obhur-bridge.md). Moved from the comment in obhur-bridge.yaml in integration pass 6.
+film: obhur-bridge
+lines:
+  - shot: site
+    at: 0.6
+    text: "Sharm Obhur splits North and South Obhur. Today the only crossing is at the head of the creek."
+  - shot: site
+    text: "238,130 car trips a day have a desire line across the water; a bridge shortens 145,370 of them by 6 kilometres on average."
+  - shot: before-after
+    at: 0.6
+    text: "Left, bridges at the mouth and mid-creek; right, the same vehicles and routing without them."
+  - shot: difference
+    at: 0.6
+    text: "The bridges carry about 600 and 400 vehicles an hour, but at window scale the time saved stays inside the noise: queues build at the landings."
+  - shot: difference
+    text: "Window scale, one peak hour, synthetic demand, uncalibrated."

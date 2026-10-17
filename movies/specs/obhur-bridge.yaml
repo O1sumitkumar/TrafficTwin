@@ -9,10 +9,8 @@
 # landings (A-obh FCD filter), so the trips layer shows the crossings, not the whole window.
 # There is no wipe in the film schema: the before/after is the side-by-side split.
 #
-# Narration (for scripts/movies/narrate.py once Track I's narration lands on main; move these lines
-# to movies/specs/obhur-bridge.narration.yaml then. Numbers from docs/obhur-bridge.md):
-# narration:
-#   film: obhur-bridge
+# Narration: movies/specs/obhur-bridge.narration.yaml.
+film: obhur-bridge
 #   lines:
 #     - {shot: site, at: 0.6, text: "Sharm Obhur splits North and South Obhur. Today the only crossing is at the head of the creek."}
 #     - {shot: site, text: "About 238,000 car trips a day have a desire line across the water; a bridge shortens 145,000 of them by 6 kilometres on average."}

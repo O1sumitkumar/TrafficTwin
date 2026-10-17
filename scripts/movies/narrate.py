@@ -48,6 +48,7 @@ NUMBER_DOCS = [
     "docs/evacuation.md",
     "docs/strategist.md",
     "docs/events.md",
+    "docs/obhur-bridge.md",
     "docs/movies.md",
 ]
 CAVEAT_WORDS = ("synthetic", "uncalibrated")
