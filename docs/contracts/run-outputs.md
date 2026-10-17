@@ -302,3 +302,18 @@ All mappings live in `api/normalize.py` (meta, metrics, reports, recommendations
 
 Not mapped (listed as they are, no viewer data): calibration runs (`kind: calibration`, no `tier`;
 outputs in `sim/`), and directories without `meta.json` (sweeps, `fidelity-*`, `repeat/`).
+
+## 13. City network profiles (v1.1 note, Track F; no format change)
+
+Runs name their network by `network` and `network_hash`; nothing in this contract changes with the
+network. Since NETWORK_V2 the Tier A default is profile v2 (`docs/network-v2.md`):
+
+| profile | `network` | `network_hash` | runs on it |
+|---|---|---|---|
+| v1 (M1) | `data/jeddah/jeddah.net.xml` | 5b8a19d3a3fd4d59 | Tier A smokes `smoke-A-*-5b8a19d3-*`; Tier B windows are cut from it |
+| m2 (Track A) | `data/jeddah/jeddah.m2.net.xml` | e5f1906af7fded33 | every city baseline, policy, Loop and film run before NETWORK_V2 (`*-e5f1906a-*`) |
+| v2 (default) | `data/jeddah/jeddah.v2.net.xml` | ae7645589de321f9 | runs with `ae764558` in the id |
+
+Edge ids differ between profiles in a few places (netconvert splits), so an edge index or bin
+cache is per `network_hash`, as §9-§10 already require; a v2 baseline compares with v2 policy runs
+only.
