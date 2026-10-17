@@ -135,12 +135,15 @@ VHT/day; no second-seed v2 baseline exists, so the v2 band is not measured.
 | `staggered_schools_60` | **v2** | weekday (matched control) | +2.1 % | -1.8 % | -0.1 % | +1.2 % (+23,033 h) | +1.1 % | -13.3 % | -0.0 % | 0.274 -> 0.275 |
 | `remote_work_30` | v1 (m2) | weekday | -9.3 % | -9.4 % | -1.6 % | -7.7 % (-210,563 h) | -6.9 % | -1.0 % | -1.3 % | 0.505 -> 0.453 |
 | `remote_work_30` | **v2** | weekday | -11.4 % | -13.2 % | -1.8 % | -8.7 % (-167,819 h) | -7.4 % | -0.9 % | -1.4 % | 0.283 -> 0.244 |
+| `cordon_center` | v1 (m2) | weekday (matched control) | +20.1 % | +8.6 % | -0.4 % | +12.4 % (+309,345 h) | +10.4 % | +1.4 % | -1.3 % | 0.467 -> 0.643 |
+| `cordon_center` | **v2** | weekday (matched control) | +29.7 % | +13.1 % | -0.6 % | +17.2 % (+341,271 h) | +14.1 % | +1.6 % | -1.4 % | 0.275 -> 0.454 |
 <!-- pass6-v2-rows -->
 
 Controls on v2 (each re-routes the policy's vehicles at their baseline times without the policy;
 compared with the raw v2 baseline): `staggered_schools_60--control` mean delay -3.5 %, VHT -2.0 %
 (-38,818 h), teleports 0.283 -> 0.274; `obhur_bridge_b3--control` mean delay -1.9 %, VHT +0.5 %
-(+9,794 h), teleports 0.283 -> 0.296 (`docs/obhur-bridge.md` §5).
+(+9,794 h), teleports 0.283 -> 0.296 (`docs/obhur-bridge.md` §5); `cordon_center--control` mean
+delay +1.8 %, VHT +2.0 % (+38,526 h), teleports 0.283 -> 0.275.
 
 Reading the v2 rows:
 - **Staggered schools** still flattens the morning (top-hour share -13 % vs -19 % on v1), but with
@@ -151,6 +154,11 @@ Reading the v2 rows:
   tours added) and still cuts delay by 11 % (AM peak -13 %); in VHT it saves 167,819 h/day (-8.7 %)
   against 210,563 h on v1, because the v2 baseline has fewer vehicle-hours to save (1.95 M vs 2.74 M).
   Far outside the v1 noise band; its ranking as the strongest demand lever holds on v2.
+- **Cordon** (SAR 10, 07-19 h): the same mechanism as on v1 (9.6 % of 33,500 charged tours
+  suppressed; 42,460 crossers re-routed with the 15-min penalty onto the perimeter) makes things
+  worse on v2 too: +30 % delay, +341,271 VHT/day. **Teleports rise from 0.275 to 0.454 per vehicle**
+  (+65 %), so a large part of this run is gridlock on the perimeter roads; read the size as
+  indicative and the sign as robust (no destination or mode choice, one charge level).
 
 Per-policy detail (districts, corridors, hourly profile): `runs/<policy>/policy_report.md`.
 
