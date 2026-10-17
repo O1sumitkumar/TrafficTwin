@@ -26,6 +26,7 @@ both times.
 | edges / junctions / TLS | 156,126 / 62,513 / 72 | 155,366 / 61,774 / 74 | 155,663 / 62,136 / 73 |
 | lane-km | 20,952.9 | 22,968.2 | 25,410.8 |
 | main passenger SCC | 99.10 % | 99.09 % | 99.10 % (154,250 of 155,653; 617 SCCs) |
+| 1 h random-trip smoke (seed 1) | 26 teleports = 0.144 % | - | 0 teleports (smoke-A-s1-ae764558-ab76d081; 17,996 inserted) |
 
 ## 2. Evidence-based lane and speed defaults
 
@@ -111,8 +112,99 @@ machine for the city run; both of its parts were neutral or worse on their own.
 
 ## 4. City baseline on v2
 
-(filled in after the run)
+`uv run python -m sim.policies.baseline_launch weekday --routing-threads 6 --gzip` (10 % sample,
+seed 1, meso, 3-step incremental duaIterate, 120 s teleport time, capacity x10; zones rebuilt on the
+v2 edges: zones hash d949c812, population 346893f2). Run id
+**`baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1`** (in this worktree's `runs/`). Wall time
+1 h 44 min under heavy load from other tracks (load average 25-45): assignment 96.7 min (routing
+6 threads), final 24 h simulation 6.3 min, peak 3.6 GB
+(duarouter) / 3.3 GB (sumo). Assignment steps: step 0 (1/3 of the demand) 0.67 % teleports, step 1
+(2/3) 8.8 %, final (full demand) 28.3 %.
 
-## 5. What remains
+| KPI (synthetic demand, uncalibrated) | m2 baseline (e5f1906a) | **v2 baseline (ae764558)** | change |
+|---|---|---|---|
+| vehicles (sampled) | 389,289 | 389,301 | (new zones, same population size) |
+| **teleports per vehicle** | 50.5 % (196,721) | **28.3 % (110,027)** | -22.3 points (-44 %) |
+| completion share | 99.19 % | 99.60 % | |
+| mean speed | 20.5 km/h | 28.7 km/h | +40 % |
+| mean delay per trip | 1,876.5 s | 1,172.6 s | -38 % |
+| AM peak (06-09) mean delay | 2,098 s | 1,297 s | -38 % |
+| PM peak (17-20) mean delay | 2,784 s | 1,775 s | -36 % |
+| evening (20-23) mean delay | 3,165 s | 2,205 s | -30 % |
+| mean trip duration / length | 2,563 s / 14.57 km | 1,804 s / 14.39 km | |
+| VKT (real-scale) | 56.10 M veh-km | 55.72 M veh-km | -0.7 % |
+| VHT (real-scale) | 2.74 M veh-h | 1.94 M veh-h | -29 % |
+| CO2 | 26,185 t | 19,980 t | -24 % |
 
-(filled in after the run)
+Plausibility: 55.7 M veh-km/day is about 15 veh-km per resident (3.71 M residents) and the day mean
+speed is 28.7 km/h; neither is checked against Jeddah data (none is open). The delay is not
+plausible: time loss is 63 % of trip time, i.e. trips take 2.7 times their free-flow time on
+average. The network is still overloaded, mostly in the evening.
+
+**Where the remaining teleports are** (`python -m sim.network.teleports hotspots
+runs/baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1/sumo.log --net data/jeddah/jeddah.v2.net.xml`):
+4,906 locations; the top 10 hold 3.7 %; 18 % on junction internals, 18 % on guessed ramp edges;
+by hour 06-09 19 %, 18-24 67 %. Spatially (2 km cells) the central corridor of King Abdullah Road /
+Bani Malik St / Prince Majid Rd / Abdullah Sulaiman St (lon 39.19-39.25, lat 21.49-21.53) holds
+29 %.
+
+| # | edge / junction | class | lanes | length m | name | teleports | peak hours | lon, lat |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 39225640#62 | secondary | 3 | 358 | شارع الأمير نايف (Prince Naif St) | 576 (0.5 %) | 13, 7, 9 | 39.12122, 21.78554 |
+| 2 | 507564171#1 | trunk | 6 | 60 | طريق الملك عبدالله (King Abdullah Rd) | 500 (0.5 %) | 19, 20, 6 | 39.23327, 21.51038 |
+| 3 | 41410219#7-AddedOffRampEdge | secondary | 6 | 96 | - | 412 (0.4 %) | 13, 6, 20 | 39.23966, 21.50884 |
+| 4 | 219626061#12-AddedOffRampEdge | motorway | 6 | 94 | - | 402 (0.4 %) | 7, 8, 21 | 39.12999, 21.78859 |
+| 5 | 294798624-AddedOffRampEdge | motorway | 8 | 94 | طريق المدينة المنورة (Madinah Rd) | 380 (0.4 %) | 18, 17, 22 | 39.13914, 21.78268 |
+| 6 | 48559212#15-AddedOffRampEdge | primary | 6 | 94 | - | 380 (0.4 %) | 17, 18, 20 | 39.19363, 21.50766 |
+| 7 | 346621217#12 | motorway | 6 | 86 | طريق الحرمين (Al Harameen Rd) | 362 (0.3 %) | 23, 20, 22 | 39.23040, 21.57054 |
+| 8 | 92028872#5 | residential | 1 | 401 | شارع الملاعب (Al-Mala'ib St) | 360 (0.3 %) | 18, 12, 22 | 39.23972, 21.49836 |
+| 9 | 1506112912#1 | tertiary | 3 | 197 | شارع النسيم (Al Naseem St) | 348 (0.3 %) | 20, 19, 21 | 39.22236, 21.52368 |
+| 10 | cluster_5336946617_5339560343 | junction (priority) | - | - | - | 346 (0.3 %) | 6, 19, 20 | 39.23891, 21.51776 |
+
+**Iteration on the hotspots (TF-013): no fix-list entry qualifies, so no second city run.** The
+diverge hotspots (#3-#6) are 4 mainline + 2 exit lanes, consistent with the tags of the same roads;
+the queues come from the exits into the grid. The central cluster's ways are mostly untagged and
+carry the class defaults, but their tagged segments of the same road agree with those defaults
+(King Abdullah Rd trunk: 6.0 km tagged, median 3 = class default; Bani Malik St 7.8 km, 3; Prince
+Majid Rd 42.4 km, 3). With no evidence of a wrong lane count, an entry would be a guess, and the
+fix list takes reviewed, sourced entries only. Probe diagnostics on v2 support this:
+
+| probe (AM 05-09) | teleports | mean speed | vehicles still running at 10:00 |
+|---|---|---|---|
+| v2 | 40.0 % | 43.3 km/h | 3,616 |
+| v2 + `--tls.guess` (283 TLS instead of 73; v2k, c2c84582) | 40.2 % | 43.0 | 3,664 |
+| v2, teleport time 300 s instead of 120 s (diagnostic, not a setting change) | 40.6 % | 38.5 | 12,500 |
+
+With a longer teleport time the vehicles stay stuck instead of jumping: the teleports are gridlock,
+not an artefact of the 120 s threshold.
+
+## 5. What remains, and for whom
+
+Target (< 10 % teleports) **not reached**: 28.3 %. Network v2 removed 44 % of the teleports and
+38 % of the delay using only evidence from OSM itself. What is left is not visible as a network
+error with the data we trust:
+
+1. **Load in the evening.** 67 % of teleports are 18-24 h; 170-270 k real-scale departures per hour
+   continue from 16 to 23 h. The evening activity profile (Track A day types) and the
+   no-retiming of trips under congestion are the first thing to check.
+2. **Sampling and meso settings (A-sim-101/102/103).** 10 % sampling makes every vehicle 71 m long;
+   55 % of Jeddah's edges are shorter than 75 m, and 66 % of v2 edge teleports are on edges under
+   100 m. A 25 % run (open since TA-011) would show how much is a sampling artefact.
+3. **Same-road lane evidence (not adopted).** Propagating the median of tagged segments of the same
+   named road (instead of the class median) covers 386 untagged km and changes 168 km, in both
+   directions (Huda Al Sham and Madinah Rd motorways 4 -> 3, King Abdulaziz Rd 3 -> 4 as FIX-0001,
+   Al Makarona Rd 3 -> 2). It is more specific evidence, but it does not touch the hotspots and lowers
+   motorway capacity; a candidate for v3, with a leave-one-out check against the tags first.
+4. **Real lane counts and signal inventory.** The imagery audit stays blocked; an official Jeddah
+   road inventory (MOMRAH / Jeddah Municipality) would replace both medians.
+
+## 6. Reproduce
+
+```
+uv run python -m sim.network.lane_defaults stats                 # evidence file (committed)
+uv run python -m sim.network.build_city                          # v2 -> data/jeddah/jeddah.v2.net.xml
+uv run python -m sim.population.zones                            # zones on v2 (zones.yaml points at v2)
+uv run python -m sim.policies.baseline_launch weekday --routing-threads 6 --gzip
+uv run python -m sim.network.teleports hotspots runs/<run>/sumo.log --net data/jeddah/jeddah.v2.net.xml
+uv run python -m sim.network.probe --net data/jeddah/jeddah.v2.net.xml --trips runs/<baseline>/trips.xml --label v2
+```

@@ -54,6 +54,28 @@ so short-edge storage is part of the mechanism; lane counts are the other part.
   `data/jeddah/build_city-jeddah.log`; `build_city` now names custom-output logs after the full
   output stem so variants never share a log.
 
+- **TF-010 Zones and population rebuilt on v2.** Zone edges are network edge ids, so v2 has its own
+  zones (hash d949c812) and population (346893f2); v1/m2 zones are untouched in the main checkout.
+- **TF-011 `--tls.guess` rejected** (probe 40.2 % vs 40.0 %, 283 TLS vs 73): no gain, and 210
+  guessed signals cannot be checked against an inventory.
+- **TF-012 v2 = v2a settings.** None of the junction/ramp/TLS variants beat measured lanes + speeds
+  with the v1 netconvert options; `city-v2.yaml` keeps those options.
+- **TF-013 No second city run.** First run 28.3 % > 10 %, so the hotspots were checked for fix-list
+  entries: the diverges are consistent with the tags of the same roads, and the central cluster's
+  same-road tagged segments agree with the defaults (King Abdullah Rd trunk 6.0 km tagged, median 3;
+  Bani Malik St 7.8 km, 3; Prince Majid Rd 42.4 km, 3). No entry is sourced, the top 10 hold 3.7 %,
+  and a teleport-time-300 probe shows real gridlock (40.6 %, 12,500 vehicles stuck vs 3,616), so a
+  rerun would cost 2 h for at most a few points. Unsourced fixes are not added.
+- **TF-014 Same-road lane propagation not adopted** (documented as a v3 candidate,
+  docs/network-v2.md §5): 386 untagged km covered, 168 km changed in both directions, not at the
+  hotspots, and it lowers two motorways from 4 to 3 lanes.
+- **TF-015 Demo window and Tier B windows stay cut from v1.** Tier B is microscopic and its windows
+  were cut and linked on v1/M1 routes (B-D-002); re-cutting from v2 is listed for the coordinator.
+  The quick demo steps were rerun: same run ids and KPIs as M9 (tier-b smoke-B-s1-25c06763-9cfa755f
+  0 teleports; events demo_events-demo-s1-342c09a8; strategist; evac_demo-demo-s1-ed042153; policy
+  VKT -1.6 %, VHT -1.4 %); only the demo-policy baseline's config hash moved (1ea5e5 -> 0541a8)
+  because `baseline.yaml`'s `net:` path is part of the hashed config.
+
 ### Probe results (AM 05-09, same 91,392 vehicles; teleports per vehicle)
 | network | settings | hash | teleports | mean speed | time loss |
 |---|---|---|---|---|---|
@@ -62,6 +84,11 @@ so short-edge storage is part of the mechanism; lane counts are the other part.
 | v2b | v2a + `--ramps.no-split` | bf84c83a | 48.0 % | 41.8 km/h | 1,226 s |
 | v2c | v2b + `--junctions.join-dist 30` | ebc9d3a3 | 48.6 % | 41.9 km/h | 1,248 s |
 | v2d | v2b + `--no-internal-links` | 290ec69b | 51.4 % | 43.5 km/h | 1,082 s |
+| v2h | v2a + `--junctions.join-dist 30` | 80b9c370 | 40.3 % | 43.7 km/h | 1,188 s |
+| v2i | v2a + `--no-internal-links` | 08dbc7a4 | 41.5 % | 45.0 km/h | 1,061 s |
+| v2k | v2a + `--tls.guess` | c2c84582 | 40.2 % | 43.0 km/h | 1,210 s |
+| v2 diag. | v2a, `--time-to-teleport 300` | ae764558 | 40.6 % | 38.5 km/h | 1,716 s |
+(v2j, join 30 + no internal links, was stopped unfinished to free the machine for the city run.)
 
 ### City run estimate (recorded before starting)
 10 % weekday baseline on v2 with `python -m sim.policies.baseline_launch weekday --routing-threads 6
