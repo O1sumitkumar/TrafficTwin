@@ -230,3 +230,18 @@ def test_demo_end_to_end_deterministic(lenv: dict, tmp_path: Path) -> None:  # n
         assert set(pax["tour_id"]) == set(scored.loc[scored["admitted"], "tour_id"])
         outs.append(pax.sort_values(["tour_id", "leg"]).reset_index(drop=True))
     pd.testing.assert_frame_equal(outs[0], outs[1])
+
+
+def test_alpha_policy_hash_unchanged() -> None:
+    """An alpha-path policy serialises (and hashes) as before Track H: no mode_choice key."""
+    from sim.common import config_hash
+    from sim.loop.schema import load_loop_policy
+
+    pol = load_loop_policy("loop_demo")
+    dump = pol.model_dump()
+    assert "mode_choice" not in json.dumps(dump)
+    assert config_hash(dump) == config_hash(json.loads(pol.model_dump_json()))
+    # Track D's recommended run recorded this policy_hash (runs/loop_recommended/meta.json)
+    assert config_hash(load_loop_policy("loop_recommended").model_dump()) == "c11f0bfaf610771b"
+    t = loop_transform(pol).model_copy(update={"mode_choice": str(CONFIG)})
+    assert t.model_dump()["mode_choice"] == str(CONFIG)

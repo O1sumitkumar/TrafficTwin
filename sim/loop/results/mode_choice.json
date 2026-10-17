@@ -202,7 +202,7 @@
         },
         "time_competitive_alpha0p5_riders_per_day": 11760
       },
-      "wall_s": 23.9
+      "wall_s": 37.6
     },
     "C2": {
       "eligible_tours": 1825,
@@ -402,7 +402,7 @@
         },
         "time_competitive_alpha0p5_riders_per_day": 5060
       },
-      "wall_s": 17.6
+      "wall_s": 15.2
     },
     "C4": {
       "eligible_tours": 2975,
@@ -602,7 +602,7 @@
         },
         "time_competitive_alpha0p5_riders_per_day": 2540
       },
-      "wall_s": 27.3
+      "wall_s": 15.5
     },
     "C6": {
       "eligible_tours": 1811,
@@ -802,7 +802,7 @@
         },
         "time_competitive_alpha0p5_riders_per_day": 1920
       },
-      "wall_s": 19.7
+      "wall_s": 16.0
     }
   }
 }

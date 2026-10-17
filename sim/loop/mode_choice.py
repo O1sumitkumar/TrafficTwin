@@ -326,6 +326,7 @@ def pair_table(legs: pd.DataFrame, p: dict[str, Any], sample: float) -> pd.DataF
         t[k] = (t[k] * f).round(1)
     t["capacity_pph"] = float(p["pair_capacity_pph"])
     t["shift_share"] = (t["admitted"] / t["eligible"]).round(4)
+    t["label"] = SYNTHETIC_LABEL
     return t
 
 
@@ -544,7 +545,8 @@ def sweep(
             f"measured {cdoc['measured']['central']['riders_per_day']}, vendor "
             f"{cdoc['vendor']['central']['riders_per_day']} ({cdoc['wall_s']} s)"
         )
-    pd.DataFrame(rows).to_csv(out_dir / "mode_choice_sweep.csv", index=False)
+    pd.DataFrame(rows).assign(label=SYNTHETIC_LABEL).to_csv(out_dir / "mode_choice_sweep.csv",
+                                                             index=False)  # fmt: skip
     (out_dir / "mode_choice.json").write_text(json.dumps(doc, indent=2, default=float))
     return doc
 
