@@ -16,10 +16,12 @@ SAMPLE ?= 0.10
 CITY ?= 1
 DETACH ?= 0
 UV := uv
-CITY_NET := data/jeddah/jeddah.net.xml
+# Tier A network v2 (Track F, docs/network-v2.md); v1 (M1) and m2 (Track A) still build on request.
+CITY_NET := data/jeddah/jeddah.v2.net.xml
+V1_NET := data/jeddah/jeddah.net.xml
 M2_NET := data/jeddah/jeddah.m2.net.xml
 
-.PHONY: demo setup city-net demo-runs ingest serve city city-baseline test screenshots stop clean-demo \
+.PHONY: demo setup city-net city-net-v1 demo-runs ingest serve city city-baseline test screenshots stop clean-demo \
 	movies movie showreel movies-check movies-docs
 
 demo: setup $(if $(filter 1,$(CITY)),city-net) demo-runs ingest serve
@@ -35,7 +37,8 @@ setup:
 web/node_modules/.package-lock.json: web/package-lock.json
 	cd web && npm ci --include=dev --no-audit --no-fund
 
-# Jeddah network (M1): downloads the Geofabrik GCC extract on first run, clips, netconvert, fixes.
+# Jeddah network (v2, default profile): downloads the Geofabrik GCC extract on first run, clips,
+# tags untagged major roads with the measured lane/speed defaults, netconvert, fixes.
 city-net: $(CITY_NET)
 $(CITY_NET):
 	@command -v osmium >/dev/null || { \
@@ -52,15 +55,19 @@ ingest:
 serve:
 	./run_app.sh $(if $(filter 1,$(DETACH)),--detach)
 
-# Long-running (documented in README): the M2 network variant and the weekday baseline.
+# Earlier networks, kept reproducible: v1 (M1, Tier B windows are cut from it) and m2 (Track A).
+city-net-v1: $(V1_NET)
+$(V1_NET):
+	$(UV) run python -m sim.network.build_city --network-profile v1
+$(M2_NET):
+	$(UV) run python -m sim.network.build_city --network-profile m2 --out $(M2_NET) --no-side-outputs
+
+# Long-running (documented in README): zones on the v2 network and the weekday baseline.
 ZONES := data/population/zones/zones.json
-city: city-net $(M2_NET) $(ZONES) city-baseline
-$(M2_NET): $(CITY_NET)
-	$(UV) run python -m sim.network.build_city --config sim/population/config/network-m2.yaml \
-	  --out $(M2_NET) --no-side-outputs
-$(ZONES): $(M2_NET)
+city: city-net $(ZONES) city-baseline
+$(ZONES): $(CITY_NET)
 	$(UV) run python -m sim.population.zones
-city-baseline: $(M2_NET) $(ZONES)
+city-baseline: $(CITY_NET) $(ZONES)
 	mkdir -p logs
 	set -o pipefail; $(UV) run python -m sim.runner --baseline --daytype weekday --sample $(SAMPLE) --seed $(SEED) \
 	  --gzip 2>&1 | tee logs/city-baseline.log

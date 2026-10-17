@@ -166,10 +166,11 @@ def step_policy(cfg: dict[str, Any], runs_dir: Path, seed: int) -> dict[str, Any
 
 
 def step_tier_a(cfg: dict[str, Any], runs_dir: Path, seed: int) -> dict[str, Any] | None:
-    from sim.runner import run_smoke
+    from sim.runner import run_smoke, runner_config
 
-    if not CITY_NET.exists():
-        typer.echo(f"  tier-a: skipped, {rel(CITY_NET)} not built (make city-net)")
+    tier_a_net = REPO_ROOT / runner_config()["smoke"]["tier_A"]["net"]  # network v2 (TF-008)
+    if not tier_a_net.exists():
+        typer.echo(f"  tier-a: skipped, {rel(tier_a_net)} not built (make city-net)")
         return None
     a = cfg["tier_a_smoke"]
     meta = run_smoke("A", seed, end=a["end"], begin=a["begin"], period=a["period"],
