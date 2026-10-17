@@ -106,7 +106,9 @@ def write_bridge_report(run_dir: Path, meta: dict[str, Any], pol: BridgePolicy) 
     spans = vols[vols["edge_id"].str.fullmatch(r"obh_[a-z0-9]+_(SN|NS)")]
     pr = json.loads((run_dir / "policy_report.json").read_text())
     dist = pd.read_parquet(run_dir / "policy_districts.parquet")
-    obhur = dist[dist.iloc[:, :3].astype(str).apply(
+    names = [c for c in ("name_en", "name_ar", "name") if c in dist.columns]
+    names = names or list(dist.columns[:3])
+    obhur = dist[dist[names].astype(str).apply(
         lambda r: any(n in " ".join(r) for n in OBHUR_DISTRICTS), axis=1)]  # fmt: skip
     report = {
         "label": SYNTHETIC_LABEL,
@@ -136,7 +138,15 @@ def write_bridge_report(run_dir: Path, meta: dict[str, Any], pol: BridgePolicy) 
         for r in spans.itertuples()
     ]
     if not obhur.empty:
-        lines += ["", "## Obhur districts", "", obhur.to_markdown(index=False)]
+        cols = [c for c in ("name_en", "trips_base", "mean_delay_s_base", "mean_delay_s_policy",
+                            "delta_delay_s", "delta_trips") if c in obhur.columns]  # fmt: skip
+        cols = cols or list(obhur.columns)
+        lines += ["", "## Obhur districts", "", "| " + " | ".join(cols) + " |",
+                  "|" + "---|" * len(cols)]  # fmt: skip
+        lines += [
+            "| " + " | ".join(f"{v:,.1f}" if isinstance(v, float) else str(v) for v in r) + " |"
+            for r in obhur[cols].itertuples(index=False)
+        ]
     (run_dir / "bridge_report.md").write_text("\n".join(lines) + "\n")
     return report
 
