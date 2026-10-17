@@ -118,6 +118,34 @@ delay and VHT, see below):
 - **Ride-hail +10 %** (P1): converted tours keep their routes; the 17,729 empty legs add 2.7 %
   VKT and 5 % VHT, CO2 +5 %.
 
+### Re-evaluation on network v2 (integration pass 6, 2026-10-17)
+
+Same policies, same seed 1 and 10 % sample, on the Tier A network v2 (`docs/network-v2.md`, hash
+ae764558; zones d949c812, population 346893f2) against the v2 weekday baseline
+`baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1` (28.3 % teleports per vehicle vs 50.5 % on m2).
+v1 rows are the m2 runs above, repeated with the absolute VHT change. Runs in `runs/v2/<policy>`
+(`uv run python -m scripts.pass6_v2 run <job>`; rows from `scripts.pass6_v2 summary`). **Teleports**
+are a quality flag: 27-30 % of vehicles still teleport on v2, so every v2 number is measured on a
+network that is still gridlocked in the peaks. **Noise:** the v1 seed-noise band is about ±34k
+VHT/day; no second-seed v2 baseline exists, so the v2 band is not measured.
+
+| policy | network | vs | mean delay | AM-peak delay | VKT | VHT (abs) | CO2 | top-hour share | trips | teleports/veh (base -> policy) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `staggered_schools_60` | v1 (m2) | weekday (matched control) | -1.1 % | -9.1 % | +0.2 % | -0.7 % (-19,342 h) | -0.6 % | -19.1 % | +0.1 % | 0.478 -> 0.474 |
+| `staggered_schools_60` | **v2** | weekday (matched control) | +2.1 % | -1.8 % | -0.1 % | +1.2 % (+23,033 h) | +1.1 % | -13.3 % | -0.0 % | 0.274 -> 0.275 |
+<!-- pass6-v2-rows -->
+
+Controls on v2 (each re-routes the policy's vehicles at their baseline times without the policy;
+compared with the raw v2 baseline): `staggered_schools_60--control` mean delay -3.5 %, VHT -2.0 %
+(-38,818 h), teleports 0.283 -> 0.274; `obhur_bridge_b3--control` mean delay -1.9 %, VHT +0.5 %
+(+9,794 h), teleports 0.283 -> 0.296 (`docs/obhur-bridge.md` §5).
+
+Reading the v2 rows:
+- **Staggered schools** still flattens the morning (top-hour share -13 % vs -19 % on v1), but with
+  the extra v2 capacity the AM-peak delay gain shrinks from -9.1 % to -1.8 %, and the daily VHT
+  change (+23k h) is inside the v1 noise band: on a less overloaded network, spreading the school
+  peak buys much less.
+
 Per-policy detail (districts, corridors, hourly profile): `runs/<policy>/policy_report.md`.
 
 ## Response curve: remote-work share
