@@ -199,7 +199,7 @@ traffic and was close to gridlock (26-38 % of peak-hour vehicles finished). Ther
 gained 25-45 s per AM vehicle, consistent between seeds. How much a bridge helps at window scale
 depends on how saturated the window is, another reason to rely on the city run.
 
-## 5. City scale (pending city run)
+## 5. City scale (B1 and B3 run on network v2; B2 and 3+3 pending)
 
 The coordinator runs these on the v2 network once the network track lands (NO city runs in this
 track). Each run builds its own variant network (about 1 min), re-routes about 45,000 sampled

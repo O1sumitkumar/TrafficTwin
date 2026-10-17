@@ -138,7 +138,8 @@ VHT/day; no second-seed v2 baseline exists, so the v2 band is not measured.
 | `remote_work_30` | **v2** | weekday | -11.4 % | -13.2 % | -1.8 % | -8.7 % (-167,819 h) | -7.4 % | -0.9 % | -1.4 % | 0.283 -> 0.244 |
 | `cordon_center` | v1 (m2) | weekday (matched control) | +20.1 % | +8.6 % | -0.4 % | +12.4 % (+309,345 h) | +10.4 % | +1.4 % | -1.3 % | 0.467 -> 0.643 |
 | `cordon_center` | **v2** | weekday (matched control) | +29.7 % | +13.1 % | -0.6 % | +17.2 % (+341,271 h) | +14.1 % | +1.6 % | -1.4 % | 0.275 -> 0.454 |
-<!-- pass6-v2-rows -->
+| `obhur_bridge_b3` (B1 + B2, 2+2) | **v2** | weekday (matched control) | -12.1 % | -20.9 % | -4.1 % | -9.2 % (-178,909 h) | -8.1 % | -0.2 % | +0.2 % | 0.296 -> 0.305 |
+| `obhur_bridge_b1` (mouth, 2+2) | **v2** | weekday (matched control) | -11.5 % | -18.6 % | -4.1 % | -8.8 % (-170,801 h) | -7.7 % | -0.2 % | +0.2 % | 0.296 -> 0.303 |
 
 Controls on v2 (each re-routes the policy's vehicles at their baseline times without the policy;
 compared with the raw v2 baseline): `staggered_schools_60--control` mean delay -3.5 %, VHT -2.0 %
@@ -160,6 +161,9 @@ Reading the v2 rows:
   worse on v2 too: +30 % delay, +341,271 VHT/day. **Teleports rise from 0.275 to 0.454 per vehicle**
   (+65 %), so a large part of this run is gridlock on the perimeter roads; read the size as
   indicative and the sign as robust (no destination or mode choice, one charge level).
+- **Obhur bridges** (Track J; no v1 city run exists, v1 = window scale only): both cut city VHT by
+  about 9 % against their matched control, almost all from B1 at the creek mouth; detail, saturation
+  and district flags in `docs/obhur-bridge.md` §5. Loop C1 on v2: `docs/loop.md`.
 
 Per-policy detail (districts, corridors, hourly profile): `runs/<policy>/policy_report.md`.
 
