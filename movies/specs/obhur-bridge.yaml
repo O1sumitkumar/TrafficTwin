@@ -31,7 +31,7 @@ sources:
   b3: {run: obhur-am-s1-obhur_bridge_b3}
   ctrl: {run: obhur-am-s1-control}
 basemap:
-  bbox: [39.07, 21.69, 39.18, 21.80]
+  bbox: [39.03, 21.65, 39.22, 21.84]
 shots:
   - id: site
     duration_s: 12
@@ -59,9 +59,7 @@ shots:
     layers:
       mode: split
       split: [b3, ctrl]
-      buildings: false
-      line: *b1
-      stations: [[39.09641, 21.70950], [39.09371, 21.70978]]
+      buildings: false   # no line overlay here: overlays draw on both halves, the control has no bridge
     camera:
       - {t: 0,  lon: 39.0990, lat: 21.7140, zoom: 14.6, pitch: 52, bearing: 10, sim_t: 22500}
       - {t: 13, lon: 39.1060, lat: 21.7240, zoom: 14.0, pitch: 48, bearing: 25, sim_t: 23700, ease: in_out}
