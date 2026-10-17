@@ -87,5 +87,31 @@ def run(job: str) -> None:
         typer.echo(rep["headline"])
 
 
+def row(report: Path) -> str:
+    """One docs/policies.md-style row from a policy_report.json (vs its matched control or the
+    baseline), with the absolute VHT change and the teleport share of both sides."""
+    r = json.loads(report.read_text())
+    k = {x["kpi"]: x for x in r["kpis"]}
+
+    def pct(name: str) -> str:
+        v = k[name]["delta_pct"]
+        return "-" if v is None else f"{v:+.1f} %"
+
+    vs = "weekday (matched control)" if r.get("control") else "weekday"
+    tp = k["teleport_share"]
+    return (
+        f"| `{r['policy']}` | {vs} | {pct('mean_delay_s')} | {pct('am_peak_mean_delay_s')} | "
+        f"{pct('vkt')} | {pct('vht')} ({k['vht']['delta']:+,.0f} h) | {pct('co2_t')} | "
+        f"{pct('peak_spreading_top_hour_share')} | {pct('trips_completed')} | "
+        f"{tp['baseline']:.3f} -> {tp['policy']:.3f} |"
+    )
+
+
+@app.command()
+def summary() -> None:
+    for rep in sorted(V2_RUNS.glob("*/policy_report.json")):
+        typer.echo(f"{rep.parent.name}: {row(rep)}")
+
+
 if __name__ == "__main__":
     app()
