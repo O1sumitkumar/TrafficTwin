@@ -13,7 +13,7 @@ Built (all new files except the appended register section):
   `config/sharm_obhur.geojson` (creek from the OSM coastline), `results/*.csv|json`.
 - Policies `sim/policies/obhur_bridge_{b1,b2,b3}{,_3x3}.yaml`; window
   `sim/network/windows/obhur_creek.yaml`; film `movies/specs/obhur-bridge.yaml`; tests
-  `tests/test_bridge.py` (18, synthetic two-bank network); `docs/obhur-bridge.md`,
+  `tests/test_bridge.py` (17, synthetic two-bank network); `docs/obhur-bridge.md`,
   `docs/assumptions-trackJ.md` (A-obh-001..041, also appended to `docs/assumptions.md`),
   `docs/data-sources-trackJ.md`, `docs/img/obhur-desire.png`.
 
@@ -28,12 +28,13 @@ Measured:
   shorten 145,370 of them by 6.0 km (2.9 min free flow); B1 does almost all of it, B2 alone 39,380
   trips by 2.6 km. Landing access: from 1.1 km away on the same bank it takes 8-24 km to reach
   three of the four landings (B1 south 1.3-1.6 km), which caps B2.
-- Window (Tier B, `obhur_creek` 39 km2 / 3,221 edges, 66,660 AM and 59,540 PM vehicles, 25 micro runs,
-  4-7.5 min each, grid 1 h 13 min): AM peak hour vs matched control, per vehicle: B1 -25.5/-26.9 s,
-  B2 -26.2/-31.4 s, B3 -39.6/-44.0 s (seeds 1/2), B3 = -516/-573 veh-h; bridges carry 300-920 veh/h;
-  3+3 adds little. PM: every variant -28 to -82 s, but seed spread up to 54 s (window near gridlock,
-  26-34 % of peak vehicles arrive). Control-on-B3 network vs control: +2.8 s (unused links ~ no
-  effect). Control vs cut-route baseline: AM +45 s, PM +184 s (routing gain, hence the matched control).
+- Window (Tier B, `obhur_creek` 24.5 km2 / 2,466 edges, 48,640 AM and 43,720 PM vehicles, 25 micro
+  runs of 2-4.5 min, grid 40 min): bridges carry 558-645 (B1) and 297-427 (B2) veh/h in the AM peak
+  hour, under 110 in the PM; Δ time in the window per peak-hour vehicle vs the matched control is
+  -16 to +53 s, sign flipping between seeds for every 2+2 variant; noise band about +/- 20 s (control
+  between seeds -2.9 / -8.9 s; control re-simulated on the B3 network +17 s). No window-scale effect
+  beyond noise; AM users gain nothing (landing queues, approach delay +31 % with B2), PM users save
+  ~7 min each. 3+3 = 2+2. Control vs cut-route baseline: AM -68 s, PM +9 s (routing gain).
 - Viewer: the API edge index of a bridge run holds the six new edges and its bins build with 0
   unmatched edges (span 1,164 veh/h at 06:00); `obhur-am-s1-obhur_bridge_b3` vs
   `obhur-am-s1-control-on-obhur_bridge_b3` share a network hash, so difference mode works.
@@ -42,13 +43,21 @@ Decisions:
 - J-D-001 Bridges are `network_change` transforms with a `bridges:` block (`BridgePolicy`), run by
   `python -m sim.bridge.run` (Track D's `sim.loop.run` pattern). The brief's
   `python -m sim.policies.run <p> --validate` / `--control matched` do not exist (Track A's file, no
-  such options, and its schema rejects `bridges`); the matched control is automatic. Integration hook
-  (not done here, file not owned): `sim.schemas.validate_file` could validate a policy whose
-  `network_change` has `bridges` as `BridgePolicy`, as it does for Loop.
+  such options, and its schema rejects `bridges`); the matched control is automatic.
 - J-D-002 Own window `obhur_creek` instead of Track I's `obhur` (mouth only, up to 21.739 N): the
-  head detour must be inside the window or a bridge cannot shorten it. Widened at the head so the
-  King Abdulaziz Rd / Madinah Rd interchange is inside. 34 km2 of land, above the brief's 3-25 km2
-  window range, deliberately.
+  head detour must be inside the window or a bridge cannot shorten it. Built as creek + 500 m, B1's
+  mouth landings, the head interchange and a band along today's north-to-south route round the head
+  (without it north-to-south trips left the window); 24.5 km2, inside the 3-25 km2 range
+  (`test_window_yaml_area`). 9 % of the cut cross-creek vehicles still leave and re-enter it.
+- J-D-013 A first window (39 km2, 1 km buffer) broke the window-size test and was discarded with its
+  grid. It was near gridlock (26-38 % of peak vehicles finished) and showed consistent AM gains of
+  25-45 s per vehicle; the final window shows none beyond noise. Recorded as a sensitivity in
+  docs/obhur-bridge.md §4, not as a result.
+- J-D-014 Two small edits in files Track J does not own, needed for the shared tests (keep at
+  integration): `sim/schemas.py` `validate_file` validates a policy whose `network_change` has
+  `bridges` as `BridgePolicy` (lazy import, like the Loop branch); `sim/policies/sweep.py` `template`
+  skips policy files that are not Track A policies. Track A's `Policy` stays strict on purpose: if it
+  accepted `bridges`, `sim.policies.run` would silently ignore them.
 - J-D-003 Shared inputs symlinked (gitignored), same pattern as `data/jeddah`: `data/population` and
   `runs/baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` -> main checkout; edge caches copied to
   `data/policies/`.
@@ -87,5 +96,9 @@ Estimate: 30-40 min per policy including its matched control (about 45,000 sampl
 re-routed), 1.5-2 h for the three 2+2 variants; plus about 2 h if the v2 weekday baseline must be
 assigned first. Then fill the *pending city run* cells of `docs/obhur-bridge.md` §5-6.
 
-Open: B2's value depends on landing access (re-check on v2); no interchange or signal design; no
-induced demand; no bascule opening events.
+Gates: ruff clean; pytest 341 tests, 338 passed, 3 skipped. Film `make movie FILM=obhur-bridge`:
+1920x1080, 36.00 s, 19.3 MB, 182 s (MP4 gitignored).
+
+Open: the window cannot resolve the effect (noise); the city run decides. B2's value depends on
+landing access (re-check on v2); no interchange or signal design; no induced demand; no bascule
+opening events.

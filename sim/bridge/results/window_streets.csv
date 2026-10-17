@@ -1,121 +1,121 @@
 run,peak,kind,street,d_vph,d_delay_veh_h
-obhur_bridge_b1,am,relieved,طريق الكورنيش الشمالي,-1374,-155.4
-obhur_bridge_b1,am,relieved,1374452152#38,0,-139.1
-obhur_bridge_b1,am,relieved,157282542#1,0,-82.5
-obhur_bridge_b1,am,relieved,شارع الأمير عبدالله الفيصل,-151,-75.6
-obhur_bridge_b1,am,relieved,157282520#4.s1,-13,-18.3
-obhur_bridge_b1,am,worsened,1065066184,36,39.3
-obhur_bridge_b1,am,worsened,طريق الملك عبد العزيز,-2154,37.4
-obhur_bridge_b1,am,worsened,141724055#1,12,19.6
-obhur_bridge_b1,am,worsened,157282520#0,10,16.6
-obhur_bridge_b1,am,worsened,-141724064#5,-29,14.0
-obhur_bridge_b1,pm,relieved,طريق المدينة المنورة,17396,-387.3
-obhur_bridge_b1,pm,relieved,1065066184,-116,-108.7
-obhur_bridge_b1,pm,relieved,طريق الملك عبد العزيز,-162,-73.9
-obhur_bridge_b1,pm,relieved,279278519,159,-53.3
-obhur_bridge_b1,pm,relieved,طريق الكورنيش الشمالي,-30,-41.7
-obhur_bridge_b1,pm,worsened,157282542#1,0,117.2
-obhur_bridge_b1,pm,worsened,شارع الأمير عبدالله الفيصل,-7264,28.6
-obhur_bridge_b1,pm,worsened,Prince Khalid Bin Abdullah Road,474,27.2
-obhur_bridge_b1,pm,worsened,طريق الحرمين,1114,25.2
-obhur_bridge_b1,pm,worsened,879623169#0,54,18.9
-obhur_bridge_b1_3x3,am,relieved,طريق الكورنيش الشمالي,-1035,-270.3
-obhur_bridge_b1_3x3,am,relieved,شارع الأمير عبدالله الفيصل,4920,-152.6
-obhur_bridge_b1_3x3,am,relieved,1374452152#38,0,-126.8
-obhur_bridge_b1_3x3,am,relieved,157282542#1,0,-99.9
-obhur_bridge_b1_3x3,am,relieved,157282522#1,-9,-13.5
-obhur_bridge_b1_3x3,am,worsened,طريق الملك عبد العزيز,-1996,98.2
-obhur_bridge_b1_3x3,am,worsened,1065066184,42,49.9
-obhur_bridge_b1_3x3,am,worsened,طريق المدينة المنورة,17,39.9
-obhur_bridge_b1_3x3,am,worsened,141724055#1,16,22.2
-obhur_bridge_b1_3x3,am,worsened,313844927,-62,19.7
-obhur_bridge_b1_3x3,pm,relieved,طريق المدينة المنورة,16763,-396.0
-obhur_bridge_b1_3x3,pm,relieved,1065066184,-115,-111.1
-obhur_bridge_b1_3x3,pm,relieved,طريق الملك عبد العزيز,358,-66.6
-obhur_bridge_b1_3x3,pm,relieved,279278519,155,-48.4
-obhur_bridge_b1_3x3,pm,relieved,280840490,270,-46.0
-obhur_bridge_b1_3x3,pm,worsened,157282542#1,0,117.2
-obhur_bridge_b1_3x3,pm,worsened,289671871,-5,29.8
-obhur_bridge_b1_3x3,pm,worsened,155077606#3,-59,24.9
-obhur_bridge_b1_3x3,pm,worsened,شارع الأمير عبدالله الفيصل,-5711,24.6
-obhur_bridge_b1_3x3,pm,worsened,879623169#0,79,18.2
-obhur_bridge_b2,am,relieved,شارع الأمير عبدالله الفيصل,15526,-179.1
-obhur_bridge_b2,am,relieved,طريق الكورنيش الشمالي,4645,-174.0
-obhur_bridge_b2,am,relieved,1374452152#38,0,-143.4
-obhur_bridge_b2,am,relieved,157282542#1,0,-54.5
-obhur_bridge_b2,am,relieved,svc_161012962#28,411,-19.0
-obhur_bridge_b2,am,worsened,طريق الملك عبد العزيز,-2026,61.1
-obhur_bridge_b2,am,worsened,1065066184,36,31.3
-obhur_bridge_b2,am,worsened,141724055#1,13,18.0
-obhur_bridge_b2,am,worsened,157282520#0,5,16.0
-obhur_bridge_b2,am,worsened,-141724064#5,-28,14.7
-obhur_bridge_b2,pm,relieved,طريق المدينة المنورة,7010,-157.5
-obhur_bridge_b2,pm,relieved,1065066184,-117,-115.0
-obhur_bridge_b2,pm,relieved,طريق الحرمين,-86,-85.8
-obhur_bridge_b2,pm,relieved,طريق الملك عبد العزيز,-954,-51.4
-obhur_bridge_b2,pm,relieved,طريق الكورنيش الشمالي,1172,-29.9
-obhur_bridge_b2,pm,worsened,157282542#1,0,117.2
-obhur_bridge_b2,pm,worsened,Prince Khalid Bin Abdullah Road,-202,27.0
-obhur_bridge_b2,pm,worsened,289671871,-9,18.0
-obhur_bridge_b2,pm,worsened,155077606#3,20,15.7
-obhur_bridge_b2,pm,worsened,157282483,22,12.1
-obhur_bridge_b2_3x3,am,relieved,شارع الأمير عبدالله الفيصل,13991,-217.3
-obhur_bridge_b2_3x3,am,relieved,طريق الكورنيش الشمالي,4038,-168.1
-obhur_bridge_b2_3x3,am,relieved,1374452152#38,0,-139.5
-obhur_bridge_b2_3x3,am,relieved,157282542#1,0,-91.5
-obhur_bridge_b2_3x3,am,relieved,822924860,90,-22.3
-obhur_bridge_b2_3x3,am,worsened,طريق الملك عبد العزيز,-2185,63.3
-obhur_bridge_b2_3x3,am,worsened,1065066184,36,47.0
-obhur_bridge_b2_3x3,am,worsened,طريق المدينة المنورة,147,19.0
-obhur_bridge_b2_3x3,am,worsened,313844927,0,18.3
-obhur_bridge_b2_3x3,am,worsened,141724055#1,17,17.0
-obhur_bridge_b2_3x3,pm,relieved,طريق المدينة المنورة,17513,-382.6
-obhur_bridge_b2_3x3,pm,relieved,1065066184,-109,-106.2
-obhur_bridge_b2_3x3,pm,relieved,طريق الملك عبد العزيز,-851,-56.5
-obhur_bridge_b2_3x3,pm,relieved,279278519,157,-51.2
-obhur_bridge_b2_3x3,pm,relieved,طريق الكورنيش الشمالي,1033,-34.0
-obhur_bridge_b2_3x3,pm,worsened,157282542#1,0,116.0
-obhur_bridge_b2_3x3,pm,worsened,طريق الحرمين,1108,86.1
-obhur_bridge_b2_3x3,pm,worsened,289671871,-4,33.5
-obhur_bridge_b2_3x3,pm,worsened,Prince Khalid Bin Abdullah Road,423,28.9
-obhur_bridge_b2_3x3,pm,worsened,155077606#3,-65,25.1
-obhur_bridge_b3,am,relieved,شارع الأمير عبدالله الفيصل,4085,-261.8
-obhur_bridge_b3,am,relieved,طريق الكورنيش الشمالي,-149,-252.8
-obhur_bridge_b3,am,relieved,1374452152#38,0,-145.2
-obhur_bridge_b3,am,relieved,157282542#1,0,-71.1
-obhur_bridge_b3,am,relieved,svc_161012962#28,406,-17.5
-obhur_bridge_b3,am,worsened,طريق الملك عبد العزيز,-2344,62.9
-obhur_bridge_b3,am,worsened,1065066184,21,47.1
-obhur_bridge_b3,am,worsened,طريق المدينة المنورة,588,46.0
-obhur_bridge_b3,am,worsened,43059195,49,16.4
-obhur_bridge_b3,am,worsened,313844927,-52,13.9
-obhur_bridge_b3,pm,relieved,طريق المدينة المنورة,16657,-391.2
-obhur_bridge_b3,pm,relieved,1065066184,-117,-111.0
-obhur_bridge_b3,pm,relieved,طريق الملك عبد العزيز,604,-65.7
-obhur_bridge_b3,pm,relieved,280840490,271,-46.0
-obhur_bridge_b3,pm,relieved,طريق الكورنيش الشمالي,758,-41.0
-obhur_bridge_b3,pm,worsened,157282542#1,0,117.1
-obhur_bridge_b3,pm,worsened,طريق الحرمين,1568,21.8
-obhur_bridge_b3,pm,worsened,شارع الأمير عبدالله الفيصل,-10085,19.9
-obhur_bridge_b3,pm,worsened,289671871,-8,18.4
-obhur_bridge_b3,pm,worsened,879623169#0,72,17.9
-obhur_bridge_b3_3x3,am,relieved,طريق الكورنيش الشمالي,-16,-259.8
-obhur_bridge_b3_3x3,am,relieved,شارع الأمير عبدالله الفيصل,4045,-257.3
-obhur_bridge_b3_3x3,am,relieved,1374452152#38,0,-135.9
-obhur_bridge_b3_3x3,am,relieved,157282542#1,0,-103.4
-obhur_bridge_b3_3x3,am,relieved,svc_161012962#28,383,-16.9
-obhur_bridge_b3_3x3,am,worsened,طريق الملك عبد العزيز,-2551,70.9
-obhur_bridge_b3_3x3,am,worsened,طريق المدينة المنورة,104,56.7
-obhur_bridge_b3_3x3,am,worsened,1065066184,34,46.8
-obhur_bridge_b3_3x3,am,worsened,43059195,22,18.3
-obhur_bridge_b3_3x3,am,worsened,313844927,-51,16.2
-obhur_bridge_b3_3x3,pm,relieved,طريق المدينة المنورة,14340,-321.1
-obhur_bridge_b3_3x3,pm,relieved,1065066184,-113,-113.0
-obhur_bridge_b3_3x3,pm,relieved,طريق الملك عبد العزيز,750,-57.2
-obhur_bridge_b3_3x3,pm,relieved,طريق الكورنيش الشمالي,871,-40.2
-obhur_bridge_b3_3x3,pm,relieved,279278519,160,-31.7
-obhur_bridge_b3_3x3,pm,worsened,157282542#1,0,116.7
-obhur_bridge_b3_3x3,pm,worsened,طريق الحرمين,637,72.4
-obhur_bridge_b3_3x3,pm,worsened,شارع الأمير عبدالله الفيصل,-11545,24.6
-obhur_bridge_b3_3x3,pm,worsened,155077606#3,15,20.1
-obhur_bridge_b3_3x3,pm,worsened,Prince Khalid Bin Abdullah Road,5,18.5
+obhur_bridge_b1,am,relieved,شارع الأمير عبدالله الفيصل,-891,-335.6
+obhur_bridge_b1,am,relieved,839853885#2,0,-20.5
+obhur_bridge_b1,am,relieved,295857847#0,52,-14.1
+obhur_bridge_b1,am,relieved,Prince Khalid Bin Abdullah Road,94,-12.4
+obhur_bridge_b1,am,relieved,طريق المدينة المنورة,-53,-8.8
+obhur_bridge_b1,am,worsened,طريق الملك عبد العزيز,-916,91.7
+obhur_bridge_b1,am,worsened,طريق الكورنيش الشمالي,6693,20.3
+obhur_bridge_b1,am,worsened,1071541011,-16,20.2
+obhur_bridge_b1,am,worsened,svc_161012963#23,25,10.0
+obhur_bridge_b1,am,worsened,svc_161012963#22,21,9.6
+obhur_bridge_b1,pm,relieved,1374452152#38,0,-26.3
+obhur_bridge_b1,pm,relieved,279278519,13,-20.7
+obhur_bridge_b1,pm,relieved,-46508576#2,6,-14.2
+obhur_bridge_b1,pm,relieved,279155654#7,21,-12.0
+obhur_bridge_b1,pm,relieved,279155654#9-AddedOffRampEdge,52,-11.0
+obhur_bridge_b1,pm,worsened,313844927,63,13.9
+obhur_bridge_b1,pm,worsened,طريق الملك عبد العزيز,140,8.0
+obhur_bridge_b1,pm,worsened,شارع الأمير عبدالله الفيصل,-3021,6.4
+obhur_bridge_b1,pm,worsened,1072015277,91,6.0
+obhur_bridge_b1,pm,worsened,1369562553#1,97,2.1
+obhur_bridge_b1_3x3,am,relieved,شارع الأمير عبدالله الفيصل,439,-366.2
+obhur_bridge_b1_3x3,am,relieved,839853885#2,0,-29.4
+obhur_bridge_b1_3x3,am,relieved,طريق المدينة المنورة,-921,-9.0
+obhur_bridge_b1_3x3,am,relieved,1374452152#38,0,-8.6
+obhur_bridge_b1_3x3,am,relieved,279278519,-31,-6.6
+obhur_bridge_b1_3x3,am,worsened,طريق الملك عبد العزيز,-1122,126.0
+obhur_bridge_b1_3x3,am,worsened,1071541011,-67,20.6
+obhur_bridge_b1_3x3,am,worsened,svc_161012963#23,46,9.7
+obhur_bridge_b1_3x3,am,worsened,-157282522#0,0,8.7
+obhur_bridge_b1_3x3,am,worsened,svc_161012963#29,-8,8.1
+obhur_bridge_b1_3x3,pm,relieved,طريق الملك عبد العزيز,198,-11.4
+obhur_bridge_b1_3x3,pm,relieved,279278519,54,-11.3
+obhur_bridge_b1_3x3,pm,relieved,-875036604#0,8,-9.3
+obhur_bridge_b1_3x3,pm,relieved,279155654#7,-1,-8.3
+obhur_bridge_b1_3x3,pm,relieved,-46508576#2,20,-6.6
+obhur_bridge_b1_3x3,pm,worsened,طريق المدينة المنورة,903,14.5
+obhur_bridge_b1_3x3,pm,worsened,1374452152#38,0,12.5
+obhur_bridge_b1_3x3,pm,worsened,1072015277,69,7.7
+obhur_bridge_b1_3x3,pm,worsened,شارع الأمير عبدالله الفيصل,-3987,6.4
+obhur_bridge_b1_3x3,pm,worsened,svc_1372697155#1,-262,2.7
+obhur_bridge_b2,am,relieved,شارع الأمير عبدالله الفيصل,5179,-171.9
+obhur_bridge_b2,am,relieved,طريق الكورنيش الشمالي,1458,-86.0
+obhur_bridge_b2,am,relieved,Prince Khalid Bin Abdullah Road,116,-24.1
+obhur_bridge_b2,am,relieved,295857847#0,68,-16.1
+obhur_bridge_b2,am,relieved,295857847#1,69,-12.6
+obhur_bridge_b2,am,worsened,طريق الملك عبد العزيز,122,39.5
+obhur_bridge_b2,am,worsened,1369562553#2,-113,10.5
+obhur_bridge_b2,am,worsened,svc_161012963#29,-35,8.1
+obhur_bridge_b2,am,worsened,190810518#1,-2,7.9
+obhur_bridge_b2,am,worsened,133231472#18,26,6.9
+obhur_bridge_b2,pm,relieved,طريق الملك عبد العزيز,196,-27.8
+obhur_bridge_b2,pm,relieved,-46508576#2,18,-11.3
+obhur_bridge_b2,pm,relieved,279278519,51,-10.5
+obhur_bridge_b2,pm,relieved,313844927,2,-10.2
+obhur_bridge_b2,pm,relieved,-875036604#0,7,-8.7
+obhur_bridge_b2,pm,worsened,طريق المدينة المنورة,1228,15.7
+obhur_bridge_b2,pm,worsened,1374452152#38,0,15.4
+obhur_bridge_b2,pm,worsened,133231494#5,0,7.3
+obhur_bridge_b2,pm,worsened,1072015277,106,6.8
+obhur_bridge_b2,pm,worsened,141724064#6,0,2.3
+obhur_bridge_b2_3x3,am,relieved,شارع الأمير عبدالله الفيصل,1433,-163.2
+obhur_bridge_b2_3x3,am,relieved,طريق الكورنيش الشمالي,977,-93.9
+obhur_bridge_b2_3x3,am,relieved,839853885#2,0,-16.0
+obhur_bridge_b2_3x3,am,relieved,295857847#0,59,-13.8
+obhur_bridge_b2_3x3,am,relieved,Prince Khalid Bin Abdullah Road,100,-10.1
+obhur_bridge_b2_3x3,am,worsened,طريق الملك عبد العزيز,-1243,92.2
+obhur_bridge_b2_3x3,am,worsened,190810518#1,0,10.7
+obhur_bridge_b2_3x3,am,worsened,-157282522#0,0,7.7
+obhur_bridge_b2_3x3,am,worsened,1071541011,-42,7.6
+obhur_bridge_b2_3x3,am,worsened,svc_161012963#29,-35,7.6
+obhur_bridge_b2_3x3,pm,relieved,313844927,-11,-12.0
+obhur_bridge_b2_3x3,pm,relieved,شارع الأمير عبدالله الفيصل,2782,-8.3
+obhur_bridge_b2_3x3,pm,relieved,-875036604#0,7,-7.9
+obhur_bridge_b2_3x3,pm,relieved,279155654#7,0,-7.2
+obhur_bridge_b2_3x3,pm,relieved,279155654#6-AddedOffRampEdge,10,-5.1
+obhur_bridge_b2_3x3,pm,worsened,279278519,-27,3.8
+obhur_bridge_b2_3x3,pm,worsened,280840489#0,26,3.2
+obhur_bridge_b2_3x3,pm,worsened,1072015277,-30,3.1
+obhur_bridge_b2_3x3,pm,worsened,1369562553#1,-24,2.8
+obhur_bridge_b2_3x3,pm,worsened,140072525#1,-2,2.7
+obhur_bridge_b3,am,relieved,شارع الأمير عبدالله الفيصل,-2269,-195.2
+obhur_bridge_b3,am,relieved,طريق الكورنيش الشمالي,3246,-82.4
+obhur_bridge_b3,am,relieved,Prince Khalid Bin Abdullah Road,93,-23.4
+obhur_bridge_b3,am,relieved,839853885#2,0,-22.7
+obhur_bridge_b3,am,relieved,1374452152#38,0,-18.7
+obhur_bridge_b3,am,worsened,طريق الملك عبد العزيز,-904,111.8
+obhur_bridge_b3,am,worsened,1071541011,-19,16.7
+obhur_bridge_b3,am,worsened,133231472#18,-44,14.6
+obhur_bridge_b3,am,worsened,133231472#15,1,10.9
+obhur_bridge_b3,am,worsened,svc_161012963#29,-43,10.8
+obhur_bridge_b3,pm,relieved,طريق الملك عبد العزيز,500,-25.4
+obhur_bridge_b3,pm,relieved,279278519,55,-23.8
+obhur_bridge_b3,pm,relieved,313844927,77,-19.0
+obhur_bridge_b3,pm,relieved,279155654#9-AddedOffRampEdge,87,-10.8
+obhur_bridge_b3,pm,relieved,279155654#9,94,-9.9
+obhur_bridge_b3,pm,worsened,طريق الكورنيش الشمالي,-1553,38.0
+obhur_bridge_b3,pm,worsened,1374452152#38,0,15.0
+obhur_bridge_b3,pm,worsened,1072015277,103,5.8
+obhur_bridge_b3,pm,worsened,شارع الأمير عبدالله الفيصل,-3294,5.7
+obhur_bridge_b3,pm,worsened,133231494#5,0,3.2
+obhur_bridge_b3_3x3,am,relieved,شارع الأمير عبدالله الفيصل,-2804,-163.2
+obhur_bridge_b3_3x3,am,relieved,طريق الكورنيش الشمالي,2319,-100.7
+obhur_bridge_b3_3x3,am,relieved,839853885#2,0,-20.4
+obhur_bridge_b3_3x3,am,relieved,Prince Khalid Bin Abdullah Road,71,-16.3
+obhur_bridge_b3_3x3,am,relieved,295857847#0,56,-14.5
+obhur_bridge_b3_3x3,am,worsened,طريق الملك عبد العزيز,-1619,88.1
+obhur_bridge_b3_3x3,am,worsened,1071541011,-92,13.8
+obhur_bridge_b3_3x3,am,worsened,1369562553#2,-153,13.7
+obhur_bridge_b3_3x3,am,worsened,svc_161012963#29,-26,11.4
+obhur_bridge_b3_3x3,am,worsened,-157282522#0,0,9.0
+obhur_bridge_b3_3x3,pm,relieved,279155654#7,-5,-7.9
+obhur_bridge_b3_3x3,pm,relieved,-875036604#0,11,-6.9
+obhur_bridge_b3_3x3,pm,relieved,279278519,40,-6.9
+obhur_bridge_b3_3x3,pm,relieved,279155654#6-AddedOffRampEdge,21,-4.9
+obhur_bridge_b3_3x3,pm,relieved,1374452152#35,0,-4.9
+obhur_bridge_b3_3x3,pm,worsened,طريق الملك عبد العزيز,274,14.1
+obhur_bridge_b3_3x3,pm,worsened,133231494#5,0,7.3
+obhur_bridge_b3_3x3,pm,worsened,شارع الأمير عبدالله الفيصل,-2235,5.6
+obhur_bridge_b3_3x3,pm,worsened,313844927,0,4.6
+obhur_bridge_b3_3x3,pm,worsened,طريق الكورنيش الشمالي,-1538,3.5

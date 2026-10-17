@@ -11,24 +11,25 @@ between the banks drive round it. A bridge was planned (Metro Jeddah tender 2014
 8 lanes plus metro; never awarded; the Jeddah Development Authority's Northern Obhur Road study
 re-opened five alignments in 2021). What would one bridge, or two, change?
 
-**Short answer (window scale, matched control).**
-- In the morning peak hour, both bridges together (B3, 2+2 lanes) cut the time in the window by
-  **40-44 s per vehicle** (two seeds) and **516-573 vehicle-hours** across the window in that hour.
-  The mouth bridge alone (B1) gives 26-27 s and the mid-creek bridge alone (B2) 26-31 s. The AM
-  results agree within 5 s between seeds.
-- In the evening peak hour every variant also helps, by about 30-80 s per vehicle, but the window is
-  close to gridlock then (only 26-34 % of the peak-hour vehicles finish before 19:15), so the size of
-  the PM effect changes by up to 54 s between seeds. Only its sign is robust.
-- The bridges carry little traffic: at most about 900 vehicles an hour each, far below the capacity
-  of even 2+2 lanes. **3+3 lanes add almost nothing** (B3 3+3: 50 s against 40 s per vehicle in the
-  AM; the PM and B1/B2 3+3 sit within the noise).
-- The main reason is access, not the bridge: in today's network the bridge landings are hard to
-  reach from their own bank (local trips of about 1.1 km to the landing take 8-19 km, except at B1's
-  south end). A real crossing would come with interchanges and local links that this network does
-  not have. Treat these results as a lower bound for a well-connected bridge.
-- The free-flow screen of the city baseline: **238,130 car trips a day** have a desire line across
-  the creek; with B1 + B2, 145,370 of them have a shorter route, by **6.0 km** on average (2.9
-  min at free flow). The mouth bridge (B1) does almost all of it; B2 adds little on top.
+**Short answer.**
+- **City screen (free flow, no simulation).** 238,130 car trips a day have a desire line across the
+  creek. With B1 + B2, 145,370 of them get a shorter route, by **6.0 km** on average (2.9 min at
+  free flow). The mouth bridge (B1) does almost all of it; B2 adds little on top.
+- **Access limits use.** In today's network, three of the four landings are hard to reach from
+  their own bank: a junction 1.1 km away is 8-24 km from the landing by road. B1's south end, on the
+  King Abdulaziz Rd roundabout, is the exception. A real crossing would come with interchanges and
+  local links that this network does not have.
+- **Window (Tier B, one peak hour, matched control): no effect beyond the noise.**
+  - The bridges carry traffic: in the morning peak hour B1 about 600 veh/h and B2 300-430 veh/h
+    (both directions); in the evening under 110 veh/h each.
+  - The time in the window per peak-hour vehicle changes by -16 to +53 s across variants and seeds,
+    and the sign flips between seeds. The noise band (seed spread, and the control re-simulated on
+    the bridge network) is about +/- 20 s. 3+3 lanes are no different from 2+2.
+  - In the morning, bridge users gain nothing: queues build at the landing junctions (approach-road
+    delay +31 % with B2). In the evening, the few users save about 7 min each.
+- **The city run decides.** The window holds only the trips that touch the creek area, at 10
+  copies per sampled vehicle, and its one-hour, one-shot routing cannot show a city-wide change of
+  this size. The commands, runtime and the tables to fill are in section 5.
 
 ## 1. Today: the detour
 
@@ -127,11 +128,12 @@ event model in the simulation.
   times (45,443 of 389,289 sampled vehicles, 11.7 %); the matched control re-routes the same
   vehicles without the bridge (TA-018), and the report compares with that control. Demand is fixed:
   no induced trips, no mode or time shift (A-obh-006).
-- **Window run** (`sim/bridge/window.py`, `obhur_creek`: the creek buffered by 1 km plus the head
-  interchange, 39 km2 of which 34 km2 land, 3,221 edges): every city-baseline vehicle whose route touches the
+- **Window run** (`sim/bridge/window.py`, `obhur_creek`: the creek buffered by 500 m plus B1's
+  mouth landings, the head interchange and today's north-to-south route round the head; 24.5 km2 of
+  which 19 km2 land, 2,466 edges; 9 % of the cut cross-creek vehicles still leave and re-enter it): every city-baseline vehicle whose route touches the
   window gets entry times from the baseline's congested edge times (capped at 4 x free flow,
   A-obh-022), cutRoutes cuts it, and each sampled vehicle is replicated 10 times with +/- 150 s
-  jitter (A-obh-021): 66,660 vehicles for the AM run (05:30-07:00 departures), 59,540 for the PM.
+  jitter (A-obh-021): 48,640 vehicles for the AM run (05:30-07:00 departures), 43,720 for the PM.
   Runs: `baseline` (the cut routes), `control` (every vehicle re-routed one-shot on the baseline's
   15-min congested times, A-obh-024) and one run per policy (same trips and weights on the policy's
   window variant). KPIs cover every vehicle due to depart in the peak hour, including those still
@@ -141,62 +143,61 @@ event model in the simulation.
 ## 4. Window results (Tier B, one peak hour)
 
 `python -m sim.bridge.window report` (`sim/bridge/results/window_kpis.csv`). Δ = policy minus the
-matched control, same seed; per vehicle = the mean over the vehicles due to depart in the hour
-(46,899 AM, 39,620 PM). Bridge volume = both directions of the span, veh/h.
+matched control, same seed. "Per vehicle" is the mean over the vehicles due to depart in the hour:
+33,242 AM and 28,790 PM, including those still queuing to enter or still driving at the end.
+Bridge volume = both directions of the span, veh/h.
 
-**AM peak hour (06:00-07:00)**
+**AM peak hour (06:00-07:00)**: 58 % of the peak-hour vehicles finish in the baseline, 62 % in the
+control.
 
-| variant | Δ time in system per vehicle, s (seed 1 / seed 2) | Δ vehicle-hours (seed 1 / 2) | Δ share arrived | bridge veh/h (B1 / B2) | bridge users | Δ time per user, min | Δ time loss, non-users, s |
+| variant | Δ time in window per vehicle, s (seed 1 / seed 2) | Δ vehicle-hours (seed 1 / 2) | bridge veh/h (B1 / B2) | bridge users | Δ time per user, min | Δ time loss, non-users, s | approach delay, veh-h (control 422) |
 |---|---|---|---|---|---|---|---|
-| B1 2+2 | -25.5 / -26.9 | -332 / -351 | +1.0 pt | 693 / - | 821 | -13.2 | -12.6 |
-| B1 3+3 | -23.2 | -302 | +1.3 pt | 773 / - | 821 | -13.1 | -14.0 |
-| B2 2+2 | -26.2 / -31.4 | -341 / -409 | +1.4 pt | - / 920 | 889 | -9.2 | -16.2 |
-| B2 3+3 | -35.8 | -466 | +1.9 pt | - / 895 | 889 | -9.9 | -22.2 |
-| B3 2+2 | -39.6 / -44.0 | -516 / -573 | +1.7 pt | 573 / 300 | 1,322 | -10.4 | -23.8 |
-| B3 3+3 | -49.5 | -645 | +2.5 pt | 559 / 279 | 1,322 | -10.8 | -30.6 |
+| B1 2+2 | -12.4 / +5.3 | -114 / +49 | 603 / - | 1,084 | +2.0 | -21.0 | 390 |
+| B1 3+3 | +0.3 | +2 | 645 / - | 1,083 | +1.8 | -18.2 | 398 |
+| B2 2+2 | -15.7 / +52.9 | -145 / +489 | - / 297 | 1,354 | -0.5 | -25.6 | 553 |
+| B2 3+3 | +3.6 | +34 | - / 349 | 1,354 | -0.3 | -19.1 | 552 |
+| B3 2+2 | +10.1 / -8.1 | +94 / -75 | 558 / 427 | 2,715 | +0.1 | +4.9 | 478 |
+| B3 3+3 | -8.3 | -77 | 536 / 362 | 2,715 | 0.0 | -1.0 | 450 |
 
-**PM peak hour (18:00-19:00)**
+**PM peak hour (18:00-19:00)**: 82 % of the peak-hour vehicles finish.
 
-| variant | Δ time in system per vehicle, s (seed 1 / seed 2) | Δ vehicle-hours (seed 1 / 2) | Δ share arrived | bridge veh/h (B1 / B2) | bridge users | Δ time per user, min |
-|---|---|---|---|---|---|---|
-| B1 2+2 | -75.4 / -67.9 | -829 / -747 | +7.6 pt | 250 / - | 392 | -3.9 |
-| B1 3+3 | -74.2 | -817 | +7.8 pt | 278 / - | 395 | -2.9 |
-| B2 2+2 | -28.3 / -82.3 | -312 / -906 | +1.5 pt | - / 179 | 280 | -5.7 |
-| B2 3+3 | -77.3 | -851 | +8.0 pt | - / 168 | 280 | -5.0 |
-| B3 2+2 | -74.0 / -62.1 | -815 / -684 | +7.8 pt | 348 / 4 | 511 | -3.8 |
-| B3 3+3 | -53.8 | -592 | +6.6 pt | 339 / 4 | 520 | -2.9 |
+| variant | Δ time in window per vehicle, s (seed 1 / seed 2) | Δ vehicle-hours (seed 1 / 2) | bridge veh/h (B1 / B2) | bridge users | Δ time per user, min |
+|---|---|---|---|---|---|
+| B1 2+2 | -6.2 / +5.3 | -49 / +42 | 76 / - | 68 | -6.5 |
+| B1 3+3 | -6.9 | -55 | 76 / - | 68 | -6.9 |
+| B2 2+2 | -11.9 / +5.5 | -95 / +44 | - / 99 | 99 | -7.1 |
+| B2 3+3 | -4.5 | -36 | - / 99 | 99 | -6.5 |
+| B3 2+2 | -5.7 / +11.1 | -46 / +89 | 40 / 79 | 109 | -6.8 |
+| B3 3+3 | +0.1 | +1 | 40 / 79 | 109 | -7.1 |
 
-**Noise band.** The control alone changes by +3.1 s (AM) and +1.7 s (PM) per vehicle between seeds,
-but the policy deltas move more: AM by 1.4-5.2 s between seeds (stable), PM by 7.5-54 s
-(B2: -28 vs -82 s). In the PM the window runs near gridlock (26-34 % of the peak-hour vehicles
-arrive by 19:15), so small routing changes tip queues one way or the other. Read the PM as "every
-variant helps", not as a ranking. The control simulated on the B3 network (bridge present, nobody
-routed over it) differs from the control by +2.8 s per vehicle: the unused links and the new turns
-at the landings change almost nothing by themselves.
+**Noise band.** These are the deltas a no-change comparison gives:
+- the control between seeds: -2.9 s (AM) and -8.9 s (PM) per vehicle;
+- the control's routes re-simulated on the B3 network (bridge present, nobody routed over it):
+  +17.0 s (AM).
 
-**Routing gain.** The control is worse than the cut-route baseline (AM +45 s, PM +184 s per
-vehicle): re-routing every vehicle one-shot on fixed weights piles them onto the same shortest
-paths in a saturated window. That is why every comparison is against the matched control, never
-against the baseline (TA-018).
+Every variant's Δ lies within about +/- 20 s, apart from B2 2+2 AM seed 2 (+53 s), and the sign
+flips between seeds for all three 2+2 variants in both peaks. At window scale none of the bridges
+has a time effect distinguishable from noise.
 
-**Distance.** Bridge users in the AM drive 1.4-3.7 km *further* than in the control (they take the
-bridge for time, on congested weights), while in the PM they drive 4.8-8.9 km less. Window VKT is
-not a clean KPI here because more vehicles finish their trips with a bridge.
+**Routing gain.** The control is 68 s *faster* than the cut-route baseline per AM vehicle (+9 s in
+the PM): re-routing every vehicle on the window baseline's congested times is itself a big change.
+That is why every comparison is against the matched control (TA-018), never against the baseline.
 
-**Approach roads** (edges within 600 m of a landing junction): AM delay 184 veh-h in the control vs
-188-246 with a bridge, mean speed 24.8 km/h vs 21.2-26.2: the landings load up while traffic
-further away is relieved.
+**Where traffic moves** (B3 2+2, AM, seed 1; delay summed over a street's edges in the hour;
+`sim/bridge/results/window_streets.csv`):
+- relieved: Prince Abdullah Al-Faisal St -195 veh-h, North Corniche Rd -82, Prince Khalid bin
+  Abdullah Rd -23;
+- worsened: King Abdulaziz Rd +112, where the B1 and B2 south landings feed in.
 
-**Winners and losers** (B3 2+2, seed 1; delay summed over a street's edges in the hour; unnamed
-links by id; `sim/bridge/results/window_streets.csv`):
-- AM relieved: Prince Abdullah Al-Faisal St (-262 veh-h), North Corniche Rd (-253), unnamed links
-  1374452152#38 (-145) and 157282542#1 (-71) at the creek head. AM worsened: King Abdulaziz Rd
-  (+63), link 1065066184 (+47), Madinah Rd (+46).
-- PM relieved: Madinah Rd (-391), link 1065066184 (-111), King Abdulaziz Rd (-66), North Corniche
-  Rd (-41). PM worsened: link 157282542#1 (+117), Al Haramain Rd (+22), Prince Abdullah Al-Faisal
-  St (+20).
-- Edges whose delay falls by at least 1 veh-h vs rises by at least 1 veh-h: AM 129 vs 94, PM 99 vs
-  71 (B3 2+2, seed 1).
+In the PM the pattern reverses on a smaller scale: King Abdulaziz Rd -25 veh-h, North Corniche Rd
++38. Users' distance changes little (+0.5 to +9 km saved per user in the AM, from routes chosen for
+time), so window VKT is not reported as a result.
+
+**Sensitivity to the window (recorded, not a result).** A first, larger window (39 km2, 1 km creek
+buffer) went over the brief's 25 km2 limit and was discarded and re-cut. It carried more through
+traffic and was close to gridlock (26-38 % of peak-hour vehicles finished). There all variants
+gained 25-45 s per AM vehicle, consistent between seeds. How much a bridge helps at window scale
+depends on how saturated the window is, another reason to rely on the city run.
 
 ## 5. City scale (pending city run)
 
@@ -278,8 +279,9 @@ the whole 8-lane + metro scheme with secondary bridges and a tunnel) is an upper
 Relief per USD M, in the style of `docs/loop.md` (VHT/day relieved per USD M of central capex):
 *pending city run* (B1 2+2: Δ VHT/day ÷ 94; B2: ÷ 143; B3: ÷ 238). Screening only, from the
 free-flow detour (section 1): vehicle-km of detour removed per day per USD M central = B1 9,200,
-B2 740, B3 3,650. The mouth bridge is by far the best value on the current network; B2 would need
-better landing access to pay its way.
+B2 740, B3 3,650. On the screen the mouth bridge is by far the best value on the current network; B2 would
+need better landing access to pay its way. The window runs cannot confirm either: their effects are
+within the noise.
 
 ## 7. Film
 
@@ -302,8 +304,8 @@ uv run python -m sim.bridge.window run --peak pm --seed 2 --variants obhur_bridg
 uv run python -m sim.bridge.window publish && uv run python -m sim.bridge.window report
 ```
 
-Each micro run takes 4-7.5 min on the shared M3 Pro (two in parallel, load average 30-40 from other
-tracks); the 25-run grid took 1 h 13 min. In the viewer, `obhur-am-s1-obhur_bridge_b3` can be
+Each micro run takes 2-4.5 min on the shared M3 Pro (two in parallel, load average 30-40 from other
+tracks); the 25-run grid took 40 min. In the viewer, `obhur-am-s1-obhur_bridge_b3` can be
 compared with `obhur-am-s1-control-on-obhur_bridge_b3` (same network hash, so difference mode
 works); the matched control `obhur-am-s1-control` runs on the base window network, and the viewer
 compares only runs on the same network (I-010).
@@ -311,8 +313,8 @@ compares only runs on the same network (I-010).
 ## 9. Limits
 
 - Synthetic demand, uncalibrated; the city baseline it is cut from has 50 % teleports (TA-011).
-- One peak hour per period at window scale; the window's own baseline is saturated (37-38 % of
-  peak-hour vehicles finish), so the PM is noisy.
+- One peak hour per period at window scale; window results depend on how saturated the window is
+  (section 4) and are within the noise band.
 - Bridge landings are unsignalised priority junctions; no interchange design; the poor local access
   of three of the four landings is a property of the current network and caps the bridges' use.
 - No induced demand, no navigation openings, no construction phase.

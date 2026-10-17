@@ -17,7 +17,7 @@
 #     - {shot: site, at: 0.6, text: "Sharm Obhur splits North and South Obhur. Today the only crossing is at the head of the creek."}
 #     - {shot: site, text: "About 238,000 car trips a day have a desire line across the water; a bridge shortens 145,000 of them by 6 kilometres on average."}
 #     - {shot: before-after, at: 0.6, text: "Left, bridges at the mouth and mid-creek; right, the same vehicles and routing without them."}
-#     - {shot: difference, at: 0.6, text: "In the morning peak hour the window loses about 520 vehicle-hours, 40 seconds per vehicle; the bridges carry under 600 vehicles an hour each."}
+#     - {shot: difference, at: 0.6, text: "The bridges carry about 600 and 400 vehicles an hour, but at window scale the time saved stays inside the noise: queues build at the landings."}
 #     - {shot: difference, text: "Window scale, one peak hour, synthetic demand, uncalibrated."}
 film: obhur-bridge
 title: Bridges across Sharm Obhur
@@ -69,8 +69,8 @@ shots:
       legend: speed
       split_labels: ["B1 + B2, 2+2 lanes", "No bridge (matched control)"]
       kpis:
-        - {label: "B1, both directions", value: 573, unit: veh/h, decimals: 0}
-        - {label: "B2, both directions", value: 300, unit: veh/h, decimals: 0}
+        - {label: "B1, both directions", value: 558, unit: veh/h, decimals: 0}
+        - {label: "B2, both directions", value: 427, unit: veh/h, decimals: 0}
   - id: difference
     duration_s: 11
     layers:
@@ -85,10 +85,10 @@ shots:
       - {t: 0,  lon: 39.1060, lat: 21.7240, zoom: 14.0, pitch: 48, bearing: 25, sim_t: 23700}
       - {t: 11, lon: 39.1200, lat: 21.7420, zoom: 12.8, pitch: 35, bearing: 35, sim_t: 25200, ease: in_out}
     hud:
-      caption: Where the bridges save time
-      detail: Bridge run minus matched control; blue = faster, red = slower. King Abdulaziz Rd loads up, the Corniche and Prince Abdullah Al-Faisal St are relieved
+      caption: Where traffic moves
+      detail: Bridge run minus matched control; blue = faster, red = slower. Prince Abdullah Al-Faisal St and the Corniche ease, King Abdulaziz Rd loads up; the window total stays inside the noise
       legend: diff
       kpis:
-        - {label: Time per peak-hour vehicle, value: -39.6, unit: s, decimals: 1, sign: true}
-        - {label: "Window vehicle-hours, peak hour", value: -516, unit: veh-h, decimals: 0, sign: true}
-        - {label: "Same, second seed", value: -573, unit: veh-h, decimals: 0, sign: true}
+        - {label: "Time per vehicle, seed 1", value: 10.1, unit: s, decimals: 1, sign: true}
+        - {label: "Time per vehicle, seed 2", value: -8.1, unit: s, decimals: 1, sign: true}
+        - {label: "Noise band, +/-", value: 20, unit: s, decimals: 0}
