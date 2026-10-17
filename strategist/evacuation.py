@@ -3,7 +3,7 @@ rank them by clearance time with side-effect penalties, explain and classify the
 recommendation in the hash-chained decision log. Synthetic demand, uncalibrated; fictional
 scenarios only. Simulation and decision support only: nothing is ever actuated.
 
-    python -m strategist.evacuation run --scenario evac_corniche_hamra --seed 1
+    python -m strategist.evacuation run --scenario evac_obhur --seed 1
     python -m strategist.evacuation approve <recommendation_id> [--option n] [--reject]
 
 Strategy levers (one evacuation, same evacuees and departure window in every candidate):

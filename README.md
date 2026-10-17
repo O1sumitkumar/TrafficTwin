@@ -160,8 +160,8 @@ Pipeline, actions and measured runs: `docs/strategist.md`.
 
 ```bash
 uv run python -m sim.runner --scenario evac_demo --seed 1             # demo window, ~15 s
-uv run python -m sim.runner --scenario evac_corniche_hamra --seed 1   # Al Hamra (tahlia window)
-uv run python -m strategist.evacuation run --scenario evac_corniche_hamra --seed 1
+uv run python -m sim.runner --scenario evac_obhur --seed 1            # Obhur Creek mouth (obhur window)
+uv run python -m strategist.evacuation run --scenario evac_obhur --seed 1
 ```
 `sim.runner --scenario evac_*` dispatches to `sim.events.evacuation run`. Method and results:
 `docs/evacuation.md`.

@@ -2,7 +2,7 @@
 contraflow and an evacuation signal plan; clearance metrics (time to 50 / 90 / 100 % out) and
 bottleneck edges. Tier B (microscopic) only. Synthetic demand, uncalibrated; scenarios fictional.
 
-    python -m sim.events.evacuation run --scenario evac_corniche_hamra --seed 1
+    python -m sim.events.evacuation run --scenario evac_obhur --seed 1
     python -m sim.events.evacuation validate sim/scenarios/evac_*.yaml
     python -m sim.events.evacuation net --scenario evac_flood_balad      # build the contraflow net
     python -m sim.events.evacuation register [--check]

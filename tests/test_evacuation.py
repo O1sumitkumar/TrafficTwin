@@ -66,7 +66,7 @@ def test_spec_override_with_assumption() -> None:
     assert s.release_s == 600
 
 
-@pytest.mark.parametrize("name", ["evac_demo", "evac_corniche_hamra", "evac_flood_balad"])
+@pytest.mark.parametrize("name", ["evac_demo", "evac_obhur", "evac_flood_balad"])
 def test_shipped_evacuation_scenarios(name: str) -> None:
     path = REPO_ROOT / "sim" / "scenarios" / f"{name}.yaml"
     Scenario.model_validate(load_yaml(path))  # the M5 schema accepts them
@@ -352,11 +352,11 @@ def test_corridors_avoid_zone_edges() -> None:
     """Contraflow must not close or reverse an edge evacuees start on (B-D-034)."""
     from sim.scenarios.run import window_inputs
 
-    _, s = V.load("evac_corniche_hamra")
+    _, s = V.load("evac_obhur")
     try:
-        net, _, _ = window_inputs("tahlia")
+        net, _, _ = window_inputs("obhur")
     except FileNotFoundError:
-        pytest.skip("tahlia window not built (gitignored data)")
+        pytest.skip("obhur window not built (gitignored data)")
     idx = NetIndex(net)
     ana = V.analyse(s, idx, seed=1)
     zone = {o for o, _ in V.EvacNet(idx, s.zone).origins()}
