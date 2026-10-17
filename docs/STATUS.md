@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-17 (integration pass 4: Track G release readiness and Track H Loop mode choice merged)
+Last updated: 2026-10-17 (integration pass 5: Track J Obhur Creek bridges merged; city runs deferred to the v2 network)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -25,6 +25,7 @@ All results: **synthetic demand, uncalibrated**.
 | LOOP | Loop tunnels | done (Track D), merged in integration pass 3 | recommended C1 + shuttle alpha 0.3 reproduced on main: relief 57,671 VHT/day, 28,820 passengers/day; docs/loop.md |
 | RELEASE | Release readiness (Track G) | done (Track G), merged in integration pass 4 | CI + demo-smoke + Pages workflows, README, community files, `docs/release-checklist.md`; owner must remove the Esri crops from history before any push |
 | MODECHOICE | Loop mode choice (Track H) | done (Track H), merged in integration pass 4 | C1 central 19,530 (measured) / 31,450 (vendor) riders/day vs 28,820 at fixed alpha 0.3; demo window 24 / 58 reproduced on main; docs/loop-mode-choice.md |
+| OBHUR_BRIDGE | Obhur Creek bridges (Track J) | done (Track J, window scale), merged in integration pass 5; city runs pending (v2 network) | six `network_change` policies validate (all new edges in the main SCC); window AM/PM matched control: no effect beyond the +/- 20 s noise band; detour screen 145,370 trips/day shortened by 6.0 km (free flow); docs/obhur-bridge.md |
 
 ## Integration — 2026-10-16
 Merged on `main`: trackC (c5b3203), trackB (46fc412), trackA (13ed16e), in that order. Conflicts only
@@ -227,6 +228,32 @@ Open (carried from the tracks):
   mode choice for the Loop); the issue can be narrowed to city-wide mode choice and road-time feedback.
 - Mode-choice city runs (`evaluate --mode-choice ... --ids C1`) not run on main; Track H's offline
   sweep read Track D's baseline (TH-004). Not started here (city runs belong to another agent).
+
+## Integration pass 5 (Track J Obhur Creek bridges) — 2026-10-17
+Merged `trackJ` (`OBHUR_BRIDGE: done`, verifier PASS after three fixes on the branch; head 4c5d387) with
+`--no-ff`. No conflicts: `docs/assumptions.md` auto-merged with both the Loop (A-loop-001..030) and
+the Obhur (A-obh-001..041, 21 rows) sections kept. The branch is additive (`sim/bridge/`,
+`sim/policies/obhur_bridge_*.yaml`, `sim/network/windows/obhur_creek.yaml`, `tests/test_bridge.py`,
+`docs/obhur-bridge.md`, `docs/assumptions-trackJ.md`, `docs/data-sources-trackJ.md`,
+`docs/img/obhur-desire.png`, `movies/specs/obhur-bridge.yaml`) plus two small additive hooks:
+`sim.schemas.validate_file` dispatches `network_change` policies with a `bridges:` block to
+`BridgePolicy`; `sim.policies.sweep.template` skips policies other tracks own. trackF and trackI not
+merged or touched; nothing from `movies/` in git besides the spec; no push, no remote; no SUMO run.
+
+Gates: ruff check + format clean; pytest 350 passed, 1 skipped (5 min 39 s); all six bridge policies
+validate through `sim.schemas.validate_file`; `scripts.movies.spec validate` OK for all 9 specs.
+
+Film: the window runs and the window network (gitignored) were copied from the trackJ worktree into
+main's untracked `runs/obhur-window/`, `runs/bridge-nets/`, the 25 `runs/obhur-{am,pm}-*` links and
+`data/windows/obhur_creek/` (about 400 MB, byte-identical, so the network hashes match). Smoke render
+on main `render obhur-bridge --frames 0:60 --size 640x360 --out /tmp/...`: 60/60 frames, 41 s. Full
+render not repeated (Track J: 1920x1080, 36.00 s, 182 s). `obhur-bridge` is not in
+`movies/specs/order.yaml`, so the showreel is unchanged (8 films).
+
+Deferred (by instruction): the Obhur bridge city runs, on the v2 network, in a later pass. Commands and
+estimate (1.5-2 h for the three 2+2 variants plus about 2 h for a v2 baseline) in
+`docs/status/trackJ.md`; `docs/obhur-bridge.md` §5-6 keep their *pending city run* cells until then.
+The public evacuation demo stays on Obhur (this merge touches no evacuation scenario).
 
 ## Integration pass 3 (Track D Loop) — 2026-10-16
 Merged `trackD` (status `LOOP: done`, verifier PASS at 21:00) with `--no-ff` (b476837). No conflicts:
@@ -717,3 +744,13 @@ Central C1 19,530 / 31,450 riders/day (measured / vendor service) vs 28,820 at a
 measured is segment-capacity bound in the evening. Assumptions A-loop-021..030 (merged); sources
 `docs/data-sources-trackH.md`; method `docs/loop-mode-choice.md`.
 MODECHOICE: done
+
+### OBHUR_BRIDGE (Track J)
+Summary (full log in docs/status/trackJ.md, decisions J-D-001..014): Obhur Creek crossings B1 (mouth),
+B2 (mid-creek), B3 (both), 2+2 and 3+3, as `network_change` policies with a netconvert patch builder
+(SCC and through-route checks). Detour screen: 238,130 car trips/day cross the creek's desire line;
+B1 + B2 shorten 145,370 by 6.0 km (free flow). Tier B window (24.5 km2) with matched control: bridges
+carry 536-645 (B1) / 297-427 (B2) veh/h in the AM peak, but the time-in-window change (-16 to +53 s)
+is within noise (about +/- 20 s); the city run decides. Assumptions A-obh-001..041 (merged); sources
+`docs/data-sources-trackJ.md`; write-up `docs/obhur-bridge.md`.
+OBHUR_BRIDGE: done

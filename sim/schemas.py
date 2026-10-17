@@ -449,6 +449,11 @@ def validate_file(path: Path) -> BaseModel:
             from sim.loop.schema import LoopPolicy  # Track D transforms
 
             return LoopPolicy.model_validate(data)
+        nets = [t for t in data.get("transforms") or [] if isinstance(t, dict)]
+        if any(t.get("type") == "network_change" and "bridges" in t for t in nets):
+            from sim.bridge.schema import BridgePolicy  # Track J crossings
+
+            return BridgePolicy.model_validate(data)
         return Policy.model_validate(data)
     raise ValueError(f"{path}: unknown kind {kind!r}")
 

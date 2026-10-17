@@ -67,3 +67,15 @@ use by other agents). Details in docs/STATUS.md (Integration pass 4).
 Owner action before any push: release checklist step 1 (Esri crops out of history).
 
 INTEGRATE: done
+
+## INTEGRATE pass 5 (Track J Obhur Creek bridges) — 2026-10-17
+Merged `trackJ` (`OBHUR_BRIDGE: done`) into `main` with `--no-ff`; no conflicts (`docs/assumptions.md`
+auto-merged, Loop and Obhur sections both kept). trackF and trackI not merged or touched; nothing from
+`movies/` in git besides `movies/specs/obhur-bridge.yaml`; no push, no remote; no SUMO city run.
+Gates: ruff clean; pytest 350 passed, 1 skipped; six bridge policies and all 9 film specs validate.
+Film: window runs and `data/windows/obhur_creek/` copied (untracked) from the trackJ worktree; smoke
+render of `obhur-bridge` on main 60/60 frames. Showreel unchanged (film not in order.yaml).
+Deferred: Obhur bridge city runs on the v2 network (later pass; `docs/obhur-bridge.md` §5-6 pending).
+Details in docs/STATUS.md (Integration pass 5).
+
+INTEGRATE: done

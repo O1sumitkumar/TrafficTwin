@@ -57,7 +57,10 @@ def template(policy: str) -> Policy:
     if path.suffix or (POLICY_DIR / f"{policy}.yaml").exists():
         return resolve_policy(policy)[0]
     for f in sorted(POLICY_DIR.glob("*.yaml")):
-        pol = resolve_policy(f)[0]
+        try:
+            pol = resolve_policy(f)[0]
+        except ValueError:  # another track's policy kind (e.g. Track J bridges), not a template
+            continue
         if [t.type for t in pol.transforms] == [policy]:
             return pol
     raise typer.BadParameter(f"no policy or single-transform demo policy for {policy!r}")
