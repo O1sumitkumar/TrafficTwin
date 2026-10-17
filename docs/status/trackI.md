@@ -20,7 +20,7 @@ Everything stays **synthetic demand, uncalibrated**; the evacuation is fictional
   (`sim.link tier-a --routes runs/source-smoke-A/routes.rou.xml --seed 1`; Track B's M1 smoke route
   set, 18,001 vehicles, 1 h, meso, 110 s wall): the same config hash `cc34910d`, so the same run id.
   This is a small meso re-run of the link input, not a city baseline (the compute rule's city runs).
-- **TI-004 Obhur window.** Polygon over the creek mouth (25.8 km2 with about 4 km2 of water), built
+- **TI-004 Obhur window.** Polygon over the creek mouth (24.8 km2 with about 4 km2 of water), built
   with `sim.link window` + `cut` + `check` like the other windows; it sits in the shared
   `data/windows/obhur/` (new name, nothing overwritten). 2,339 edges, 1,014 junctions, no signals;
   2,757 cut vehicles; flow check PASS (GEH < 5 on 100 % of 91 edges, total ratio 1.000).
@@ -42,10 +42,22 @@ Everything stays **synthetic demand, uncalibrated**; the evacuation is fictional
   `scripts/movies/tts-requirements.txt`, `make voice-setup`) and is called as a subprocess, so the
   project lock and CI stay unchanged. The CI smoke render is silent (`voice=False`); narration has
   its own tests and the TTS determinism test skips without the venv.
-- **TI-009 TTS determinism.** Kokoro's vocoder draws noise and its G2P iterates over Python sets:
-  the worker seeds torch before every line, uses one thread, deterministic algorithms and re-executes
-  itself with PYTHONHASHSEED=0. Before that fix two processes gave different samples (max 368 LSB);
-  after it three processes gave the same WAV hash.
+- **TI-009 TTS determinism.** Three sources of run-to-run differences, all fixed in the worker:
+  (1) Kokoro's vocoder draws noise: torch is seeded before every line; (2) its G2P iterates over
+  Python sets: the worker re-executes itself with PYTHONHASHSEED=0; (3) on the M3 the float32 CPU
+  kernel of the 1x1 Conv1d `predictor.F0_proj` returned different sums for identical inputs in
+  different processes (found by hashing every module's output over 6 processes: the first
+  divergence was that layer), which the vocoder's sine phase turns into audible differences (up to
+  368 LSB): Conv1d, ConvTranspose1d and Linear now run in float64 and cast back
+  (`deterministic_cpu`). Result: 10 of 10 processes gave the same WAV for two test lines (before:
+  2-3 variants in 6-10 processes). The first full render was stopped and restarted with this worker.
+- **TI-011 Window cap.** The first Obhur polygon was 25.7 km2, over the 25 km2 cap that
+  `tests/test_link.py` enforces. Its west and north-west vertices were pulled in over sea and the
+  empty Tower site only, at least 398 m from any edge: 24.8 km2, and a rebuild into a temporary
+  directory gave the byte-identical cut net (`f4fd448bd8799e25`), window net (`41f3b38254f9fbec`)
+  and edge map, so every Obhur run stays valid. `obhur.window.json` records the new polygon; the
+  window's `obhur.osm.gz` service-road extract is still the one cut with the first polygon (the
+  graft result is identical).
 - **TI-010 Subtitles.** Homebrew's ffmpeg has neither libass (`subtitles` filter) nor `drawtext`,
   so the burnt-in subtitles are drawn by the HUD from the same lines; the MP4 also carries a soft
   mov_text track and `movies/<film>.srt` sits next to it. `--no-subtitles` / `--no-voice` exist.
