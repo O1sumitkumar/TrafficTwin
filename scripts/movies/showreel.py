@@ -11,8 +11,8 @@ blurred and darkened) at the films' size and frame rate; transitions are ffmpeg
 Voice-over (MOVIES_V2): `movies/specs/showreel.narration.yaml` holds one headline per film; each
 is spoken over its film's title card (the films' own voice tracks are not cut up), the last line
 is the caveat. The headlines are mixed, loudness-normalised and muxed like a film's voice track,
-with movies/showreel.srt beside the MP4. Excerpts follow the narrated (stretched) films: the
-`showreel_excerpt` recorded in movies/<film>.json, else the spec's `showreel`.
+with movies/showreel.srt beside the MP4. Excerpts follow the narrated (stretched) films: they
+start at the `showreel_excerpt` recorded in movies/<film>.json and keep the spec's length.
 """
 
 from __future__ import annotations
@@ -114,6 +114,8 @@ def excerpt(film: Any, mp4: Path, out: Path, fps: int, r: dict[str, Any]) -> Pat
     if span is None:
         return mp4
     a, b = span
+    if film.showreel is not None:  # keep the spec's excerpt length so the reel stays 2-3 min
+        b = min(b, a + film.showreel[1] - film.showreel[0])
     subprocess.run(
         [
             ffmpeg(),
