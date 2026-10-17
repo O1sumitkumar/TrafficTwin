@@ -66,3 +66,67 @@ Everything stays **synthetic demand, uncalibrated**; the evacuation is fictional
   Obhur runs. Both runs were repeated with the committed settings: identical clearance, background
   delay and teleports, new ids `evac_obhur-obhur-s1-ecff823b` and
   `evac_obhur_film-obhur-s1-83e89905` (the old `d462eb71` / `1572ddb3` are superseded).
+
+## MOVIES_V2 — 2026-10-17
+
+Built:
+- **Obhur evacuation.** Window `obhur` (`sim/network/windows/obhur.yaml`, 24.8 km2, 2,339 edges,
+  1,014 junctions, no signals; 2,757 cut Tier A vehicles; flow check PASS, GEH < 5 on 100 % of 91
+  edges, ratio 1.000). Fictional `sim/scenarios/evac_obhur.yaml` (1,500 cars, south bank of the
+  creek mouth): as written T50/T90/T100 933 / 1,702 / 2,115 s (`evac_obhur-obhur-s1-ecff823b`,
+  118 s wall). Strategist (`rec-20261017T000240Z-9a7e8298`, fingerprint `353c178d00b0ed14`, the
+  same on a second run): recommended balanced exit guidance, T90 1,402 s (auto-eligible); fastest
+  `far_first_full`, T90 1,349 s (approval). Film run `evac_obhur_film-obhur-s1-83e89905` = the
+  far_first_full what-if exactly. Hamra scenario and film scenario deleted; README, docs/evacuation.md,
+  docs/movies.md, docs/STATUS.md, the evacuation screenshot and the film switched to Obhur.
+- **Labels and HUD** (`scripts/movies/labels.py`, `movies/landmarks.yaml`, `web/src/cinema/annotate.ts`,
+  `hud.ts`): OSM street names (English, Arabic second line, one English name per Arabic name),
+  road-class priority and zoom gating, greedy collision placement that also avoids the HUD,
+  temporally smoothed opacity (pure function of the frame), labels rotated along the road; district
+  labels at city zoom; landmarks (KAIA, KAU, Al Balad, Obhur Creek and Ras Obhur, Jeddah Tower
+  site, Corniche); compass; scale bar; legend keys for zone, exits, contraflow and release bands;
+  callouts at crashes, floods, motorcades, exits and contraflow; footer "fictional demo
+  parameters" on the four scenario films. About 1 ms per frame.
+- **Voice-over** (`scripts/movies/narrate.py`, `tts_kokoro.py`, 8 film scripts + the showreel
+  script): Kokoro-82M 0.9.4 (Apache-2.0, revision f3ff3571), voice af_heart, speed 0.95, offline
+  in `.venv-tts` (`make voice-setup`, pinned requirements). Shots stretch to fit speech to whole
+  frames; voice track mixed, EBU R128 to -16 LUFS (measured -16.1 to -16.9 LUFS, true peak about
+  -1.5 dBTP), AAC 160 kbit/s, trimmed to the film's length; soft mov_text subtitles + `.srt`;
+  HUD subtitles; `--no-voice`, `--no-subtitles`; `narrate validate` rejects numbers not in the docs.
+  Audio is deterministic across processes (TI-009).
+
+Measured (final `make movies`, M3 Pro, ANGLE Metal, other agents simulating): 8 films at
+1920x1080 30 fps, 30.00-52.37 s after the narration stretch (city-24h, tahlia-street and policy-lab
+unstretched), 0.12-0.25 s per frame, 176-439 s per film, about 39 min in all; browser RSS max
+1.07-1.50 GB (budget 2 GB); disk max 119-360 MB (budget 1 GB); no frames left; audio stream
+duration = video duration on all 9 MP4s (0.000 s difference); showreel 171.0 s with one spoken
+headline per film. Free disk stayed above 44 GB.
+
+Tests: 328 passed, 1 skipped (full suite incl. the render smoke test and the TTS determinism
+test, 4 min 50 s); ruff check, ruff format --check, tsc clean. New: tests/test_narration.py (12
+tests: narration rules and number check, timing and stretch, voice track + SRT, mux length, labels
+naming and anchors, landmarks, callout names, Hamra removal, cross-process TTS determinism).
+
+Verifier: first pass 7/8 PASS, FAIL on audio 0.067 s longer than video on three films (loudnorm's
+100 ms block padding) and the docs copying those lengths; notes on docs/STATUS.md Hamra commands,
+uncited assumption ids, 8 px Arabic labels. All fixed (TI-009..012, atrim, whole-frame stretch,
+larger labels), all films re-rendered. Second pass: every check PASS, including a from-scratch
+`tahlia-street` render with voice whose voice hash (`d6159532e3419a82`) and frame hashes equal
+the shipped ones. Its remaining note (the Obhur Creek label off-camera in the evacuation film) was
+fixed with the Ras Obhur landmark; `evacuation` and the showreel were re-rendered and checked
+(audio = video, landmark visible at 9 s).
+
+Could not verify: listening quality (no audio playback here; Kokoro af_heart is the model's
+highest-graded voice, pronunciation of Arabic place names is the model's own); frames or audio on
+another GPU, CPU or Chrome version.
+Open: the strategist film still quotes raw edge ids in its reason line (Track E open item); the
+motorcade callout uses the OSM name "Prince Mohammed bin Abdulaziz Street" for Tahlia Street while
+caption and voice say Tahlia Street (both names are correct); `obhur.osm.gz` in the shared window
+directory was cut with the first polygon (graft result identical, TI-011).
+Next: integration merges trackI (scripts/movies, web/src/cinema, movies/specs, movies/landmarks.yaml,
+sim/network/windows/obhur.yaml, sim/scenarios/evac_obhur.yaml, docs) and copies the worktree runs
+`evac_obhur-obhur-s1-ecff823b`, `evac_obhur_film-obhur-s1-83e89905`, `link-obhur`,
+`tierA-exit-2f1822b7-cc34910d` and runs/strategist rec-20261017T000240Z-9a7e8298 to main's runs/;
+`data/windows/obhur/` is already in the shared data directory.
+
+MOVIES_V2: done

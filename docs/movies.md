@@ -307,7 +307,7 @@ is constant within a segment: rate = (sim_t1 - sim_t0) / (t1 - t0).
 
 Budgets: browser at most 2 GB RSS, at most 1 GB per film on disk during the render (bundle plus one
 chunk of 150 PNG frames), no frames left behind. Measured on the narrated full render of 17 Oct 2026
-(Track I, `make movies` with labels and voice-over; `movies/<film>.json`; hardware WebGL, ANGLE
+(Track I, `make movies` with labels and voice-over; `evacuation` re-rendered after the Ras Obhur landmark was added, then the showreel; `movies/<film>.json`; hardware WebGL, ANGLE
 Metal on the Apple M3 Pro; other agents were simulating in parallel). Durations are after the
 narration stretch (the specs say 30-40 s). Voice = SHA-256 (16 hex) of the mixed voice track
 before AAC; loudness = measured integrated loudness of the muxed AAC track (target -16 LUFS; the
@@ -320,10 +320,10 @@ before AAC; loudness = measured integrated loudness of the muxed AAC track (targ
 | `incident` | 1920x1080 | 1246 | 41.53 s | 40.4 MB | 2.23 MB | 0.16 s | 278 s | 1292 MB | 184 MB | -16.4 LUFS | `5a654a5099513955` |
 | `events` | 1920x1080 | 1204 | 40.13 s | 44.6 MB | 2.94 MB | 0.15 s | 261 s | 1447 MB | 191 MB | -16.5 LUFS | `a317dfdc0af44f95` |
 | `strategist` | 1920x1080 | 1413 | 47.10 s | 35.0 MB | 2.42 MB | 0.14 s | 278 s | 1286 MB | 152 MB | -16.6 LUFS | `83fefd7d0e152b21` |
-| `evacuation` | 1920x1080 | 1571 | 52.37 s | 34.5 MB | 1.60 MB | 0.12 s | 265 s | 1422 MB | 119 MB | -16.6 LUFS | `bb102eabf0b202f9` |
+| `evacuation` | 1920x1080 | 1571 | 52.37 s | 34.6 MB | 1.66 MB | 0.12 s | 262 s | 1496 MB | 120 MB | -16.6 LUFS | `bb102eabf0b202f9` |
 | `policy-lab` | 1920x1080 | 1350 | 45.00 s | 47.9 MB | 1.90 MB | 0.19 s | 336 s | 1137 MB | 275 MB | -16.5 LUFS | `a0f1fd236b66a8b4` |
 | `loop` | 1920x1080 | 1370 | 45.67 s | 93.7 MB | 2.19 MB | 0.25 s | 439 s | 1098 MB | 360 MB | -16.5 LUFS | `7c24d6f2b63268a6` |
-| `showreel` | 1920x1080 | 5130 | 171.0 s | 191.9 MB | 2.61 MB | - | - | - | - | -16.1 LUFS | `9a7b02445042d790` |
+| `showreel` | 1920x1080 | 5130 | 171.0 s | 192.0 MB | 2.61 MB | - | - | - | - | -16.1 LUFS | `9a7b02445042d790` |
 
 "per frame" is draw + screenshot (labels add about 1 ms); "total" adds the narration (cached
 after the first run), the bundle, chunk encoding, concat, the audio mux and the GIF. All eight

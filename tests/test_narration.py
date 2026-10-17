@@ -164,9 +164,10 @@ def test_landmarks_are_reviewed_and_include_obhur() -> None:
     data = yaml.safe_load((REPO_ROOT / "movies" / "landmarks.yaml").read_text())
     ids = {lm["id"] for lm in data["landmarks"]}
     assert {"kaia", "kau", "al_balad", "obhur_creek", "jeddah_tower", "corniche"} <= ids
+    assert "obhur_creek_mouth" in ids
     assert all(lm.get("source") for lm in data["landmarks"])
     inside = landmark_labels((39.07, 21.68, 39.15, 21.75))
-    assert {lm["id"] for lm in inside} == {"obhur_creek", "jeddah_tower"}
+    assert {lm["id"] for lm in inside} == {"obhur_creek", "obhur_creek_mouth", "jeddah_tower"}
 
 
 def test_callout_street_names() -> None:

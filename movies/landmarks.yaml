@@ -35,6 +35,14 @@ landmarks:
     source: "OSM natural=bay node 'شرم أبحر' / name:en Sharm Ubhur"
     min_zoom: 10.0
     max_zoom: 17.0
+  - id: obhur_creek_mouth
+    en: Obhur Creek mouth (Ras Obhur)
+    ar: رأس أبحر
+    lon: 39.0867
+    lat: 21.7055
+    source: "OSM natural=cape node 'رأس أبحر' / name:en Ra's Abhur, the headland at the creek mouth; close views only (the creek's own label sits mid-creek)"
+    min_zoom: 13.8
+    max_zoom: 17.0
   - id: jeddah_tower
     en: Jeddah Tower site (under construction)
     ar: برج جدة
