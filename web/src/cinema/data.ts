@@ -1,5 +1,5 @@
 // Loads a film bundle (manifest, per-frame plan, binary roads/heat/trips, overlays, basemap).
-import type { Buildings, Frames, Heat, Manifest, OverlaySet, Roads, Trips, Water } from "./types";
+import type { Buildings, Frames, Heat, Labels, Manifest, OverlaySet, Roads, Trips, Water } from "./types";
 
 export interface Bundle {
   manifest: Manifest;
@@ -10,6 +10,7 @@ export interface Bundle {
   overlays: Record<string, OverlaySet>;
   buildings: Buildings | null;
   water: Water | null;
+  labels: Labels | null;
 }
 
 async function bytes(url: string): Promise<ArrayBuffer> {
@@ -80,5 +81,7 @@ export async function loadBundle(base: string): Promise<Bundle> {
   }
   const buildings = manifest.files.buildings ? await json<Buildings>(`${base}/${manifest.files.buildings}`) : null;
   const water = manifest.files.water ? await json<Water>(`${base}/${manifest.files.water}`) : null;
-  return { manifest, frames, roads: parseRoads(roadsBuf, manifest), heat, trips, overlays, buildings, water };
+  const lf = manifest.annotations?.labels;
+  const labels = lf ? await json<Labels>(`${base}/${lf}`) : null;
+  return { manifest, frames, roads: parseRoads(roadsBuf, manifest), heat, trips, overlays, buildings, water, labels };
 }

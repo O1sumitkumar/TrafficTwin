@@ -2,8 +2,9 @@
 
 Streets come from the same OpenStreetMap extract the network is built from (osmium cut of the
 film's map area): named `highway` ways, English `name:en` preferred, the Arabic `name` as a second
-line. Ways without `name:en` borrow the English name most often paired with the same Arabic name
-in the area (so a split carriageway named only in Arabic still gets its English line). Each named
+line. Every way with the same Arabic name gets the English name most often paired with it in the
+area (so a split carriageway named only in Arabic still gets its English line, and one road never
+shows two English names). Each named
 road is merged into lines and gets label anchors every few hundred metres (closer for minor
 roads), each with the road's bearing there, so the renderer can rotate the label along the road.
 Districts are the admin_level=10 polygons of `data/jeddah/districts.geojson`; landmarks the
@@ -31,7 +32,7 @@ from shapely.ops import linemerge
 from scripts.movies import basemap as bm
 from sim.common import REPO_ROOT, run_cmd
 
-LABELS_VERSION = "1"
+LABELS_VERSION = "2"
 LANDMARKS = REPO_ROOT / "movies" / "landmarks.yaml"
 DISTRICTS = REPO_ROOT / "data" / "jeddah" / "districts.geojson"
 
@@ -110,7 +111,7 @@ def street_labels(features: list[dict[str, Any]], frame: Any) -> list[dict[str, 
         ar = p.get("name")
         if cls is None or not (ar or p.get("name:en")):
             continue
-        en = p.get("name:en") or (en_for_ar[ar].most_common(1)[0][0] if ar in en_for_ar else None)
+        en = en_for_ar[ar].most_common(1)[0][0] if ar in en_for_ar else p.get("name:en")
         key = (en or ar, ar if ar != en else None)
         g = groups.setdefault(key, {"cls": cls, "lines": []})
         g["cls"] = min(g["cls"], cls)

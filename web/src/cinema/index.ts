@@ -75,7 +75,7 @@ class Player {
         cb?.();
       },
     });
-    this.hud = new Hud(root, m, b.frames, { top: barH, height: m.height - 2 * barH });
+    this.hud = new Hud(root, b, { top: barH, height: m.height - 2 * barH });
   }
 
   private visible(id: string, view: string): boolean {
@@ -87,7 +87,10 @@ class Player {
 
   debug(): Record<string, unknown> {
     const layers = (this.deck.props.layers ?? []) as Layer[];
-    return { layers: layers.map((l) => [l.id, (l.props.data as { length?: number } | undefined)?.length ?? null]) };
+    return {
+      layers: layers.map((l) => [l.id, (l.props.data as { length?: number } | undefined)?.length ?? null]),
+      annoMs: this.hud.annoMs,
+    };
   }
 
   async render(i: number): Promise<void> {

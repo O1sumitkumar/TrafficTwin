@@ -291,7 +291,7 @@ Recommended: `balanced_signals`; fastest clearance: `balanced_signals`.
   mechanism (diverted inbound traffic or evacuees re-planning onto it) was not analysed further.
 - The demo command and the strategist's no-strategy what-if are the same simulation: identical
   clearance on both windows (and checked by a test on the demo window). Two strategist runs of
-  each scenario (three for each after later reporting-only changes) gave the same fingerprint (Obhur `353c178d00b0ed14` (one run), Al Balad
+  each scenario (three for each after later reporting-only changes) gave the same fingerprint (Obhur `353c178d00b0ed14`, two runs, Al Balad
   `ff134cd308b9f3e9`).
 
 ## Assumptions (M7)

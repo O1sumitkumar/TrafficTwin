@@ -9,7 +9,7 @@ are invented and ship on the Tahlia window only.
 
 ```bash
 # windows: cut from the city net (ids = Tier A) + graft service roads from OSM
-uv run python -m sim.link window --name tahlia            # also kaia_corridor, al_balad, kau_faisaliyah
+uv run python -m sim.link window --name tahlia            # also kaia_corridor, al_balad, kau_faisaliyah, obhur
 # Tier A exit times (meso re-run of a Tier A route file with --vehroute-output.exit-times)
 uv run python -m sim.link tier-a --routes runs/source-smoke-A/routes.rou.xml --seed 1
 # cutRoutes with exit times -> data/windows/<w>/<w>.rou.xml, plus Webster-retimed signals
@@ -29,6 +29,7 @@ uv run python -m sim.scenarios validate sim/scenarios/*_tahlia.yaml
 | kaia_corridor (polygon) | 21.9 | 3,311 | 1,490 | 3 | 3,647 | PASS: 100 % of 188, 0.992 |
 | al_balad | 17.0 | 3,305 | 1,419 | 6 | 3,191 | PASS: 100 % of 175, 0.995 |
 | kau_faisaliyah | 19.7 | 5,795 | 2,494 | 0 | 3,362 | PASS: 100 % of 240, 0.997 |
+| obhur (polygon, Track I) | 25.8 (about 4 of it water) | 2,339 | 1,014 | 0 | 2,757 | PASS: 100 % of 91, 1.000 |
 
 Tolerance (A-link-005/006): GEH < 5 on at least 85 % of window edges with Tier A flow >= 50 veh/h
 over the hour, and total flow within 10 %. It is a model-to-model check (micro window vs meso city),

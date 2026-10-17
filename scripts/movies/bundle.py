@@ -641,7 +641,8 @@ def add_callouts(
     for c in o["contraflow"]:
         name = street_en(c.get("name"), names_en)
         c["name_en"] = name
-        c["callout"] = f"Contraflow: {name}" if name else f"Contraflow {c.get('id')}"
+        num = str(c.get("id") or "").removeprefix("cf")
+        c["callout"] = f"Contraflow: {name}" if name else f"Contraflow {num}"
 
 
 def build_overlays(src: SourceData, net: FilmNet) -> dict[str, Any]:
