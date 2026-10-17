@@ -1,6 +1,7 @@
 """Desire lines and detours across Sharm Obhur from a Tier A baseline (no simulation).
 
-    python -m sim.bridge.desire --baseline runs/baseline-weekday-f0.1-s1-<...>
+    python -m sim.bridge.desire detour --baseline runs/baseline-weekday-f0.1-s1-<...>
+    python -m sim.bridge.desire access --net data/jeddah/jeddah.m2.net.xml
 
 Crossing trips: vehicles whose straight origin-destination line crosses the inner creek polygon
 (sim/bridge/geo.py). For each, today's route is the free-flow shortest path on the base network
@@ -61,6 +62,7 @@ class Graph:
         self.n = len(nodes)
         self.fwd = self._csr(df["u"], df["w"], df)
         self.rev = self._csr(df["w"], df["u"], df)
+        self._cache: dict[tuple[bool, str], tuple[list, list, list]] = {}
 
     def _csr(self, a: pd.Series, b: pd.Series, df: pd.DataFrame) -> dict[str, np.ndarray]:
         order = np.argsort(a.to_numpy(), kind="stable")
@@ -76,9 +78,20 @@ class Graph:
     def ix(self, ids: Any) -> np.ndarray:
         return self.index.get_indexer(pd.Index(ids))
 
-    def sssp(self, src: int, metric: str = "dist", reverse: bool = False) -> np.ndarray:
-        g = self.rev if reverse else self.fwd
-        ptr, nbr, w = g["ptr"].tolist(), g["nbr"].tolist(), g[metric].tolist()
+    def _lists(self, reverse: bool, metric: str) -> tuple[list, list, list]:
+        key = (reverse, metric)
+        if key not in self._cache:
+            g = self.rev if reverse else self.fwd
+            self._cache[key] = (g["ptr"].tolist(), g["nbr"].tolist(), g[metric].tolist())
+        return self._cache[key]
+
+    def sssp(
+        self, src: int, metric: str = "dist", reverse: bool = False, targets: Any = None
+    ) -> np.ndarray:
+        """Distances from `src`; with `targets` the search stops once all of them are settled
+        (other entries are then upper bounds or inf)."""
+        ptr, nbr, w = self._lists(reverse, metric)
+        left = set(int(t) for t in targets) if targets is not None else None
         dist = [float("inf")] * self.n
         dist[src] = 0.0
         heap = [(0.0, src)]
@@ -86,6 +99,10 @@ class Graph:
             d, u = heapq.heappop(heap)
             if d > dist[u]:
                 continue
+            if left is not None:
+                left.discard(u)
+                if not left:
+                    break
             for k in range(ptr[u], ptr[u + 1]):
                 nd = d + w[k]
                 v = nbr[k]
@@ -207,8 +224,8 @@ def analyse(baseline: Path, policies: tuple[str, ...] = POLICIES) -> dict[str, A
         rows = np.asarray(rows)
         tgt = d_ix[rows]
         ok = tgt >= 0
-        today_m[rows[ok]] = g.sssp(int(o), "dist")[tgt[ok]]
-        today_s[rows[ok]] = g.sssp(int(o), "time")[tgt[ok]]
+        today_m[rows[ok]] = g.sssp(int(o), "dist", targets=tgt[ok])[tgt[ok]]
+        today_s[rows[ok]] = g.sssp(int(o), "time", targets=tgt[ok])[tgt[ok]]
     c["today_km"] = (today_m + 2 * ends) / 1000.0
     c["today_ff_s"] = today_s
     c["assigned_km"] = c["route_m_assigned"] / 1000.0
@@ -355,10 +372,66 @@ def plot(lines: pd.DataFrame, net: Path, policies: tuple[str, ...]) -> None:
     plt.close(fig)
 
 
+def landing_access(net: Path, radius_m: float = 1500.0, min_m: float = 200.0) -> pd.DataFrame:
+    """How well each landing junction is reached from its own bank today: network distance to and
+    from every main-SCC junction 0.2-1.5 km away on the same bank (straight line not over the
+    creek), divided by the straight-line distance (circuity). A high circuity means the local
+    streets do not connect to the landing (divided arterials, missing links): a real bridge would
+    need an interchange and local links that the network does not have."""
+    cfg = bridge_config()
+    edges, nodes, scc, offset = base_facts(net, cfg)
+    g = Graph(edges)
+    sc = edges[edges["edge_id"].isin(scc)]
+    n = nodes[nodes["node_id"].isin(set(sc["from_node"]) & set(sc["to_node"]))].reset_index()
+    nx, ny = n["x"].to_numpy() - offset[0], n["y"].to_numpy() - offset[1]
+    rows = []
+    for pid in POLICIES:
+        t = bridge_transform(load_bridge_policy(pid))
+        assert t is not None
+        snaps = snap_landings(t.bridges, edges, nodes, scc, offset, cfg)
+        for (b, side), grp in snaps.groupby(["bridge", "side"]):
+            x0, y0 = grp["node_x"].iloc[0] - offset[0], grp["node_y"].iloc[0] - offset[1]
+            crow = np.hypot(nx - x0, ny - y0)
+            # same bank: the straight line to the landing does not cross the creek
+            e_ll = edges.set_index("from_node")[["lon0", "lat0"]]
+            e_ll = e_ll[~e_ll.index.duplicated()]
+            ll = e_ll.reindex(n["node_id"])
+            j0 = e_ll.reindex([grp["node"].iloc[0]]).to_numpy()[0]
+            lon_j, lat_j = np.full(len(n), j0[0]), np.full(len(n), j0[1])
+            lon_n, lat_n = ll["lon0"].to_numpy(), ll["lat0"].to_numpy()
+            same = ~crosses(lon_n, lat_n, lon_j, lat_j, creek_polygon())
+            sel = (crow > min_m) & (crow < radius_m) & same & ll["lon0"].notna().to_numpy()
+            ix = g.ix(n.loc[sel, "node_id"])
+            js = [int(i) for i in g.ix(grp["node"].tolist())]
+            to = np.min([g.sssp(j, reverse=True)[ix] for j in js], axis=0)
+            fr = np.min([g.sssp(j)[ix] for j in js], axis=0)
+            c = crow[sel]
+            rows.append({
+                "bridge": b, "side": side, "landing": grp["landing"].iloc[0],
+                "junctions": int(sel.sum()), "crow_km_median": round(float(np.median(c)) / 1e3, 2),
+                "to_landing_km_median": round(float(np.median(to)) / 1e3, 2),
+                "from_landing_km_median": round(float(np.median(fr)) / 1e3, 2),
+                "circuity_to": round(float(np.median(to / c)), 1),
+                "circuity_from": round(float(np.median(fr / c)), 1),
+            })  # fmt: skip
+    df = pd.DataFrame(rows).drop_duplicates(["bridge", "side"]).reset_index(drop=True)
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    df.to_csv(RESULTS / "landing_access.csv", index=False)
+    return df
+
+
 app = typer.Typer(add_completion=False, help=__doc__)
 
 
-@app.command()
+@app.command("access")
+def access_cmd(
+    net: Path = typer.Option(..., help="plain base network, e.g. the baseline's"),
+) -> None:
+    """Landing accessibility table (sim/bridge/results/landing_access.csv)."""
+    typer.echo(landing_access(net).to_string(index=False))
+
+
+@app.command("detour")
 def main(
     baseline: Path = typer.Option(..., help="Tier A baseline run directory"),
 ) -> None:

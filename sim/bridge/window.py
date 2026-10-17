@@ -232,6 +232,8 @@ def sim_args(net: Path, routes: Path, out: Path, peak: str, seed: int, fcd: bool
         "--ignore-route-errors", "true", "--no-step-log", "true",
         "--duration-log.statistics", "true",
         "--tripinfo-output", str(out / "tripinfo.xml"),
+        "--tripinfo-output.write-unfinished", "true",
+        "--tripinfo-output.write-undeparted", "true",
         "--statistic-output", str(out / "stats.xml"),
         "--log", str(out / "sumo.log"),
     ]  # fmt: skip
@@ -255,7 +257,16 @@ def simulate(net: Path, routes: Path, out: Path, peak: str, seed: int, meta: dic
     t0 = time.perf_counter()
     run_cmd(sim_args(net, routes, out, peak, seed, fcd), log=out / "run.log")
     wall = round(time.perf_counter() - t0, 1)
-    parse_tripinfo(out / "tripinfo.xml").to_parquet(out / "tripinfo.parquet", index=False)
+    ti = parse_tripinfo(out / "tripinfo.xml")
+    # every vehicle due in the run has a row (unfinished and undeparted ones too, A-obh-025):
+    # time in system = (arrival, or the run's end) - planned departure, so insertion waits and
+    # trips still running at the end count
+    planned = planned_departures(routes)
+    run_end = peak_span(peak)[1] + float(wcfg()["cooldown_s"])
+    ti["planned_depart"] = ti["veh_id"].map(planned).astype(float)
+    ti["arrived"] = ti["arrival"] >= 0
+    ti["time_in_system_s"] = np.where(ti["arrived"], ti["arrival"], run_end) - ti["planned_depart"]
+    ti.to_parquet(out / "tripinfo.parquet", index=False)
     edgedata_to_parquet(out / "edgedata.xml", out / "edgedata.parquet")
     teleports = sum(1 for ln in (out / "sumo.log").read_text().splitlines() if "Teleporting" in ln)
     if fcd:
@@ -276,6 +287,15 @@ def simulate(net: Path, routes: Path, out: Path, peak: str, seed: int, meta: dic
     }  # fmt: skip
     (out / "meta.json").write_text(json.dumps(meta, indent=2, default=str))
     return meta
+
+
+def planned_departures(routes: Path) -> dict[str, float]:
+    out = {}
+    for _, el in ET.iterparse(routes, events=("end",)):
+        if el.tag in ("vehicle", "trip"):
+            out[el.get("id", "")] = float(el.get("depart", "nan"))
+            el.clear()
+    return out
 
 
 def flat_id(run_dir: Path) -> str:
@@ -493,7 +513,7 @@ def kpis(d: Path, peak: str, ref: Path | None, approach: set[str], names: pd.Ser
     b, e = peak_span(peak)
     hours = (e - b) / 3600.0
     ti = pd.read_parquet(d / "tripinfo.parquet")
-    pk = ti[(ti["depart"] >= b) & (ti["depart"] < e)]
+    pk = ti[(ti["planned_depart"] >= b) & (ti["planned_depart"] < e)]
     ed = pd.read_parquet(d / "edgedata.parquet")
     ed = ed[(ed["begin"] >= b) & (ed["begin"] < e)]
     per_edge = ed.groupby("edge_id").agg(entered=("entered", "sum"), loss=("timeLoss", "sum"),
@@ -507,10 +527,11 @@ def kpis(d: Path, peak: str, ref: Path | None, approach: set[str], names: pd.Ser
     out: dict[str, Any] = {
         "run": run, "peak": peak, "seed": meta["seed"], "wall_s": meta["wall_s"],
         "teleports": meta["teleports"], "trips_peak": len(pk),
-        "mean_travel_time_s": round(float(pk["duration"].mean()), 1),
+        "arrived_share": round(float(pk["arrived"].mean()), 3),
+        "mean_time_in_system_s": round(float(pk["time_in_system_s"].mean()), 1),
         "mean_time_loss_s": round(float(pk["time_loss"].mean()), 1),
         "vkt_peak": round(float(pk["route_m"].sum() / 1000.0), 0),
-        "vht_peak": round(float(pk["duration"].sum() / 3600.0), 1),
+        "vht_peak": round(float(pk["time_in_system_s"].sum() / 3600.0), 1),
         "approach_delay_veh_h": round(float(appr["loss"].sum() / 3600.0), 1),
         "approach_speed_kmh": round(float((appr["speed_kmh"] * appr["ss"]).sum()
                                           / max(appr["ss"].sum(), 1e-9)), 1),
@@ -520,22 +541,26 @@ def kpis(d: Path, peak: str, ref: Path | None, approach: set[str], names: pd.Ser
     edges_tab = per_edge[["vph", "loss", "speed_kmh"]].copy()  # loss: time loss (veh-s)
     if ref is not None:
         rti = pd.read_parquet(ref / "tripinfo.parquet").set_index("veh_id")
-        both = pk.set_index("veh_id").join(rti[["duration", "time_loss", "route_m"]], rsuffix="_c",
+        cols = ["time_in_system_s", "time_loss", "route_m", "arrived"]
+        both = pk.set_index("veh_id").join(rti[cols], rsuffix="_c",
                                            how="inner")  # fmt: skip
         out["paired_trips"] = len(both)
-        out["d_travel_time_s"] = round(float((both["duration"] - both["duration_c"]).mean()), 1)
+        dt = both["time_in_system_s"] - both["time_in_system_s_c"]
+        out["d_time_in_system_s"] = round(float(dt.mean()), 1)
+        out["d_arrived_share"] = round(float(both["arrived"].mean() - both["arrived_c"].mean()), 3)
         out["d_time_loss_s"] = round(float((both["time_loss"] - both["time_loss_c"]).mean()), 1)
-        out["d_vht_peak"] = round(float((both["duration"] - both["duration_c"]).sum() / 3600), 1)
+        out["d_vht_peak"] = round(float(dt.sum() / 3600), 1)
         out["d_vkt_peak"] = round(float((both["route_m"] - both["route_m_c"]).sum() / 1000), 0)
         spans = {s for v in bridge_edges_of(run).values() for s in v}
         if spans and (d / "routes.rou.xml.gz").exists():
             users = route_users(d / "routes.rou.xml.gz", spans) & set(both.index)
             u = both.loc[sorted(users)]
             out["bridge_users_peak"] = len(u)
-            out["saved_km_per_user"] = round(float((u["route_m_c"] - u["route_m"]).mean() / 1000),
-                                             2) if len(u) else 0.0  # fmt: skip
-            out["saved_min_per_user"] = round(float((u["duration_c"] - u["duration"]).mean() / 60),
-                                              1) if len(u) else 0.0  # fmt: skip
+            done = u[u["arrived"] & u["arrived_c"]]  # distance compares finished trips only
+            km = (done["route_m_c"] - done["route_m"]).mean() / 1000 if len(done) else 0.0
+            mins = (u["time_in_system_s_c"] - u["time_in_system_s"]).mean() / 60 if len(u) else 0.0
+            out["saved_km_per_user"] = round(float(km), 2)
+            out["saved_min_per_user"] = round(float(mins), 1)
             non = both.drop(index=sorted(users))
             d_non = (non["time_loss"] - non["time_loss_c"]).mean()
             out["d_time_loss_s_non_users"] = round(float(d_non), 1)

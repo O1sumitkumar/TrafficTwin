@@ -17,91 +17,92 @@
   "car_vehicles_per_day": 3851500,
   "crossing": {
     "trips_per_day": 238130,
-    "today_km_mean": 35.6,
+    "today_km_mean": 30.7,
+    "assigned_km_mean": 35.6,
     "baseline_time_loss_min_mean": 106.4,
     "baseline_duration_min_mean": 133.0,
     "b1": {
-      "trips_saving_per_day": 174830,
-      "saved_km_mean_all": 7.79,
-      "saved_km_mean_users": 10.61,
-      "saved_ff_min_mean_users": 5.8,
-      "vkt_saved_per_day": 1855248
+      "trips_saving_per_day": 144070,
+      "saved_km_mean_all": 3.63,
+      "saved_km_mean_users": 6.0,
+      "saved_ff_min_mean_users": 2.9,
+      "vkt_saved_per_day": 864851
     },
     "b2": {
-      "trips_saving_per_day": 129000,
-      "saved_km_mean_all": 3.62,
-      "saved_km_mean_users": 6.67,
-      "saved_ff_min_mean_users": 3.7,
-      "vkt_saved_per_day": 862580
+      "trips_saving_per_day": 39380,
+      "saved_km_mean_all": 0.45,
+      "saved_km_mean_users": 2.64,
+      "saved_ff_min_mean_users": 1.6,
+      "vkt_saved_per_day": 106394
     },
     "b3": {
-      "trips_saving_per_day": 177280,
-      "saved_km_mean_all": 7.83,
-      "saved_km_mean_users": 10.52,
-      "saved_ff_min_mean_users": 5.8,
-      "vkt_saved_per_day": 1865734
+      "trips_saving_per_day": 145370,
+      "saved_km_mean_all": 3.65,
+      "saved_km_mean_users": 5.98,
+      "saved_ff_min_mean_users": 2.9,
+      "vkt_saved_per_day": 869825
     }
   },
   "am_peak": {
     "trips_per_day": 36660,
-    "today_km_mean": 39.04,
+    "today_km_mean": 31.79,
+    "assigned_km_mean": 39.04,
     "baseline_time_loss_min_mean": 144.1,
     "baseline_duration_min_mean": 173.7,
     "b1": {
-      "trips_saving_per_day": 29270,
-      "saved_km_mean_all": 9.95,
-      "saved_km_mean_users": 12.45,
-      "saved_ff_min_mean_users": 7.7,
-      "vkt_saved_per_day": 364646
+      "trips_saving_per_day": 22720,
+      "saved_km_mean_all": 3.55,
+      "saved_km_mean_users": 5.72,
+      "saved_ff_min_mean_users": 2.5,
+      "vkt_saved_per_day": 130199
     },
     "b2": {
-      "trips_saving_per_day": 23910,
-      "saved_km_mean_all": 5.87,
-      "saved_km_mean_users": 8.98,
-      "saved_ff_min_mean_users": 6.3,
-      "vkt_saved_per_day": 215103
+      "trips_saving_per_day": 6280,
+      "saved_km_mean_all": 0.42,
+      "saved_km_mean_users": 2.39,
+      "saved_ff_min_mean_users": 1.5,
+      "vkt_saved_per_day": 15485
     },
     "b3": {
-      "trips_saving_per_day": 29870,
-      "saved_km_mean_all": 10.01,
-      "saved_km_mean_users": 12.28,
-      "saved_ff_min_mean_users": 7.7,
-      "vkt_saved_per_day": 366923
+      "trips_saving_per_day": 22920,
+      "saved_km_mean_all": 3.57,
+      "saved_km_mean_users": 5.7,
+      "saved_ff_min_mean_users": 2.5,
+      "vkt_saved_per_day": 130861
     }
   },
   "pm_peak": {
     "trips_per_day": 49830,
-    "today_km_mean": 35.39,
+    "today_km_mean": 31.49,
+    "assigned_km_mean": 35.39,
     "baseline_time_loss_min_mean": 125.3,
     "baseline_duration_min_mean": 151.6,
     "b1": {
-      "trips_saving_per_day": 36140,
-      "saved_km_mean_all": 7.02,
-      "saved_km_mean_users": 9.68,
-      "saved_ff_min_mean_users": 4.8,
-      "vkt_saved_per_day": 350023
+      "trips_saving_per_day": 31140,
+      "saved_km_mean_all": 3.75,
+      "saved_km_mean_users": 5.99,
+      "saved_ff_min_mean_users": 2.9,
+      "vkt_saved_per_day": 186646
     },
     "b2": {
-      "trips_saving_per_day": 25730,
-      "saved_km_mean_all": 2.71,
-      "saved_km_mean_users": 5.24,
-      "saved_ff_min_mean_users": 2.3,
-      "vkt_saved_per_day": 135230
+      "trips_saving_per_day": 7910,
+      "saved_km_mean_all": 0.43,
+      "saved_km_mean_users": 2.65,
+      "saved_ff_min_mean_users": 1.5,
+      "vkt_saved_per_day": 21502
     },
     "b3": {
-      "trips_saving_per_day": 36560,
-      "saved_km_mean_all": 7.06,
-      "saved_km_mean_users": 9.62,
-      "saved_ff_min_mean_users": 4.8,
-      "vkt_saved_per_day": 351825
+      "trips_saving_per_day": 31360,
+      "saved_km_mean_all": 3.77,
+      "saved_km_mean_users": 5.98,
+      "saved_ff_min_mean_users": 2.9,
+      "vkt_saved_per_day": 187798
     }
   },
-  "exact_shortest_sample": {
-    "trips_sampled": 300,
-    "assigned_km_mean": 36.65,
-    "shortest_km_mean": 30.94,
-    "saved_b3_vs_shortest_km_mean": 3.99,
-    "saved_b3_vs_assigned_km_mean": 8.85
+  "routing": {
+    "assigned_km_mean": 35.6,
+    "shortest_km_mean": 30.7,
+    "note": "the baseline's assigned routes avoid its congestion (meso, 50 % teleports, TA-011), so they are longer than free-flow shortest paths; savings are counted against the shortest path, the conservative choice"
   },
-  "method": "assigned baseline route vs free-flow shortest route through each crossing; saving counted when > 0.5 km; B3 = better of B1 and B2 per trip"
+  "method": "free-flow shortest path today vs free-flow shortest path through each crossing (distance for km, time for minutes); saving counted when > 0.5 km; B3 = the better of B1 and B2 per trip"
 }
