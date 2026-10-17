@@ -166,3 +166,5 @@ the blocked reason), F1 pre-pass isolation (fixed, TF-016), status not committed
 `--tls.guess` contradiction and unprobed variants v2e/f/g undocumented (fixed in
 docs/network-v2.md §3), `MIN_TAGGED_KM` / reference lane values in code (now a recorded CLI option
 and read from the v1/m2 type files), two number nits (fixed).
+
+NETWORK_V2: blocked - teleports 28.3 % on v2 vs the < 10 % target (m2 50.5 %); v2 is built, measured and the default, but no sourced network fix remains (TF-013); next: 25 % sample run and evening demand check (docs/network-v2.md §5)
