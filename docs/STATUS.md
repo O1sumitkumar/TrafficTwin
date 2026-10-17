@@ -24,8 +24,8 @@ All results: **synthetic demand, uncalibrated**.
 | MOVIES | Cinematic films (Track E) | done (Track E), merged in integration pass 2; `loop` film added in pass 3 | 8 films; `loop` rendered on main 34.00 s, 246 s; showreel 171.0 s (8 films); docs/movies.md |
 | LOOP | Loop tunnels | done (Track D), merged in integration pass 3 | recommended C1 + shuttle alpha 0.3 reproduced on main: relief 57,671 VHT/day, 28,820 passengers/day; docs/loop.md |
 | RELEASE | Release readiness (Track G) | done (Track G), merged in integration pass 4 | CI + demo-smoke + Pages workflows, README, community files, `docs/release-checklist.md`; owner must remove the Esri crops from history before any push |
-| MODECHOICE | Loop mode choice (Track H) | done (Track H), merged in integration pass 4 | C1 central 19,530 (measured) / 31,450 (vendor) riders/day vs 28,820 at fixed alpha 0.3; demo window 24 / 58 reproduced on main; docs/loop-mode-choice.md |
-| OBHUR_BRIDGE | Obhur Creek bridges (Track J) | done (Track J, window scale), merged in integration pass 5; city runs pending (v2 network) | six `network_change` policies validate (all new edges in the main SCC); window AM/PM matched control: no effect beyond the +/- 20 s noise band; detour screen 145,370 trips/day shortened by 6.0 km (free flow); docs/obhur-bridge.md |
+| MODECHOICE | Loop mode choice (Track H) | done (Track H), merged in integration pass 4 | C1 central 19,530 (measured) / 31,450 (vendor) riders/day vs 28,820 at fixed alpha 0.3; demo window 24 / 58 reproduced on main; docs/loop-mode-choice.md; v2 city run (pass 6): 14,630 riders/day, relief 38,718 VHT/day, teleports 0.283 -> 0.265 |
+| OBHUR_BRIDGE | Obhur Creek bridges (Track J) | done (Track J, window scale), merged in integration pass 5; B1 and B3 city runs on v2 in pass 6 (B2, 3+3 pending) | six `network_change` policies validate; window: no effect beyond +/- 20 s; city v2 (10 %, seed 1, matched control): B3 -178,909 VHT/day (-9.2 %), B1 -170,801 (-8.8 %), teleports about 0.30 per vehicle, B1 span saturated; docs/obhur-bridge.md |
 | MOVIES_V2 | Narration, map labels, Obhur evacuation (Track I) | done (Track I), merged in integration pass 6 | 8 films + showreel re-rendered with Kokoro voice-over, subtitles, street/district/landmark labels, compass, scale bar, callouts; audio = video length on all 9; evacuation film moved to Obhur (`evac_obhur`); docs/status/trackI.md |
 | NETWORK_V2 | Tier A network v2 (Track F) | blocked - teleport target (Track F), merged in integration pass 6 as the default profile | v2 `jeddah.v2.net.xml` (ae764558): 10 % weekday baseline teleports 28.3 % vs 50.5 % on m2 (target < 10 % not reached), mean delay 1,172.6 s vs 1,876.5 s; v1 and m2 still build; docs/network-v2.md |
 
@@ -265,6 +265,27 @@ assignment.
 v2 policy runs go to `runs/v2/` (`scripts/pass6_v2.py`), because `run_policy` deletes an existing
 `runs/<policy id>` and the v1/m2 runs (e.g. `runs/remote_work_30`) must stay; `runs/v2/<baseline id>`
 links to the same trackF run. Run log: `logs/orch/pass6-runs.log`.
+
+v2 re-evaluation (Part 2): all six priority runs finished (07:12-08:57, one at a time; 8 routing
+threads; log `logs/orch/pass6-runs.log`), 10 % sample, seed 1, each against the v2 weekday baseline
+(and its matched control where the policy re-routes vehicles). Every number is synthetic demand,
+uncalibrated; teleport shares are a quality flag (v2 baseline 28.3 %). Seed-noise band: v1 ±34k
+VHT/day; no second-seed v2 baseline exists, so not recomputed.
+
+| run (runs/v2/) | wall | v1 (m2) result | **v2 result** | teleports/veh v2 (base -> policy) |
+|---|---|---|---|---|
+| `obhur_bridge_b3` (B1 + B2) | 28 min | window only: within +/- 20 s noise | VHT -178,909 h/day (-9.2 %), AM-peak delay -20.9 % | 0.296 -> 0.305 |
+| `staggered_schools_60` | 14 min | AM-peak -9.1 %, top-hour -19.1 %, VHT -19,342 h | AM-peak -1.8 %, top-hour -13.3 %, VHT +23,033 h (in noise) | 0.274 -> 0.275 |
+| `loop_c1_mcmeasured_f26ed359` | 7 min | alpha 0.3: 28,820 pax, relief 57,671 VHT/day; logit offline 19,530 pax | 14,630 pax/day, relief 38,718 VHT/day, city VHT -46,684 | 0.283 -> 0.265 |
+| `remote_work_30` | 7 min | delay -9.3 %, VHT -210,563 h | delay -11.4 %, AM-peak -13.2 %, VHT -167,819 h | 0.283 -> 0.244 |
+| `cordon_center` | 20 min | delay +20.1 %, VHT +309,345 h | delay +29.7 %, VHT +341,271 h | 0.275 -> 0.454 |
+| `obhur_bridge_b1` (mouth) | 29 min | window only | VHT -170,801 h/day (-8.8 %), AM-peak -18.6 % | 0.296 -> 0.303 |
+
+Fix found by the B3 run: `sim.bridge.run.write_bridge_report` matched Obhur districts on the first
+three columns (never the names), so its district table was always empty, and its markdown needed the
+missing `tabulate` package (f1a4c00). Disk stayed at 40-41 GB free (nothing deleted). Verifier
+(independent agent) found number and label nits in the new sections; fixed. Docs updated:
+`docs/policies.md` (v2 section), `docs/obhur-bridge.md` §5-6, `docs/loop.md`, `docs/loop-mode-choice.md`.
 
 ## Integration pass 5 (Track J Obhur Creek bridges) — 2026-10-17
 Merged `trackJ` (`OBHUR_BRIDGE: done`, verifier PASS after three fixes on the branch; head 4c5d387) with

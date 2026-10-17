@@ -79,3 +79,49 @@ Deferred: Obhur bridge city runs on the v2 network (later pass; `docs/obhur-brid
 Details in docs/STATUS.md (Integration pass 5).
 
 INTEGRATE: done
+
+## INTEGRATE pass 6 (Track I movies v2, Track F network v2, v2 re-evaluation) — 2026-10-17
+Merged into `main` with `--no-ff`: `trackI` (`MOVIES_V2: done`; 02c353a), then `trackF`
+(`NETWORK_V2: blocked` = teleport target < 10 % missed at 28.3 %, code complete; 725a8e5). Conflicts:
+`.gitignore`, `NOTICE`, `CHANGELOG.md`, `docs/STATUS.md` (trackI) and `Makefile` `.PHONY` (trackF), all
+resolved keeping both sides. Fixes in separate commits: README/site still showed the withdrawn Al Hamra
+evacuation and old film lengths (now Obhur and the narrated renders); `obhur-bridge` narration +
+showreel headline (trackI's test requires one per film); `narrate` checks `docs/obhur-bridge.md`;
+`sim.bridge.run` district filter and markdown table (found in the first v2 run). The public evacuation
+demo is Obhur; trackI deleted the Al Hamra scenario. No film re-rendered; nothing from `movies/`
+renders in git; no push, no remote, no worktree removed.
+Gates after each merge: ruff check + format clean; pytest 371 passed, 2 skipped; `npm run build` OK.
+v2 on main: default network `data/jeddah/jeddah.v2.net.xml` (ae764558); v2 zones/population/route
+cache copied into `data/population/` (m2 zones kept as `zones-m2/`); v2 baseline, smoke and probe runs
+symlinked into `runs/` from `.worktrees/trackF/runs/`. v2 policy runs live in `runs/v2/`
+(`scripts/pass6_v2.py`) so the v1 runs of the same name are not overwritten.
+
+All runs: 10 % sample, seed 1, weekday, **synthetic demand, uncalibrated**; v2 control = baseline
+`baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1` (teleports 28.3 %) or the policy's matched control.
+Noise band: v1 ±34k VHT/day; v2 not measured (no second-seed v2 baseline; no city run spent on it).
+
+| priority | run | status | v1 (m2) | v2 | teleports/veh v2 |
+|---|---|---|---|---|---|
+| 1 | Obhur bridge B3 (B1 + B2, 2+2) | done 07:12-07:40 | window only (no city run) | VHT -178,909 h/day (-9.2 %), AM-peak -20.9 % | 0.296 -> 0.305 |
+| 2 | Staggered schools 60 | done 07:41-07:55 | AM-peak -9.1 %, VHT -19,342 h | AM-peak -1.8 %, VHT +23,033 h | 0.274 -> 0.275 |
+| 3 | Loop C1, mode choice (measured) | done 07:55-08:01 | alpha 0.3: relief 57,671; logit offline 19,530 pax | relief 38,718 VHT/day, 14,630 pax | 0.283 -> 0.265 |
+| 4 | Remote work 30 % | done 08:01-08:08 | VHT -210,563 h (-7.7 %) | VHT -167,819 h (-8.7 %) | 0.283 -> 0.244 |
+| 5 | Central cordon | done 08:08-08:28 | VHT +309,345 h (+12.4 %) | VHT +341,271 h (+17.2 %) | 0.275 -> 0.454 |
+| 6 | Obhur bridge B1 (mouth, 2+2) | done 08:28-08:57 | window only | VHT -170,801 h/day (-8.8 %) | 0.296 -> 0.303 |
+| - | Loop C1 assumed share (alpha 0.3) on v2 | pending (needs its own city run) | 57,671 | - | - |
+| - | Obhur bridge B2, B3 3+3 on v2 | pending | window only | - | - |
+| - | Loop C1 vendor service, seed-2 replicates; C2/C4/C6 | pending | - | - | - |
+| - | v2 second-seed noise band | pending | ±34k | - | - |
+
+Commands for the pending ones (from the main checkout; each about 7-30 min on the 10 % sample):
+```
+uv run python -m scripts.pass6_v2 run loop_a0p3        # Loop C1 alpha 0.3 (loop_recommended)
+uv run python -m scripts.pass6_v2 run bridge_b2
+uv run python -m scripts.pass6_v2 run bridge_b3_3x3
+uv run python -m scripts.pass6_v2 summary              # rows for docs/policies.md
+# vendor service / seed 2 / other corridors: sim.loop.evaluate writes to runs/ (v1 runs there);
+# follow scripts/pass6_v2.py (run_one with runs_dir=runs/v2) rather than calling it directly
+```
+Details: docs/STATUS.md (Integration pass 6).
+
+INTEGRATE6: done
