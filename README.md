@@ -22,7 +22,7 @@ make demo            # opens http://localhost:5173 when ready; Ctrl-C stops the 
 1. `make setup`: `uv python install 3.12`, `uv sync --frozen` (SUMO 1.28 from the `eclipse-sumo`
    wheel), `npm ci --include=dev` in `web/` (only when `package-lock.json` changed).
 2. `make city-net`: downloads the Geofabrik GCC extract (243 MB, first run only), clips it to
-   Jeddah and builds `data/jeddah/jeddah.net.xml` (about 2 min after the download). Skip with
+   Jeddah and builds the v2 network `data/jeddah/jeddah.v2.net.xml` (about 2 min after the download). Skip with
    `make demo CITY=0` (no city view, no Tier A run).
 3. `python -m sim.demo`: the demo runs (about 4 min; finished steps are skipped next time):
    a Tier B smoke and a fictional event scenario (accident under heavy rain, motorcade, ambulance)
@@ -66,23 +66,28 @@ automatically by `sim/common.py` (or honoured if already set).
 uv run ruff check . && uv run ruff format --check . && uv run pytest -q
 ```
 
-## Build the Jeddah city network (M1)
+## Build the Jeddah city network (M1, network v2)
 
 ```bash
 # downloads the Geofabrik GCC extract (243 MB) on first run, clips it to data/osm/jeddah.poly,
-# runs netconvert, applies data/osm/fixes/*.yaml and writes the GeoJSON side outputs (~1 min)
-uv run python -m sim.network.build_city
+# tags untagged major roads with the lane/speed medians measured on the clip, runs netconvert,
+# applies data/osm/fixes/*.yaml and writes the GeoJSON side outputs (~2 min)
+uv run python -m sim.network.build_city                        # profile v2 -> jeddah.v2.net.xml
+uv run python -m sim.network.build_city --network-profile v1   # M1 settings -> jeddah.net.xml
 
 # re-cut the committed demo window from the city network (same pipeline as Tier A)
 uv run python -m sim.network.build_window --name demo --osm-extract
 ```
-Outputs (gitignored): `data/jeddah/jeddah.net.xml`, `data/jeddah/districts.geojson`,
-`data/jeddah/buildings.geojson`, `data/jeddah/jeddah.build.json` (provenance and network size),
-`web/public/data/*.geojson` (viewer).
+Outputs (gitignored): `data/jeddah/jeddah.v2.net.xml`, `data/jeddah/districts.geojson`,
+`data/jeddah/buildings.geojson`, `data/jeddah/jeddah.v2.build.json` (provenance and network size),
+`web/public/data/*.geojson` (viewer). Tier B windows (and the demo window) are cut from the v1
+network. Profiles, evidence and measured effect (teleports 50.5 % -> 28.3 % in the 10 % weekday
+baseline): `docs/network-v2.md`. Teleport hotspots of any run:
+`uv run python -m sim.network.teleports hotspots runs/<run>/sumo.log --net data/jeddah/jeddah.v2.net.xml`.
 
 Inspect the fix list against a built network:
 ```bash
-uv run python -m sim.network.fixes check --net data/jeddah/jeddah.net.xml
+uv run python -m sim.network.fixes check --net data/jeddah/jeddah.v2.net.xml
 ```
 
 ## Smoke runs
@@ -103,8 +108,9 @@ hash, SUMO version, results), `stats.xml`, `tripinfo.xml`, `edgedata.xml` and `s
 ## Population and 24 h city baseline (M2)
 
 ```bash
-# synthetic population (10 % sample), weekday activity chains, duaIterate assignment (cached by
+# zones on the v2 network, then synthetic population (10 % sample), weekday activity chains, duaIterate assignment (cached by
 # network/population/day type/seed), final 24 h meso run, KPIs and plots (~2 h uncached, ~15 min cached)
+uv run python -m sim.population.zones
 nohup uv run python -m sim.runner --baseline --daytype weekday --sample 0.10 --seed 1 --gzip > logs/baseline.log 2>&1 &
 uv run python -m sim.fidelity --window demo --seed 1   # meso vs micro on a window (PROJECT.md 9.4)
 ```
@@ -212,7 +218,7 @@ How it works, the spec schema and the camera-path cookbook: `docs/movies.md`.
 ## Lane audit from imagery (blocked)
 
 `sim/network/lane_audit.py` is built but its calibration precision is below the gate, so no
-imagery-derived lanes are applied and `data/jeddah/jeddah.net.xml` stays the default network.
+imagery-derived lanes are applied; the default network is v2 (OSM-measured defaults, `docs/network-v2.md`).
 See `docs/lane-audit.md`.
 
 ## Layout
