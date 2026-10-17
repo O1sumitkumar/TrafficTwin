@@ -76,3 +76,8 @@ Jeddah parking search times; fuel consumption of the Jeddah fleet (assumed ~10 k
 
 Next: run the C1 city commands above (4 runs, ~45 min), then refill docs/loop-mode-choice.md's
 recommendation section with relief; segment the value of time (Saudi / expatriate).
+
+Verifier (final): all checks PASS after TH-007 (ruff clean; loop tests 30 passed; full suite 322
+passed, 3 skipped, 1 expected pre-integration failure TH-005; sweep deterministic and matches the
+committed results; demo end to end both services; alpha-path hashes equal to 007d366; no city run).
+MODECHOICE: done
