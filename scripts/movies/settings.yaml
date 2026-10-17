@@ -111,6 +111,19 @@ voice:
   lufs: -16                # integrated loudness target (EBU R128 loudnorm, two-pass, linear)
   true_peak_db: -1.5
   aac_kbps: 160
+  # Arabic edition (pass 8, docs/movies-arabic.md RA-001): these keys override the ones above
+  ar:
+    engine: chatterbox-multilingual   # Resemble AI Chatterbox Multilingual (MIT), language id ar
+    worker: tts_ar.py        # scripts/movies/tts_ar.py, run in the Arabic TTS venv
+    venv: .venv-tts-ar       # created by `make voice-setup-ar` (pinned scripts/movies/tts-ar-requirements.txt)
+    model: ResembleAI/chatterbox
+    # reference voice: ClArTTS test clip ch_02_..._417 (one male MSA reader, CC-BY-4.0, from a
+    # LibriVox recording); `make voice-setup-ar` extracts it (scripts/movies/voice_ref_ar.py)
+    voice: runs/movies/_voice_ar/ref/clartts-417-24k.wav
+    speed: 1.0               # no time-stretch; the pace comes from exaggeration/cfg below
+    seed: 1
+    workers: 4               # parallel one-thread CPU worker processes (each deterministic)
+    args: [--device, cpu, --exaggeration, "0.9", --cfg-weight, "0.4"]   # fastest clean pace of 4 tested
 
 # Map labels (MOVIES_V2, scripts/movies/labels.py + web/src/cinema/annotate.ts): display choices,
 # A-mov-012 (names from OSM name:en / name), A-mov-013 (zoom gating), A-mov-014 (movies/landmarks.yaml).
