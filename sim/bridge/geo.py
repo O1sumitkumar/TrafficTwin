@@ -15,6 +15,17 @@ from shapely.geometry import Polygon, shape
 
 from sim.bridge.schema import bridge_config
 from sim.common import REPO_ROOT, load_yaml
+from sim.common import rel as _resolved_rel
+
+
+def repo_rel(path: Path) -> str:
+    """Repo-relative path without resolving symlinks first (data/jeddah links to the main checkout
+    in a worktree; sim.common.rel would return an absolute path there). As sim.link.rel."""
+    absolute = Path(path) if Path(path).is_absolute() else REPO_ROOT / path
+    try:
+        return str(absolute.relative_to(REPO_ROOT))
+    except ValueError:
+        return _resolved_rel(path)
 
 
 @lru_cache(maxsize=4)

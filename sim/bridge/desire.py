@@ -26,9 +26,10 @@ import pandas as pd
 import typer
 
 from sim.bridge.geo import creek_polygon, crosses, edge_points
+from sim.bridge.geo import repo_rel as rel
 from sim.bridge.network import base_facts, snap_landings
 from sim.bridge.schema import bridge_config, bridge_transform, load_bridge_policy
-from sim.common import REPO_ROOT, SYNTHETIC_LABEL, rel
+from sim.common import REPO_ROOT, SYNTHETIC_LABEL
 from sim.policies.routes import iter_route_elements
 
 RESULTS = REPO_ROOT / "sim" / "bridge" / "results"

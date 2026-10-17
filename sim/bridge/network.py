@@ -29,8 +29,9 @@ import numpy as np
 import pandas as pd
 import typer
 
+from sim.bridge.geo import repo_rel as rel
 from sim.bridge.schema import BridgeNetworkChange, Crossing, bridge_config, load_bridge_policy
-from sim.common import REPO_ROOT, config_hash, rel, run_cmd, sumo_bin
+from sim.common import REPO_ROOT, config_hash, run_cmd, sumo_bin
 from sim.policies.edges import CACHE, load_edges, net_hash, open_xml, utm_xy
 from sim.policies.netedit import CITY_NET_DIR, NETCONVERT_OPTIONS, patch_xml
 

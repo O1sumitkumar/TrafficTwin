@@ -29,7 +29,7 @@ Measured:
   trips by 2.6 km. Landing access: from 1.1 km away on the same bank it takes 8-24 km to reach
   three of the four landings (B1 south 1.3-1.6 km), which caps B2.
 - Window (Tier B, `obhur_creek` 24.5 km2 / 2,466 edges, 48,640 AM and 43,720 PM vehicles, 25 micro
-  runs of 2-4.5 min, grid 40 min): bridges carry 558-645 (B1) and 297-427 (B2) veh/h in the AM peak
+  runs of 2-4.5 min, grid 40 min): bridges carry 536-645 (B1) and 297-427 (B2) veh/h in the AM peak
   hour, under 110 in the PM; Δ time in the window per peak-hour vehicle vs the matched control is
   -16 to +53 s, sign flipping between seeds for every 2+2 variant; noise band about +/- 20 s (control
   between seeds -2.9 / -8.9 s; control re-simulated on the B3 network +17 s). No window-scale effect
@@ -104,3 +104,15 @@ Gates: ruff clean; pytest 341 tests, 338 passed, 3 skipped. Film `make movie FIL
 Open: the window cannot resolve the effect (noise); the city run decides. B2's value depends on
 landing access (re-check on v2); no interchange or signal design; no induced demand; no bascule
 opening events.
+
+Verifier (independent agent, 2026-10-17): policies validate (window and city, B2 city check 8/8
+edges in the main SCC); ruff clean; full suite 338 passed / 3 skipped; the B1 AM seed-1 window run
+re-run bit for bit (48,640 tripinfo rows identical, mean time in system 1307.2 s, 711 teleports);
+docs, cost arithmetic, film KPIs and noise band match the result files; change scope limited to new
+files plus J-D-014. Three FAILs fixed afterwards: A-obh-025/026 registered and bridge.yaml settings
+tagged; repo-relative paths (no absolute home path in sim/bridge/results/detour_summary.json, rel()
+no longer resolves the data/jeddah symlink); the B1 volume range (536-645), the per-user km wording
+and the stale config comments corrected. Merge note: expect a conflict at the end of
+docs/assumptions.md (main has added A-loop-021..030 since the branch point); keep both sections.
+
+OBHUR_BRIDGE: done

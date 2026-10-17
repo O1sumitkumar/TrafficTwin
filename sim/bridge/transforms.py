@@ -17,9 +17,9 @@ import json
 from typing import Any
 
 from sim.bridge.geo import creek_polygon, crosses, edge_points, edges_in, window_polygon
+from sim.bridge.geo import repo_rel as rel
 from sim.bridge.network import build_bridge_net
 from sim.bridge.schema import BridgeNetworkChange, bridge_config
-from sim.common import rel
 from sim.policies.edges import load_edges
 from sim.policies.netedit import remap_endpoints
 from sim.policies.transforms import Plan

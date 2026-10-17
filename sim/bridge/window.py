@@ -41,8 +41,9 @@ import numpy as np
 import pandas as pd
 import typer
 
+from sim.bridge.geo import repo_rel as rel
 from sim.bridge.schema import bridge_config, bridge_transform, load_bridge_policy
-from sim.common import REPO_ROOT, SYNTHETIC_LABEL, rel, run_cmd, sumo_bin, sumo_version
+from sim.common import REPO_ROOT, SYNTHETIC_LABEL, run_cmd, sumo_bin, sumo_version
 from sim.policies.edges import load_edges, utm_xy
 
 RUNS = REPO_ROOT / "runs" / "obhur-window"

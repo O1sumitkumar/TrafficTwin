@@ -190,8 +190,8 @@ That is why every comparison is against the matched control (TA-018), never agai
 - worsened: King Abdulaziz Rd +112, where the B1 and B2 south landings feed in.
 
 In the PM the pattern reverses on a smaller scale: King Abdulaziz Rd -25 veh-h, North Corniche Rd
-+38. Users' distance changes little (+0.5 to +9 km saved per user in the AM, from routes chosen for
-time), so window VKT is not reported as a result.
++38. Users' distance changes little (-1.1 to +9.2 km saved per user in the AM; seed 1: +0.4 to +9.2;
+routes are chosen for time), so window VKT is not reported as a result.
 
 **Sensitivity to the window (recorded, not a result).** A first, larger window (39 km2, 1 km creek
 buffer) went over the brief's 25 km2 limit and was discarded and re-cut. It carried more through
