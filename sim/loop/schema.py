@@ -73,6 +73,8 @@ class LoopShuttle(LoopBase):
     dwell_s: float | None = Field(None, ge=0)
     empty_reposition_factor: float | None = Field(None, ge=0)
     competitive_only: bool | None = None
+    # Track H: path to a mode-choice YAML (sim/loop/config/mode_choice.yaml); replaces alpha
+    mode_choice: str | None = None
 
 
 class LoopPrivate(LoopBase):

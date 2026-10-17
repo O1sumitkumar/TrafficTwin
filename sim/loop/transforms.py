@@ -294,8 +294,16 @@ def loop_shuttle(plan: Plan, t: LoopShuttle) -> dict[str, Any]:
     if p["competitive_only"] and len(legs):
         legs, competitive = keep_competitive(plan, cand, legs, stations, seg_len, p, cfg)
     elig_tours = np.unique(legs["tour_id"].to_numpy()) if len(legs) else np.array([], np.int64)
-    u = tour_draws(plan, "loop_shuttle:shift", elig_tours)
-    shifted = elig_tours[u < p["alpha"]]
+    mode_choice = None
+    if p.get("mode_choice"):
+        # Track H: logit on generalised time + capacity cap instead of the fixed share alpha
+        from sim.loop.mode_choice import shuttle_choice
+
+        shifted, mode_choice = shuttle_choice(plan, cand, legs, stations, seg_len, p, cfg,
+                                              elig_tours)  # fmt: skip
+    else:
+        u = tour_draws(plan, "loop_shuttle:shift", elig_tours)
+        shifted = elig_tours[u < p["alpha"]]
     legs = legs[legs["tour_id"].isin(shifted)]
     rows = cand.loc[legs["row"].to_numpy()]
     walk = p["walk_speed_kmh"] / 3.6
@@ -335,6 +343,7 @@ def loop_shuttle(plan: Plan, t: LoopShuttle) -> dict[str, Any]:
         "network": info,
         "eligible_tours": len(elig_tours),
         "competitive_filter": competitive,
+        **({"mode_choice": mode_choice} if mode_choice else {}),
         "tours_shifted": len(shifted),
         "person_trips_shifted": len(pax),
         "passengers_per_day": int(round(len(pax) * f)),
