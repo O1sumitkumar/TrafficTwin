@@ -29,8 +29,8 @@ cloning the voice of one 10.7 s clip of the ClArTTS corpus (utterance
 `ch_02_arabic_tts_dataset_417`, one male reader, MBZUAI, CC-BY-4.0, recorded from a LibriVox
 audiobook). It runs offline on the Mac's CPU in its own venv `.venv-tts-ar` (torch 2.6.0; the
 English `.venv-tts` is untouched), one thread per worker process, two workers in parallel (four swapped on the 18 GB Mac).
-Settings: `voice.ar` in `scripts/movies/settings.yaml` (seed 1, exaggeration 0.9, cfg weight 0.4,
-no time-stretch). Chatterbox embeds Resemble's inaudible Perth watermark in every output.
+Settings: `voice.ar` in `scripts/movies/settings.yaml` (seed 1, exaggeration 0.9, cfg weight 0.4;
+after synthesis pauses capped at 0.3 s and tempo x1.12, see "Length" below). Chatterbox embeds Resemble's inaudible Perth watermark in every output.
 
 **Why.** It is the only candidate that is open-weight, permissively licensed, offline and reads
 fully vowelised MSA correctly: an offline Whisper large-v3-turbo transcript of each sample (MLX,
@@ -82,6 +82,15 @@ What the checks showed:
   0.22 s (comma) or 0.38 s (full stop) pauses, and speaks a clause again with the next seed if it
   lasts longer than 0.32 s per syllable + 1 s or holds a silence over 1 s (at most 3 retries, the
   shortest take is kept).
+- **Length.** Spoken as synthesised, the Arabic films planned 1.30-1.74 x their English length
+  (`events` worst: its shots are short and the takes slow). Two fixes keep every film within the
+  +25 % budget: (a) after the TTS, `narrate.postprocess` shortens every pause over 0.3 s to 0.3 s
+  and raises the tempo x1.12 with ffmpeg `atempo` (pitch kept; settings `voice.ar.post`; the raw
+  takes stay cached, the processed copy is `<key>.post-<hash>.wav`); (b) the lines of `events`,
+  `tahlia-street`, `policy-lab`, `loop` and `obhur-bridge` were tightened (same figures, fewer
+  words: for example "the reviewed underpass sites" -> «مواقع الأنفاق», "in the city run" dropped
+  from the obhur-bridge caveat line). Only 5 % of the raw audio was pause longer than 0.3 s, so the
+  tempo does most of the work.
 - **Accent.** The built-in voice (an English reference) softens the emphatic consonants: Whisper
   hears ط and ص as ب and س. Cloning an Arabic reader fixes it (0 % CER).
 - **Piper** is fast (3 s for all three lines) and intelligible, but it clips (peak 1.0), outputs

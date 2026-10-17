@@ -389,7 +389,63 @@ def speak(texts: list[str], voice: str, lang: str = "en") -> list[Path]:
     missing = [p for p in paths if not p.exists()]
     if missing:
         raise RuntimeError(f"TTS wrote no audio for {missing}")
-    return paths
+    post = cfg.get("post")
+    return [postprocess(p, post) for p in paths] if post else paths
+
+
+def _pause_cap(x: np.ndarray, rate: int, max_pause_s: float, thresh_db: float = -45) -> np.ndarray:
+    """Shorten every pause (20 ms frames below thresh_db) longer than max_pause_s to max_pause_s."""
+    win = int(0.02 * rate)
+    n = len(x) // win
+    if n == 0:
+        return x
+    frames = x[: n * win].astype(np.float64).reshape(n, win) / 32768.0
+    quiet = 20 * np.log10(np.sqrt((frames**2).mean(axis=1)) + 1e-12) < thresh_db
+    keep = np.ones(n, dtype=bool)
+    cap = max(1, int(round(max_pause_s / 0.02)))
+    k = 0
+    while k < n:
+        if quiet[k]:
+            j = k
+            while j < n and quiet[j]:
+                j += 1
+            if j - k > cap:  # keep the pause's two ends, drop its middle
+                keep[k + cap // 2 : j - (cap - cap // 2)] = False
+            k = j
+        else:
+            k += 1
+    return np.concatenate([x[: n * win].reshape(n, win)[keep].ravel(), x[n * win :]])
+
+
+def postprocess(wav: Path, post: dict[str, Any]) -> Path:
+    """The cached take with long pauses capped and the tempo raised (ffmpeg atempo, pitch kept).
+
+    Settings `voice.<lang>.post` ({tempo, max_pause_s}); the raw take stays cached, so changing the
+    post-processing never re-runs the TTS. Deterministic: same take + settings => same samples."""
+    tag = hashlib.sha256(json.dumps(post, sort_keys=True).encode()).hexdigest()[:8]
+    out = wav.with_name(f"{wav.stem}.post-{tag}.wav")
+    if out.exists():
+        return out
+    with wave.open(str(wav)) as w:
+        rate = w.getframerate()
+        x = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2")
+    if post.get("max_pause_s"):
+        x = _pause_cap(x, rate, float(post["max_pause_s"]))
+    tmp = out.with_suffix(".tmp.wav")
+    with wave.open(str(tmp), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(x.astype("<i2").tobytes())
+    tempo = float(post.get("tempo", 1.0))
+    subprocess.run(
+        ["ffmpeg", "-y", "-loglevel", "error", "-i", str(tmp), "-af", f"atempo={tempo}",
+         "-ar", str(rate), "-ac", "1", "-c:a", "pcm_s16le", "-fflags", "+bitexact",
+         "-flags:a", "+bitexact", str(out)],
+        check=True,
+    )  # fmt: skip
+    tmp.unlink()
+    return out
 
 
 # ----------------------------------------------------------------------------- timing

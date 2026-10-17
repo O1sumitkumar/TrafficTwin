@@ -186,3 +186,29 @@ def test_arabic_tts_same_text_same_audio(tmp_path: Path) -> None:
         )  # fmt: skip
     a, b = ((tmp_path / f"{k}.wav").read_bytes() for k in range(2))
     assert a == b and len(a) > 12000
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg missing")
+def test_postprocess_caps_pauses_and_raises_tempo(tmp_path: Path) -> None:
+    import wave
+
+    import numpy as np
+
+    rate = 24000
+    tone = (np.sin(2 * np.pi * 220 * np.arange(rate) / rate) * 8000).astype("<i2")
+    x = np.concatenate([tone, np.zeros(rate, dtype="<i2"), tone])  # 1 s, 1 s pause, 1 s
+    capped = narrate._pause_cap(x, rate, 0.3)
+    assert len(capped) == pytest.approx(2.3 * rate, abs=0.02 * rate)
+    wav = tmp_path / "take.wav"
+    with wave.open(str(wav), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes(x.tobytes())
+    post = {"tempo": 1.12, "max_pause_s": 0.3}
+    a = narrate.postprocess(wav, post)
+    assert narrate.wav_seconds(a) == pytest.approx(2.3 / 1.12, abs=0.05)
+    first = a.read_bytes()
+    a.unlink()
+    assert narrate.postprocess(wav, post).read_bytes() == first  # deterministic
+    assert narrate._settings("ar")["post"] == post and "post" not in narrate._settings("en")

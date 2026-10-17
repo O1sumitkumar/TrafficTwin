@@ -121,10 +121,13 @@ voice:
     # reference voice: ClArTTS test clip ch_02_..._417 (one male MSA reader, CC-BY-4.0, from a
     # LibriVox recording); `make voice-setup-ar` extracts it (scripts/movies/voice_ref_ar.py)
     voice: runs/movies/_voice_ar/ref/clartts-417-24k.wav
-    speed: 1.0               # no time-stretch; the pace comes from exaggeration/cfg below
+    speed: 1.0               # no time-stretch in the worker (the tempo is set in `post` below)
     seed: 1
     workers: 2               # parallel one-thread CPU worker processes (each ~3 GB; 4 swapped on 18 GB)
     args: [--device, cpu, --exaggeration, "0.9", --cfg-weight, "0.4"]   # fastest clean pace of 4 tested
+    # after the TTS (cached takes untouched): pauses over 0.3 s shortened, tempo x1.12 (ffmpeg atempo,
+    # pitch kept), so the films stay within +25 % of the English length (A-mov-016)
+    post: {tempo: 1.12, max_pause_s: 0.3}
 
 # Map labels (MOVIES_V2, scripts/movies/labels.py + web/src/cinema/annotate.ts): display choices,
 # A-mov-012 (names from OSM name:en / name), A-mov-013 (zoom gating), A-mov-014 (movies/landmarks.yaml).
