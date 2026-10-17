@@ -27,6 +27,10 @@ JOBS = {
     "remote": ("policy", "remote_work_30"),
     "cordon": ("policy", "cordon_center"),
     "bridge_b1": ("bridge", "obhur_bridge_b1"),
+    # not run in pass 6 (pending): each is one more city run
+    "bridge_b2": ("bridge", "obhur_bridge_b2"),
+    "bridge_b3_3x3": ("bridge", "obhur_bridge_b3_3x3"),
+    "loop_a0p3": ("loop", "loop_recommended"),
 }
 
 app = typer.Typer(add_completion=False, help=__doc__)
@@ -64,6 +68,11 @@ def run(job: str) -> None:
 
         meta = run_bridge_policy(target, None, SAMPLE, SEED, V2_RUNS)
         typer.echo(meta["bridge"]["headline"])
+    elif kind == "loop":  # assumed-share variant (alpha 0.3), Track D's recommended policy
+        from sim.loop.run import run_loop_policy
+
+        meta = run_loop_policy(target, None, SAMPLE, SEED, V2_RUNS)
+        typer.echo(meta["loop"]["headline"])
     else:  # Loop C1 with the mode-choice logit (Track H), measured service case
         from sim.loop.evaluate import (
             LOOP_DIR,
