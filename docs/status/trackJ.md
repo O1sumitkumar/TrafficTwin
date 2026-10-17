@@ -35,9 +35,11 @@ Measured:
   between seeds -2.9 / -8.9 s; control re-simulated on the B3 network +17 s). No window-scale effect
   beyond noise; AM users gain nothing (landing queues, approach delay +31 % with B2), PM users save
   ~7 min each. 3+3 = 2+2. Control vs cut-route baseline: AM -68 s, PM +9 s (routing gain).
-- Viewer: the API edge index of a bridge run holds the six new edges and its bins build with 0
-  unmatched edges (span 1,164 veh/h at 06:00); `obhur-am-s1-obhur_bridge_b3` vs
-  `obhur-am-s1-control-on-obhur_bridge_b3` share a network hash, so difference mode works.
+- Viewer: the API edge index of `obhur-am-s1-obhur_bridge_b3` holds its 14 new edges (2,480 edges)
+  and its bins build with 0 unmatched edges (21 five-minute bins; B1 span 96-168 veh/h per bin
+  direction). It shares network hash 2471937e17c2d357 with `obhur-am-s1-control-on-obhur_bridge_b3`,
+  so difference mode works between them (choose it in the compare list: the runs' default
+  comparison is the matched control, on the base window network).
 
 Decisions:
 - J-D-001 Bridges are `network_change` transforms with a `bridges:` block (`BridgePolicy`), run by
