@@ -235,10 +235,10 @@ per 3-hour peak, Obhur districts).
 
 | | B1 2+2 | B2 2+2 | B3 2+2 | B3 3+3 |
 |---|---|---|---|---|
-| Δ VHT/day vs matched control | *pending city run* | *pending city run* | **-178,909 h (-9.2 %)** on v2; teleports 0.296 -> 0.305 per vehicle | *pending city run* |
-| Δ VKT/day | *pending city run* | *pending city run* | -2.36 M veh-km (-4.1 %) | *pending city run* |
-| Δ AM-peak mean delay (06-09) | *pending city run* | *pending city run* | -294.5 s (-20.9 %); day mean delay -139.7 s (-12.1 %) | *pending city run* |
-| bridge vehicles/day | *pending city run* | *pending city run* | B1 189,250 (NS 98,770 / SN 90,480); B2 14,650 (13,810 / 840); B1 saturated, see below | *pending city run* |
+| Δ VHT/day vs matched control | **-170,801 h (-8.8 %)** on v2; teleports 0.296 -> 0.303 per vehicle | *pending city run* | **-178,909 h (-9.2 %)** on v2; teleports 0.296 -> 0.305 per vehicle | *pending city run* |
+| Δ VKT/day | -2.35 M veh-km (-4.1 %) | *pending city run* | -2.36 M veh-km (-4.1 %) | *pending city run* |
+| Δ AM-peak mean delay (06-09) | -261.9 s (-18.6 %); day mean delay -132.0 s (-11.5 %) | *pending city run* | -294.5 s (-20.9 %); day mean delay -139.7 s (-12.1 %) | *pending city run* |
+| bridge vehicles/day | B1 201,840 (NS 110,630 / SN 91,210); saturated like B3's B1 | *pending city run* | B1 189,250 (NS 98,770 / SN 90,480); B2 14,650 (13,810 / 840); B1 saturated, see below | *pending city run* |
 | noise band (second seed) | not measured on v2 (no second-seed v2 baseline; v1: ±34k VHT/day) | | | |
 
 **B3 2+2 on network v2 (integration pass 6, 2026-10-17; synthetic demand, uncalibrated).** Run `runs/v2/obhur_bridge_b3` against
@@ -254,16 +254,24 @@ of the run's 118,557 teleports are on bridge edges; (3) the relief (-178,909 h/d
 the v1 seed-noise band, but the v2 band is not measured. The window runs (§4) found no effect inside
 the 24.5 km2 window; the city effect comes from the long detours round the creek head that the window
 cut off. Relief per USD M central capex (§6): 178,909 / 238 = about 750 VHT/day per USD M (B3 2+2).
-The 3+3 and B2 variants and B1 are not run in this pass (B1: see below).
+**B1 2+2 on v2** (mouth bridge only; `runs/v2/obhur_bridge_b1` vs `runs/v2/obhur_bridge_b1--control`,
+bridge network `data/jeddah/jeddah.v2.bridge-d0d88c6be7.net.xml.gz`, run network hash 7adbc33e; 29 min
+wall; `uv run python -m scripts.pass6_v2 run bridge_b1`): -170,801 VHT/day (-8.8 %), teleports 0.296
+-> 0.303, same 37,365 re-routed vehicles and therefore the same matched control as B3 (+9,794 h vs the
+raw baseline). The B1 span is saturated in both peaks as in B3 (up to 1,182 sampled vehicles/h on NS).
+**B3 minus B1 = about 8,100 VHT/day**: the mid-creek bridge B2 adds little once B1 exists, well inside
+the v1 noise band. Relief per USD M central: B1 170,801 / 94 = about 1,820 VHT/day, against about 750
+for B3, so on v2 the mouth bridge alone is the better value, as on the free-flow screen. B2 alone and
+the 3+3 variants are not run in this pass.
 
 Per-district effects (from `policy_districts.parquet`; Obhur districts first):
 
 | district | Δ mean delay | Δ VHT | Δ trips through | notes |
 |---|---|---|---|---|
-| Abhur Al Janubiyah | B3: -635.7 s per trip (1,823 -> 1,188 s) | | +1,010 trips | |
-| Abhur Ash Shamaliyah | B3: -787.8 s (2,161 -> 1,373 s) | | +820 | |
-| Al Yaqoot, Ash Sheraa, As Swaryee, Az Zomorod, Al Amwaj, Al Loaloa | B3: -765, -641, -162, -473, -633, -662 s | | +230 to +400 each | |
-| Al Murjaan, Al Basateen | B3: +289.6 s, +29.9 s (worse: the B1 south landing queue) | | +180, +530 | |
+| Abhur Al Janubiyah | B3: -635.7 s per trip (1,823 -> 1,188 s); B1: -475.9 s | | +1,010 trips | |
+| Abhur Ash Shamaliyah | B3: -787.8 s (2,161 -> 1,373 s); B1: -641.2 s | | +820 | |
+| Al Yaqoot, Ash Sheraa, As Swaryee, Az Zomorod, Al Amwaj, Al Loaloa | B3: -765, -641, -162, -473, -633, -662 s; B1: -687, -572, -126, -414, -633, -579 s | | +230 to +400 each | |
+| Al Murjaan, Al Basateen | B3: +289.6 s, +29.9 s; B1: +334.5 s, +63.9 s (worse: the B1 south landing queue) | | +180, +530 | |
 | Al-Salamah, Al-Zahra (long north-south trips) | B3: -87.2 s, -16.7 s | | +790, +300 | |
 
 **Induced demand caveat.** These are fixed-demand, first-year effects: nobody makes a new trip,
@@ -292,7 +300,7 @@ the whole 8-lane + metro scheme with secondary bridges and a tunnel) is an upper
 | B3 3+3 | 2.97 | 17.8 | 178 | 357 | 624 |
 
 Relief per USD M, in the style of `docs/loop.md` (VHT/day relieved per USD M of central capex):
-B3 2+2 on v2: 178,909 ÷ 238 = about 750 VHT/day per USD M; B1 2+2 (÷ 94) and B2 (÷ 143) *pending city run*. Screening only, from the
+On v2: B1 2+2 170,801 ÷ 94 = about 1,820 and B3 2+2 178,909 ÷ 238 = about 750 VHT/day per USD M; B2 (÷ 143) *pending city run*. Screening only, from the
 free-flow detour (section 1): vehicle-km of detour removed per day per USD M central = B1 9,200,
 B2 740, B3 3,650. On the screen the mouth bridge is by far the best value on the current network; B2 would
 need better landing access to pay its way. The window runs cannot confirm either: their effects are
