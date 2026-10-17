@@ -84,12 +84,22 @@ class Kpi(Strict):
         return self
 
 
+class Labels(Strict):
+    """Map annotations drawn on a shot (when the film has labels): which kinds are shown."""
+
+    streets: bool = True
+    districts: bool = True
+    landmarks: bool = True
+    callouts: bool = True  # leader-line labels at events, closures, exits and contraflow
+
+
 class Hud(Strict):
     caption: str = ""
     detail: str = ""  # second line (decision reasons, ETAs)
     kpis: list[Kpi] = Field(default_factory=list, max_length=3)
     legend: Literal["speed", "diff", "class", "none"] = "speed"
     split_labels: tuple[str, str] | None = None
+    labels: Labels = Field(default_factory=Labels)
 
 
 class Layers(Strict):
@@ -153,6 +163,14 @@ class Basemap(Strict):
     road_classes: Literal["all", "major"] = "all"
 
 
+class Annotations(Strict):
+    """Film-wide map annotations and HUD instruments (MOVIES_V2)."""
+
+    labels: bool = True  # street, district and landmark labels (scripts/movies/labels.py)
+    compass: bool = True  # north arrow rotating with the camera bearing
+    scale_bar: bool = True  # scale bar at the camera centre
+
+
 class Film(Strict):
     film: str = Field(pattern=r"^[a-z0-9][a-z0-9-]*$")
     title: str
@@ -165,6 +183,8 @@ class Film(Strict):
     basemap: Basemap = Field(default_factory=Basemap)
     title_card_s: float = Field(default=2.5, ge=0, le=10)
     showreel: tuple[float, float] | None = None  # excerpt [start_s, end_s] used in the showreel
+    fictional: bool = False  # fictional demo parameters (PROJECT.md section 11): footer says so
+    annotations: Annotations = Field(default_factory=Annotations)
     stub: bool = False  # placeholder spec: validated but not rendered
     note: str = ""
     shots: list[Shot] = Field(default_factory=list)
@@ -222,7 +242,9 @@ def load_film(name_or_path: str) -> Film:
 def film_names() -> list[str]:
     """Film specs in render order (the `order` list in movies/specs/order.yaml, then the rest)."""
     order_file = SPECS_DIR / "order.yaml"
-    names = sorted(p.stem for p in SPECS_DIR.glob("*.yaml") if p.stem != "order")
+    names = sorted(
+        p.stem for p in SPECS_DIR.glob("*.yaml") if p.stem != "order" and "." not in p.stem
+    )  # <film>.narration.yaml files are narration scripts, not films
     if order_file.exists():
         order = yaml.safe_load(order_file.read_text())["order"]
         return [n for n in order if n in names] + [n for n in names if n not in order]

@@ -1,0 +1,19 @@
+# Narration for evacuation (scripts/movies/narrate.py). Numbers only from the docs (docs/evacuation.md).
+film: evacuation
+lines:
+  - shot: before
+    at: 0.6
+    text: "A fictional evacuation at the mouth of Obhur Creek, across the water from the Jeddah Tower site."
+  - shot: before
+    text: "About 3,750 people leave by car, 1,500 vehicles, towards six exits."
+  - shot: release
+    at: 0.6
+    text: "The order comes at a quarter past eight. The farthest band leaves first, and exits are balanced."
+  - shot: release
+    sim_t: 1500
+    text: "From eight twenty-five, three corridors run in contraflow, outbound on both carriageways."
+  - shot: clearance
+    at: 0.6
+    text: "Ninety percent are out after 22.5 minutes. The strategist still recommends balanced exit guidance alone: 23.4 minutes, with no contraflow and no approval needed."
+  - shot: clearance
+    text: "All parameters are fictional. Synthetic demand, uncalibrated."

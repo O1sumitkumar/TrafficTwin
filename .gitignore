@@ -13,6 +13,7 @@ logs/
 .env
 .env.*
 .venv/
+.venv-tts/
 __pycache__/
 *.pyc
 node_modules/
@@ -30,3 +31,4 @@ data/imagery/
 docs/img/lane-audit/
 movies/*
 !movies/specs/
+!movies/landmarks.yaml

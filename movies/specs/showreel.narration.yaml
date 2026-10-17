@@ -1,0 +1,22 @@
+# Showreel narration (scripts/movies/showreel.py): one headline per film, spoken over its title card
+# and excerpt, then the caveat. Numbers only from the docs.
+film: showreel
+lines:
+  - film: city-24h
+    text: "TrafficTwin Jeddah. A regular weekday across the whole city, in forty seconds."
+  - film: tahlia-street
+    text: "Tahlia Street at street level, every vehicle simulated second by second."
+  - film: incident
+    text: "A fictional crash: drivers re-route, and mean delay rises by 5.7 percent."
+  - film: events
+    text: "Rain, a flooded underpass and a motorcade, each against its own baseline."
+  - film: strategist
+    text: "The strategist gets an ambulance through in 68 seconds instead of 173."
+  - film: evacuation
+    text: "A fictional evacuation at Obhur Creek, with phased release and contraflow."
+  - film: policy-lab
+    text: "The policy lab: remote work cuts mean delay by 9.3 percent."
+  - film: loop
+    text: "And the Loop tunnel: 28,820 passengers a day on corridor C1."
+  - film: loop
+    text: "Synthetic demand, uncalibrated."

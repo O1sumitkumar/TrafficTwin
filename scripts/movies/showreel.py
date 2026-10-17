@@ -6,7 +6,13 @@ Inputs are movies/<film>.mp4 in the order of movies/specs/order.yaml (stub specs
 rendered yet are skipped and listed), each cut to its spec's `showreel: [start, end]` excerpt so the
 reel stays at 2-3 minutes. Title cards are drawn with Pillow (over the film's poster,
 blurred and darkened) at the films' size and frame rate; transitions are ffmpeg
-`xfade` crossfades, audio-free, H.264 yuv420p CRF 18 like the films.
+`xfade` crossfades, H.264 yuv420p CRF 18 like the films.
+
+Voice-over (MOVIES_V2): `movies/specs/showreel.narration.yaml` holds one headline per film; each
+is spoken over its film's title card (the films' own voice tracks are not cut up), the last line
+is the caveat. The headlines are mixed, loudness-normalised and muxed like a film's voice track,
+with movies/showreel.srt beside the MP4. Excerpts follow the narrated (stretched) films: the
+`showreel_excerpt` recorded in movies/<film>.json, else the spec's `showreel`.
 """
 
 from __future__ import annotations
@@ -20,7 +26,8 @@ from typing import Any
 
 import typer
 
-from scripts.movies.render import MOVIES_DIR, ffmpeg, make_gif, probe
+from scripts.movies import narrate
+from scripts.movies.render import MOVIES_DIR, ffmpeg, make_gif, mux_voice, probe, probe_audio
 from scripts.movies.spec import film_names, load_film, load_settings
 from sim.common import SYNTHETIC_LABEL
 
@@ -100,10 +107,13 @@ def title_card(
 
 
 def excerpt(film: Any, mp4: Path, out: Path, fps: int, r: dict[str, Any]) -> Path:
-    """The `showreel: [start, end]` excerpt of a film (frame-accurate re-encode), or all of it."""
-    if film.showreel is None:
+    """The showreel excerpt of a film (frame-accurate re-encode, video only), or all of it."""
+    meta_path = mp4.with_suffix(".json")
+    meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
+    span = meta.get("showreel_excerpt") or film.showreel
+    if span is None:
         return mp4
-    a, b = film.showreel
+    a, b = span
     subprocess.run(
         [
             ffmpeg(),
@@ -112,6 +122,8 @@ def excerpt(film: Any, mp4: Path, out: Path, fps: int, r: dict[str, Any]) -> Pat
             "error",
             "-i",
             str(mp4),
+            "-an",
+            "-sn",
             "-vf",
             f"trim=start_frame={round(a * fps)}:end_frame={round(b * fps)},setpts=PTS-STARTPTS",
             "-c:v",
@@ -131,7 +143,35 @@ def excerpt(film: Any, mp4: Path, out: Path, fps: int, r: dict[str, Any]) -> Pat
     return out
 
 
-def build(out_dir: Path = MOVIES_DIR) -> dict[str, Any]:
+def headline_track(
+    names: list[str], starts: list[float], total_s: float, work: Path, out_dir: Path
+) -> dict[str, Any] | None:
+    """Voice WAV + SRT of the showreel headlines: each film's lines from its title card on."""
+    nar = narrate.load_narration("showreel")
+    if nar is None:
+        return None
+    cfg = load_settings()["voice"]
+    voice = nar.voice or str(cfg["voice"])
+    lines = [ln for ln in nar.lines if ln.film in names]
+    wavs = narrate.speak([ln.text for ln in lines], voice)
+    placed: list[tuple[float, float, str, Path]] = []
+    prev_end = -1.0
+    for ln, wav in zip(lines, wavs, strict=True):
+        start = max(
+            starts[names.index(str(ln.film))] + float(cfg["lead_s"]), prev_end + float(cfg["gap_s"])
+        )
+        prev_end = start + narrate.wav_seconds(wav)
+        placed.append((start, prev_end, ln.text, wav))
+    wav_out = work / "showreel.voice.wav"
+    sha = narrate.voice_track([(a, w) for a, _, _, w in placed], total_s, wav_out)
+    srt = out_dir / "showreel.srt"
+    narrate.write_srt([(a, b, t) for a, b, t, _ in placed], srt)
+    return {"wav": wav_out, "srt": srt, "voice_sha256_16": sha, "voice": voice,
+            "lines": [{"text": t, "start_s": round(a, 3), "end_s": round(b, 3)}
+                      for a, b, t, _ in placed]}  # fmt: skip
+
+
+def build(out_dir: Path = MOVIES_DIR, voice: bool = True) -> dict[str, Any]:
     r = load_settings()["render"]
     clips: list[tuple[str, Path]] = []
     skipped = []
@@ -172,6 +212,11 @@ def build(out_dir: Path = MOVIES_DIR) -> dict[str, Any]:
             )
             prev = label
         out = out_dir / "showreel.mp4"
+        names = [n for n, _ in clips]
+        starts = [sum(durations[: 2 * i]) - 2 * i * XFADE_S for i in range(len(clips))]
+        total = sum(durations) - (len(parts) - 1) * XFADE_S
+        voice_info = headline_track(names, starts, total, tmp, out_dir) if voice else None
+        silent = tmp / "showreel.video.mp4" if voice_info else out
         subprocess.run(
             [
                 ffmpeg(),
@@ -195,10 +240,17 @@ def build(out_dir: Path = MOVIES_DIR) -> dict[str, Any]:
                 str(fps),
                 "-movflags",
                 "+faststart",
-                str(out),
+                str(silent),
             ],
             check=True,
         )
+        audio = None
+        if voice_info:
+            loud = mux_voice(silent, voice_info["wav"], voice_info["srt"], out)
+            audio = {k: v for k, v in voice_info.items() if k not in ("wav", "srt")}
+            audio.update({"loudness": loud, "srt": "showreel.srt", "stream": probe_audio(out)})
+        else:
+            (out_dir / "showreel.srt").unlink(missing_ok=True)
     info = probe(out)
     poster = out_dir / "showreel.poster.png"
     shutil.copyfile(out_dir / f"{clips[0][0]}.poster.png", poster)
@@ -210,6 +262,7 @@ def build(out_dir: Path = MOVIES_DIR) -> dict[str, Any]:
         "card_s": CARD_S,
         "xfade_s": XFADE_S,
         "mp4": info,
+        "audio": audio,
         "gif": gif,
     }
     (out_dir / "showreel.json").write_text(json.dumps(meta, indent=1))
@@ -220,9 +273,12 @@ app = typer.Typer(add_completion=False)
 
 
 @app.command()
-def main(out: Path = typer.Option(MOVIES_DIR, help="directory holding the films")) -> None:
+def main(
+    out: Path = typer.Option(MOVIES_DIR, help="directory holding the films"),
+    no_voice: bool = typer.Option(False, "--no-voice", help="silent showreel"),
+) -> None:
     """Build movies/showreel.mp4 from the rendered films."""
-    meta = build(out)
+    meta = build(out, voice=not no_voice)
     typer.echo(
         f"showreel: {len(meta['films'])} films, {meta['mp4']['duration_s']:.1f} s"
         f" (skipped: {', '.join(meta['skipped']) or 'none'})"

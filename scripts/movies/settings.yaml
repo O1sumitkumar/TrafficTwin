@@ -92,3 +92,26 @@ heat:
     speed_rel: 0.25
     delay_s_per_veh: 60.0
     density_veh_km: 20.0
+
+# Voice-over (MOVIES_V2, scripts/movies/narrate.py): open TTS, fully offline, one voice for every film.
+voice:
+  engine: kokoro           # Kokoro-82M (Apache-2.0), run by scripts/movies/tts_kokoro.py in the TTS venv
+  venv: .venv-tts          # created by `make voice-setup` (pinned scripts/movies/tts-requirements.txt)
+  voice: af_heart          # Kokoro American English female voice; calm, documentary read
+  speed: 0.95              # a little slower than Kokoro's default for a documentary pace (display choice)
+  seed: 1                  # torch seed before every line: same script + model => same samples
+  sample_rate: 24000
+  lead_s: 0.6              # a shot's first line starts at least this long after the shot starts
+  gap_s: 0.45              # silence between consecutive lines
+  tail_s: 0.7              # silence after a shot's last line before the cut
+  after_title_s: 0.3       # the first line waits for the title card to fade
+  max_stretch: 2.5         # a shot is slowed at most this much to fit its speech (warn beyond)
+  lufs: -16                # integrated loudness target (EBU R128 loudnorm, two-pass, linear)
+  true_peak_db: -1.5
+  aac_kbps: 160
+
+# Map labels (MOVIES_V2, scripts/movies/labels.py + web/src/cinema/annotate.ts): display choices.
+labels:
+  # deck.gl zoom from which a street class is labelled: motorway/trunk, primary, secondary,
+  # tertiary, local. Bundles drop classes the film's cameras never get close to.
+  street_min_zoom: [11.5, 12.5, 14.0, 15.0, 16.0]
