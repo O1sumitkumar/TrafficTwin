@@ -4,6 +4,25 @@ All notable changes. Dates are build dates; every result is **synthetic demand, 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow the milestones
 of `PROJECT.md` section 12.
 
+## [Unreleased]
+
+### Added
+- **Film voice-over (Track I, MOVIES_V2):** narration scripts `movies/specs/<film>.narration.yaml`
+  spoken offline by Kokoro-82M (Apache-2.0) in a pinned venv (`make voice-setup`); shots stretch
+  to fit speech; voice track at -16 LUFS muxed as AAC with a soft subtitle track and
+  `movies/<film>.srt`; burnt-in HUD subtitles; showreel headlines; `--no-voice`, `--no-subtitles`;
+  `python -m scripts.movies.narrate validate` rejects numbers that are not in the docs.
+- **Map annotations in the films:** OSM street names (English first, Arabic second line) with
+  road-class priority, collision avoidance and fades; district and landmark labels
+  (`movies/landmarks.yaml`); compass; scale bar; legend keys; callouts at crashes, floods,
+  motorcades, evacuation exits and contraflow; "fictional demo parameters" footer.
+- **Obhur evacuation demo:** window `obhur` (Obhur Creek mouth near the Jeddah Tower site) and
+  the fictional scenario `evac_obhur` with strategist results in docs/evacuation.md.
+
+### Removed
+- The waterfront evacuation demo in the tahlia window (`evac_corniche_hamra`) and its film
+  scenario: the public evacuation demo is Obhur.
+
 ## [0.1.0] - 2026-10-16: first runnable release (M9)
 
 ### Added
