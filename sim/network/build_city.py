@@ -123,24 +123,38 @@ def profile_of(config: Path) -> str | None:
     return next((k for k, v in PROFILES.items() if v.resolve() == Path(config).resolve()), None)
 
 
-def lane_prepass(osm: Path, cfg: dict[str, Any], log: Path, force: bool) -> tuple[Path, dict]:
-    """Network v2 pre-pass: OSM XML with measured default tags on untagged ways (if configured)."""
+def lane_prepass(
+    osm: Path, cfg: dict[str, Any], log: Path, force: bool, out: Path | None = None
+) -> tuple[Path, dict]:
+    """Network v2 pre-pass: OSM XML with measured default tags on untagged ways (if configured).
+
+    The config's `osm_out` is used only for the city build (input = the config's clip and default
+    output); a build from `--osm` or to `--out` writes `<output stem>.lanes.osm.gz` beside its own
+    output, so a test or experiment can never replace the city's pre-pass file. The file is
+    rewritten unless its sidecar records the same input and stats hashes."""
     pre = cfg.get("lane_defaults")
     if not pre:
         return osm, {}
     stats = _p(pre["stats"])
-    out = _p(pre["osm_out"]) if "osm_out" in pre else osm.with_name(f"{osm.stem}.lanes.osm.gz")
-    defaults = json.loads(stats.read_text())["defaults"]
+    city = out is None and osm.absolute() == _p(cfg["osm_xml"]).absolute()
+    if city and "osm_out" in pre:
+        dst = _p(pre["osm_out"])
+    else:
+        base = out if out is not None else osm
+        dst = base.with_name(base.name.removesuffix(".net.xml").split(".osm")[0] + ".lanes.osm.gz")
+    key = {"input_hash": file_hash(osm), "stats_hash": file_hash(stats)}
+    side = dst.with_name(dst.name + ".json")
     counts: dict[str, Any] = {}
-    if force or not _fresh(out, osm, stats):
-        counts = tag_osm(osm, out, defaults)
+    if force or not dst.exists() or not side.exists() or json.loads(side.read_text()) != key:
+        counts = tag_osm(osm, dst, json.loads(stats.read_text())["defaults"])
+        side.write_text(json.dumps(key))
         with log.open("a") as fh:
-            fh.write(f"lane_defaults pre-pass {rel(osm)} -> {rel(out)}: {json.dumps(counts)}\n")
-    return out, {
+            fh.write(f"lane_defaults pre-pass {rel(osm)} -> {rel(dst)}: {json.dumps(counts)}\n")
+    return dst, {
         "stats": rel(stats),
-        "stats_hash": file_hash(stats),
-        "osm_out": rel(out),
-        "osm_out_hash": file_hash(out),
+        **key,
+        "osm_out": rel(dst),
+        "osm_out_hash": file_hash(dst),
         **({"counts": counts} if counts else {}),
     }
 
@@ -212,7 +226,7 @@ def main(
     meta["osm_input"] = rel(osm)
     meta["osm_hash"] = file_hash(osm)
     log.parent.mkdir(parents=True, exist_ok=True)
-    osm, pre_meta = lane_prepass(osm, cfg, log, force)
+    osm, pre_meta = lane_prepass(osm, cfg, log, force, out)
     if pre_meta:
         meta["lane_defaults"] = pre_meta
 

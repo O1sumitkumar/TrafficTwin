@@ -30,6 +30,7 @@ import json
 import math
 import re
 import tempfile
+import xml.etree.ElementTree as ET
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -58,7 +59,9 @@ APPLY_CLASSES = (
 STAT_CLASSES = (*APPLY_CLASSES, "unclassified", "residential")
 # OSM: motorways and roundabouts are oneway unless tagged otherwise
 IMPLIED_ONEWAY = {"motorway", "motorway_link"}
-MIN_TAGGED_KM = 5.0  # below this the class x oneway median is not used (falls back, see defaults)
+# Method threshold (not a behavioural value): a class x oneway median needs this much tagged
+# evidence; recorded in the evidence file and overridable with `stats --min-tagged-km`.
+MIN_TAGGED_KM = 5.0
 ASSUMPTION_LANES = "A-net-301"
 ASSUMPTION_SPEED = "A-net-302"
 
@@ -247,10 +250,12 @@ def class_stats(records: Iterable[WayRecord]) -> dict[str, dict[str, Any]]:
     return out
 
 
-def derive_defaults(stats: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+def derive_defaults(
+    stats: dict[str, dict[str, Any]], min_tagged_km: float = MIN_TAGGED_KM
+) -> dict[str, dict[str, Any]]:
     """Default lanes per direction and maxspeed per '<class>|oneway|twoway' for APPLY_CLASSES.
 
-    Median of the tagged ways of that class x direction if they cover >= MIN_TAGGED_KM. Otherwise
+    Median of the tagged ways of that class x direction if they cover >= min_tagged_km. Otherwise
     maxspeed falls back to the class's other direction; lanes do not (a two-way way is an undivided
     road, so the dual-carriageway median does not transfer): the SUMO typemap stays. Lanes round
     half up (1.5 -> 2), never below 1."""
@@ -270,7 +275,7 @@ def derive_defaults(stats: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any
                     sources.append((f"{cls}|{other}", "class"))
                 for src_key, src in sources:
                     s = stats.get(src_key, {})
-                    if s.get(km_field, 0.0) >= MIN_TAGGED_KM and val in s:
+                    if s.get(km_field, 0.0) >= min_tagged_km and val in s:
                         v = s[val]
                         row[field] = max(1, math.floor(v + 0.5)) if field == "lanes" else int(v)
                         row[f"{field}_from"] = f"{src_key} ({src}, {s[km_field]} km tagged)"
@@ -288,7 +293,7 @@ def _relpath(path: Path) -> str:
         return rel(path)
 
 
-def build_stats(pbf: Path) -> dict[str, Any]:
+def build_stats(pbf: Path, min_tagged_km: float = MIN_TAGGED_KM) -> dict[str, Any]:
     with tempfile.TemporaryDirectory() as tmp:
         seq = Path(tmp) / "highways.geojsonseq"
         export_highways(pbf, seq)
@@ -301,11 +306,12 @@ def build_stats(pbf: Path) -> dict[str, Any]:
         "method": (
             "km-weighted quantiles of lanes per direction (oneway: lanes; two-way: "
             "lanes:forward/backward, else lanes/2) and maxspeed over OSM ways that carry the tag, "
-            f"per class x oneway; defaults = median if >= {MIN_TAGGED_KM} km tagged"
+            f"per class x oneway; defaults = median if >= {min_tagged_km} km tagged"
         ),
+        "min_tagged_km": min_tagged_km,
         "assumptions": {"lanes": ASSUMPTION_LANES, "maxspeed": ASSUMPTION_SPEED},
         "stats": stats,
-        "defaults": derive_defaults(stats),
+        "defaults": derive_defaults(stats, min_tagged_km),
     }
 
 
@@ -408,17 +414,23 @@ def _reads(results: Path) -> dict[int, dict[str, Any]]:
     return out
 
 
-# lanes per direction that untagged oneway ways got before v2 (per class), for comparison
-REFERENCE_LANES = {
-    "SUMO typemap (v1)": {"motorway": 2, "trunk": 2, "primary": 2, "secondary": 1, "tertiary": 1},
-    "m2 overlay (A-net-201)": {
-        "motorway": 3,
-        "trunk": 3,
-        "primary": 3,
-        "secondary": 2,
-        "tertiary": 1,
-    },
-}
+def typemap_lanes(path: Path) -> dict[str, int]:
+    """numLanes per highway class from a SUMO type file (`highway.<class>` ids)."""
+    root = ET.parse(path).getroot()
+    return {
+        t.get("id", "").removeprefix("highway."): int(t.get("numLanes", 0))
+        for t in root.iter("type")
+        if t.get("id", "").startswith("highway.") and t.get("numLanes")
+    }
+
+
+def reference_lanes() -> dict[str, dict[str, int]]:
+    """Lanes per direction that untagged ways got before v2, read from the v1 and m2 type files."""
+    from sim.common import sumo_home
+
+    v1 = typemap_lanes(sumo_home() / "data" / "typemap" / "osmNetconvert.typ.xml")
+    m2 = {**v1, **typemap_lanes(REPO_ROOT / "sim" / "population" / "config" / "untagged.typ.xml")}
+    return {"SUMO typemap (v1)": v1, "m2 overlay (A-net-201)": m2}
 
 
 def _imagery_reads(set_dir: Path) -> tuple[str, dict[int, int]]:
@@ -494,6 +506,7 @@ def crosscheck(
                 c["img_n"] += 1
                 c["img_eq"] += int(img == d)
     rows = {}
+    refs = reference_lanes()
     for key, c in sorted(per.items()):
         cls = key.split("|")[0]
         row: dict[str, Any] = {
@@ -504,7 +517,7 @@ def crosscheck(
             "imagery_reads": c["img_n"],
             "agree_with_imagery": round(c["img_eq"] / c["img_n"], 3) if c["img_n"] else None,
         }
-        for name, ref in REFERENCE_LANES.items():
+        for name, ref in refs.items():
             if cls in ref and key.endswith("oneway"):
                 row[f"agree_with_tag[{name}]"] = round(
                     sum(t == ref[cls] for t in c["tags"]) / c["n"], 3
@@ -523,9 +536,10 @@ DEFAULT_STATS = REPO_ROOT / "sim" / "network" / "types" / "jeddah-lanes.json"
 def stats_cmd(
     pbf: Path = typer.Argument(REPO_ROOT / "data" / "osm" / "jeddah.osm.pbf"),
     out: Path = typer.Option(DEFAULT_STATS),
+    min_tagged_km: float = typer.Option(MIN_TAGGED_KM, help="evidence needed for a median"),
 ) -> None:
     """Measure lanes/maxspeed per class x oneway on the clip and derive the defaults."""
-    res = build_stats(pbf)
+    res = build_stats(pbf, min_tagged_km)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(res, indent=2, ensure_ascii=False) + "\n")
     typer.echo(json.dumps(res["defaults"], indent=1))

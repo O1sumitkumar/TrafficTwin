@@ -3,7 +3,7 @@
 Branch `trackF`, worktree `.worktrees/trackF`, cut from `main` at 007d366. Everything below is
 **synthetic demand, uncalibrated**. Details and tables: `docs/network-v2.md`.
 
-## NETWORK_V2 — in progress (2026-10-17)
+## NETWORK_V2 — blocked: target not reached (2026-10-17)
 
 ### Diagnosis of the m2 baseline (before any change)
 `python -m sim.network.teleports hotspots runs/baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3/sumo.log
@@ -76,6 +76,15 @@ so short-edge storage is part of the mechanism; lane counts are the other part.
   VKT -1.6 %, VHT -1.4 %); only the demo-policy baseline's config hash moved (1ea5e5 -> 0541a8)
   because `baseline.yaml`'s `net:` path is part of the hashed config.
 
+- **TF-016 Pre-pass isolation (verifier finding, fixed).** The first version wrote the pre-pass of
+  every build, including `--osm` test builds, to the city's `data/osm/jeddah.v2.osm.gz` and trusted
+  it by mtime, so the demo build tests silently built the whole city, and in a fresh checkout a
+  test could have planted demo-tagged OSM for the next city build. Now only the city build uses
+  that path, custom builds write `<output>.lanes.osm.gz` beside their output, and reuse requires a
+  sidecar with the same input and evidence hashes; the tests assert the file is under the test
+  directory and the network is demo-sized. The city file was never overwritten (hash fb6a48f1
+  before and after; v2 rebuilt after the fix: ae764558).
+
 ### Probe results (AM 05-09, same 91,392 vehicles; teleports per vehicle)
 | network | settings | hash | teleports | mean speed | time loss |
 |---|---|---|---|---|---|
@@ -96,3 +105,64 @@ so short-edge storage is part of the mechanism; lane counts are the other part.
 thread run took 118 min of assignment under contention; with 6 threads and today's load (~25-30
 from other tracks) estimate **2.5-3 h**. The smaller-sample result available beforehand is the
 peak probe above (10 % sample, AM window).
+
+### City runs (2 of the 3 allowed; one at a time)
+| run id | network | what | result |
+|---|---|---|---|
+| baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1 | v2 ae764558 | 10 % weekday baseline, `baseline_launch weekday --routing-threads 6 --gzip`, 03:21-05:05 (1 h 44 min, load 25-45 from other tracks) | **teleports 28.3 %** (110,027); mean speed 28.7 km/h; mean delay 1,172.6 s; AM (06-09) 1,297 s; PM (17-20) 1,775 s; VKT 55.72 M; VHT 1.94 M; CO2 19,980 t |
+| runs/repro/baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1 | v2 | same seed, re-simulated from the route cache (sim only, 5.4 min) | metrics.json summary identical; same network/population/routes/config hashes |
+| smoke-A-s1-ae764558-ab76d081 | v2 | official 1 h random-trip smoke | 0 teleports (v1: 26 = 0.144 %) |
+| probes (runs/probes/*) | m2, v2a-v2k | AM 05-09 peak probes, ~6 min each | table above |
+
+Reproducibility: v2 built twice gives ae764558; v1 and m2 rebuilt to /tmp reproduce 5b8a19d3 and
+e5f1906a. The baseline routes used 6 routing threads, so they are reproducible from the cache
+only (routes_deterministic false in meta.json, TA-015); the simulation from those routes is
+bit-repeatable (above). Runs on v1/m2 are untouched in the main checkout's `runs/`.
+
+### Which run belongs to which network
+- v1 5b8a19d3 (`jeddah.net.xml`): Tier A smokes `smoke-A-*-5b8a19d3-*`, the M9 demo Tier A smoke on
+  a fresh clone (79f35c9a, newer OSM), Tier B windows and the demo window (cut from v1).
+- m2 e5f1906a (`jeddah.m2.net.xml`): every city run before this track: baseline
+  `baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` (and Track A's f124c5), Friday and Ramadan
+  baselines, policies (remote_work_30, staggered_schools_60(+control), cordon_center(+control),
+  sweeps), M8 synthetic calibration round trip, Loop (loop-10bd36fcec network derived from m2,
+  loop_recommended, loop-demo), Track H mode-choice work on the baseline outputs.
+- v2 ae764558 (`jeddah.v2.net.xml`): the runs in the table above.
+
+### Downstream results that need a rerun on v2 (for the coordinator; not rerun here)
+1. Friday and Ramadan-weekday 10 % baselines (Track A M4).
+2. All Tier A policy runs and sweeps against the v2 weekday baseline (remote_work_30,
+   staggered_schools_60 + control, cordon_center + control, policy sweeps).
+3. Loop: rebuild the loop network from v2 (`sim.loop.network data/jeddah/jeddah.v2.net.xml ...`),
+   rerun loop_recommended and the corridor screening; Track H mode choice reads the baseline
+   outputs, so its numbers move too.
+4. Films that reference the m2 baseline or the runs above: `city-24h`, `policy-lab`, `loop`
+   (movies/specs pin `baseline-weekday-f0.1-s1-e5f1906a-...`), then the showreel.
+5. M8 synthetic calibration round trip (network-dependent edge ids).
+6. Optional: re-cut Tier B windows and the demo window from v2 and re-link them to the v2 baseline
+   routes (B-D-002); Tier B events, strategist and evacuation results are on windows and do not
+   change otherwise.
+7. The 25 % sample check (TA-011, A-sim-101) is now more useful than ever: it separates the
+   sampling artefact from real overload.
+Not affected: Tier B window runs, strategist, evacuation, the demo steps (rerun here: same run ids
+and KPIs as M9).
+
+### Departures from the brief (for the coordinator)
+- Target < 10 % teleports **not reached**: 28.3 % on v2 (50.5 % on m2).
+- The brief's "iterate once on the hotspots and rerun" was carried out as analysis only: no
+  hotspot has a sourced fix (TF-013), so no second city run was made (2 of 3 allowed used: the
+  baseline and its re-simulation; the smoke is the official 1 h smoke).
+- Roundabouts and turn lanes were kept as in v1 by argument, not measured (docs/network-v2.md §3).
+- The held-out cross-check reads Track C's untracked lane-audit results
+  (`.worktrees/trackC/data/imagery/*/ways.json`, `results/`): `imagery-eval.json` holds aggregates
+  only. The per-class summary is committed (`sim/network/types/jeddah-lanes-crosscheck.json`); the
+  lane-audit ways are tagged ways that also enter the medians (stated in the doc).
+
+### Verifier
+Run 1 (2026-10-17 06:27): KPIs, hotspots, all three network hashes (rebuilt independently to
+/tmp: v2 ae764558, v1 5b8a19d3, m2 e5f1906a), same-seed KPIs from the route cache, register,
+labels and git hygiene PASS; pytest 324 passed / 3 skipped. FAILs: target missed (stands; this is
+the blocked reason), F1 pre-pass isolation (fixed, TF-016), status not committed (committed),
+`--tls.guess` contradiction and unprobed variants v2e/f/g undocumented (fixed in
+docs/network-v2.md §3), `MIN_TAGGED_KM` / reference lane values in code (now a recorded CLI option
+and read from the v1/m2 type files), two number nits (fixed).

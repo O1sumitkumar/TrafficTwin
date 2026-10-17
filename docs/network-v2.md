@@ -57,8 +57,12 @@ cannot express the table. v2 uses a reproducible pre-pass instead: `python -m
 sim.network.lane_defaults tag` streams the clipped OSM XML and adds `lanes` (two-way: 2 x per
 direction) and `maxspeed` to ways that lack them, marked `traffictwin:defaults=A-net-301;A-net-302`.
 Tagged ways are untouched. On the Jeddah clip it tags 4,110 ways with lanes and 4,275 with
-maxspeed (81,602 ways read). `build_city` runs it when the config has a `lane_defaults:` block
-(`data/osm/jeddah.v2.osm.gz`, gzip written with mtime 0 so the file hash is stable).
+maxspeed (81,602 ways read). `build_city` runs it when the config has a `lane_defaults:` block:
+the city build writes `data/osm/jeddah.v2.osm.gz` (gzip with mtime 0, so the file hash is stable),
+a build from `--osm` or to `--out` writes `<output>.lanes.osm.gz` beside its own output, and the
+file is reused only when its sidecar `.json` records the same input and evidence hashes. The
+5 km evidence threshold is a method setting (`stats --min-tagged-km`, recorded in the evidence
+file).
 
 **Held-out cross-check** (`python -m sim.network.lane_defaults crosscheck --imagery-dir
 <lane-audit data>/data/imagery --sets v2-holdout,holdout,v2-calibration,calibration`; reads the
@@ -102,13 +106,20 @@ Decisions: ramp splitting stays (TF-005: the 95-m ramp edges are where teleports
 they carry the extra lane; without them the diverge has fewer lanes and teleports rise);
 `--no-internal-links` is rejected (TF-006: it removes junction-internal teleports by moving them
 upstream, and Tier B windows need internal links); a 30-m join distance is neutral and rejected
-(TF-007, it would also change more edge ids). `--tls.guess` was not tried: the meso TLS penalty
-adds delay at every guessed signal and there is no signal inventory to check a count against
-(docs/network-qa.md §4); the OSM signals stay. Roundabout guessing and turn lanes are unchanged
-(no measurable lever in meso, where lanes are not modelled per movement).
+(TF-007, it would also change more edge ids). `--tls.guess` on the corrected speeds (v2k,
+c2c84582: 283 TLS instead of 73) was probed after the city run: 40.2 % vs 40.0 %, so it is rejected
+(TF-011; 210 guessed signals with no inventory to check them against, docs/network-qa.md §4); the
+OSM signals stay. Roundabout guessing and turn lanes were **not tested**, only kept as in v1:
+`--roundabouts.guess` is already on, and meso does not model lanes per movement, so OSM turn lanes
+(`--osm.turn-lanes`) would change lane directions, not meso capacity. This is an argument, not a
+measurement.
 
 Not completed: the probe of v2j (join-dist 30 + no internal links) was stopped to free the
-machine for the city run; both of its parts were neutral or worse on their own.
+machine for the city run; both of its parts were neutral or worse on their own. Built but never
+probed (superseded once no-split proved worse): v2e (no `--ramps.guess`), v2f (no-split + no
+internal links + join-dist 30), v2g (no-split + no internal links + `--ramps.min-highway-speed
+25`). Variant configs were generated from `city-v2.yaml` with one option changed each (scratch
+files, not committed); every probe's options and hash are in `runs/probes/<label>-<hash>-05-09/`.
 
 ## 4. City baseline on v2
 
@@ -118,8 +129,9 @@ v2 edges: zones hash d949c812, population 346893f2). Run id
 **`baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1`** (in this worktree's `runs/`). Wall time
 1 h 44 min under heavy load from other tracks (load average 25-45): assignment 96.7 min (routing
 6 threads), final 24 h simulation 6.3 min, peak 3.6 GB
-(duarouter) / 3.3 GB (sumo). Assignment steps: step 0 (1/3 of the demand) 0.67 % teleports, step 1
-(2/3) 8.8 %, final (full demand) 28.3 %.
+(duarouter) / 3.3 GB (sumo). Assignment steps (from the step logs `iteration_00k.sumo.log`, deleted with the duaIterate
+work directory after the run, so not kept as artefacts): step 0 (1/3 of the demand) 868 teleports
+= 0.67 % of inserted vehicles, step 1 (2/3) 22,868 = 8.8 %; final run (full demand) 28.3 %.
 
 | KPI (synthetic demand, uncalibrated) | m2 baseline (e5f1906a) | **v2 baseline (ae764558)** | change |
 |---|---|---|---|
@@ -129,7 +141,7 @@ v2 edges: zones hash d949c812, population 346893f2). Run id
 | mean speed | 20.5 km/h | 28.7 km/h | +40 % |
 | mean delay per trip | 1,876.5 s | 1,172.6 s | -38 % |
 | AM peak (06-09) mean delay | 2,098 s | 1,297 s | -38 % |
-| PM peak (17-20) mean delay | 2,784 s | 1,775 s | -36 % |
+| PM peak (17-20) mean delay | 2,785 s | 1,775 s | -36 % |
 | evening (20-23) mean delay | 3,165 s | 2,205 s | -30 % |
 | mean trip duration / length | 2,563 s / 14.57 km | 1,804 s / 14.39 km | |
 | VKT (real-scale) | 56.10 M veh-km | 55.72 M veh-km | -0.7 % |
@@ -185,7 +197,7 @@ Target (< 10 % teleports) **not reached**: 28.3 %. Network v2 removed 44 % of th
 error with the data we trust:
 
 1. **Load in the evening.** 67 % of teleports are 18-24 h; 170-270 k real-scale departures per hour
-   continue from 16 to 23 h. The evening activity profile (Track A day types) and the
+   continue from 16 to 23 h (hours 16-22). The evening activity profile (Track A day types) and the
    no-retiming of trips under congestion are the first thing to check.
 2. **Sampling and meso settings (A-sim-101/102/103).** 10 % sampling makes every vehicle 71 m long;
    55 % of Jeddah's edges are shorter than 75 m, and 66 % of v2 edge teleports are on edges under

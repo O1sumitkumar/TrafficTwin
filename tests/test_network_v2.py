@@ -10,7 +10,7 @@ import pytest
 import sumolib
 from typer.testing import CliRunner
 
-from sim.common import load_yaml
+from sim.common import file_hash, load_yaml
 from sim.network import lane_defaults as ld
 from sim.network.build_city import DEFAULT_PROFILE, PROFILES, app, netconvert_args
 from sim.network.teleports import hotspots, parse_log
@@ -140,7 +140,17 @@ def test_build_city_v2_profile_on_demo_osm(tmp_path: Path, demo_osm: Path) -> No
     assert r1.exit_code == 0, r1.output
     meta = json.loads((tmp_path / "demo_v2.build.json").read_text())
     assert meta["profile"] == "v2"
-    assert meta["lane_defaults"]["osm_out_hash"]
+    # the pre-pass of a custom build lives beside its output, never in the city's data/osm/
+    assert Path(meta["lane_defaults"]["osm_out"]).resolve().parent == tmp_path.resolve()
+    assert meta["lane_defaults"]["input_hash"] == file_hash(demo_osm)
+    # demo-sized (the city has ~155k edges)
+    assert meta["network"]["edges"] < 5000
+    # a second build reuses the pre-pass (same input and stats hashes): no counts recorded
+    r3 = CliRunner().invoke(app, [*args, "--out", str(out)])
+    assert r3.exit_code == 0, r3.output
+    meta3 = json.loads((tmp_path / "demo_v2.build.json").read_text())
+    assert "counts" not in meta3["lane_defaults"]
+    assert meta3["network"]["net_hash"] == meta["network"]["net_hash"]
     assert json.loads((tmp_path / "demo_v1.build.json").read_text())["profile"] == "v1"
 
     def lane_km(path: Path) -> float:
