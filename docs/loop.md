@@ -227,7 +227,7 @@ run. v1 numbers above stay; the v1 alpha-0.3 run is not a like-for-like control 
 |---|---|---|---|
 | passengers per day | 28,820 | 19,530 | **14,630** (600 capped) |
 | congestion relief, VHT/day (remaining vehicles) | 57,671 (two-seed mean 63,349) | not run | **38,718** (+1.99 %) |
-| city VHT saved per day | 54,150 net person-h; city VHT -55,707 (alpha 0.5 row) | not run | 46,684 (-2.4 %) |
+| city VHT saved per day | 61,140 | not run | 46,684 (-2.4 %) |
 | relief per day per USD M (central capex 446) | 129.2 | - | 86.8 |
 | AM-peak road delay change | -2.85 % | - | -4.81 % (city AM-peak -5.07 %) |
 | net person-hours per day | 54,150 | - | 42,062 |
