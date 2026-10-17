@@ -30,7 +30,7 @@ removed in 0bf3c0d) that must not be redistributed (`docs/release-audit.md`, sec
 rm -rf "$PUB" && git clone --no-local --branch main "$SRC" "$PUB" && cd "$PUB"
 git filter-repo --force --invert-paths --path docs/img/lane-audit/
 # optional, same pass: publish commits under your GitHub no-reply address instead of the company e-mail
-#   printf 'Tariq Alturkestani <ID+%s@users.noreply.github.com> <tariq@insurance-solutions.co>\n' "$OWNER" > /tmp/mailmap
+#   printf 'Your Name <ID+%s@users.noreply.github.com> <COMMIT_EMAIL>\n' "$OWNER" > /tmp/mailmap   # COMMIT_EMAIL: git log -1 --format=%ae
 #   git filter-repo --force --mailmap /tmp/mailmap
 git log --all --name-only --format= | grep -c 'docs/img/lane-audit/'   # must print 0
 git rev-list --objects --all | git cat-file --batch-check='%(objecttype) %(objectsize) %(rest)' \
