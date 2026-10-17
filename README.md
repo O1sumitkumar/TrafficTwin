@@ -1,11 +1,133 @@
 # TrafficTwin Jeddah
 
-Open-source traffic digital twin of Jeddah: a city-wide mesoscopic model (Tier A) for policy
-questions and microscopic focus windows (Tier B) for events and emergency decision support, built
-on Eclipse SUMO and OpenStreetMap. See `PROJECT.md` for the brief and `docs/STATUS.md` for what is
-built and measured.
+[![ci](https://github.com/OWNER/TrafficTwin/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/TrafficTwin/actions/workflows/ci.yml)
+[![licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
+[![python 3.12](https://img.shields.io/badge/python-3.12-blue)](pyproject.toml)
+[![Eclipse SUMO 1.28](https://img.shields.io/badge/Eclipse%20SUMO-1.28-green)](https://eclipse.dev/sumo/)
+[![data: synthetic, uncalibrated](https://img.shields.io/badge/data-synthetic%2C%20uncalibrated-orange)](docs/assumptions.md)
 
-> All results use **synthetic demand, uncalibrated**. Simulation and decision support only.
+**An open-source traffic digital twin of Jeddah.** TrafficTwin simulates a full 24-hour day for
+the whole city on the real OpenStreetMap road network, with demand generated from a synthetic
+population (people, households, jobs, schools, prayer times) rather than random trips. It answers
+policy questions (remote work, staggered school hours, Friday and Ramadan days, bus lines, cordon
+pricing, Loop tunnels) on a city-wide mesoscopic model (Tier A), injects events (crash, rain,
+flood, motorcade, evacuation) into microscopic focus windows (Tier B), and ranks emergency response
+plans that a human approves. Everything runs locally on a laptop with Eclipse SUMO, Python,
+FastAPI and a React + deck.gl viewer, from public data only.
+
+> All results use **synthetic demand, uncalibrated**: no real traffic counts exist for Jeddah in
+> this project yet. Read them as comparisons between scenarios, not forecasts. Simulation and
+> decision support only; it never actuates real infrastructure.
+
+![Jeddah in 24 hours: the weekday baseline as a time-lapse, roads coloured by speed](docs/img/movies/city-24h.gif)
+
+Project page: `site/` (published with GitHub Pages; preview in `docs/img/site.png`). Brief:
+`PROJECT.md`. What is built and measured: `docs/STATUS.md`.
+
+## 60-second quickstart
+
+Needs macOS (Apple silicon) or Linux with [uv](https://docs.astral.sh/uv/), Node 22+ and npm,
+`make` and `curl`.
+
+```bash
+git clone https://github.com/OWNER/TrafficTwin.git && cd TrafficTwin
+make demo CITY=0     # demo window only: setup + demo runs, viewer on http://localhost:5173
+```
+
+Then pick a run in the viewer's Run panel (events, strategist, evacuation, a policy comparison).
+`make demo` without `CITY=0` adds the Jeddah city network (243 MB OpenStreetMap download) and a
+one-hour city run: about 6.5 minutes from a clean clone. Details in [Quickstart](#quickstart-one-command).
+
+## The films
+
+Rendered from the simulation runs (edge bins, vehicle trajectories, event and strategist reports)
+with headless deck.gl and ffmpeg; 1920x1080, 30 fps. The MP4s are not in git: they are attached
+to the GitHub release, or rebuilt with `make movies` (needs the runs). Scenarios are fictional.
+
+| film | what it shows | length | MP4 |
+|---|---|---|---|
+| `city-24h` | Tier A weekday baseline as a 24 h time-lapse, camera from the Corniche to the whole city | 40 s | 85.4 MB |
+| `tahlia-street` | Street level along Tahlia Street in the morning peak, vehicles coloured by speed | 30 s | 21.6 MB |
+| `incident` | A crash on the corridor into Madinah Road, split screen against its baseline | 32 s | 30.1 MB |
+| `events` | Heavy rain, a storm flood with closed flood sites, a motorcade | 36 s | 37.0 MB |
+| `strategist` | An 08:30 ambulance: no strategy, then the top 3 ranked options with reasons | 40 s | 28.1 MB |
+| `evacuation` | Al Hamra waterfront: phased release with contraflow, clearance times | 40 s | 49.0 MB |
+| `policy-lab` | Remote work, staggered schools and a cordon in difference mode | 36 s | 41.2 MB |
+| `loop` | The recommended Loop tunnel C1 against the weekday baseline | 34 s | 69.7 MB |
+| `showreel` | All eight as 20 s excerpts with title cards | 171 s | 186.3 MB |
+
+GIF previews are in [Movies](#movies); how the films are made: `docs/movies.md`.
+
+## Results (headline numbers and their caveats)
+
+Weekday, **10 % population sample**, seed 1, **synthetic demand, uncalibrated**. Policy deltas
+are against the matching baseline on the same seed; run-to-run noise is about ±2 % on delay.
+
+| what | result | source |
+|---|---|---|
+| City network (OSM, 2026-10-14) | 156,126 edges, 62,513 junctions, 20,953 lane-km | `docs/network-qa.md` |
+| 24 h weekday baseline (Tier A, meso) | 389,289 vehicles; about 2 h uncached, peak about 3 GB RAM | `docs/population.md` |
+| 30 % remote work | mean delay -9.3 %, AM-peak delay -9.4 %, VKT -1.6 %, CO2 -6.9 % | `docs/policies.md` |
+| Schools staggered by 60 min | AM-peak delay -9.1 %, top-hour share -19 % (matched control) | `docs/policies.md` |
+| Ramadan weekday | +16 % vehicle trips, AM-peak delay -33 % | `docs/policies.md` |
+| Central cordon charge | mean delay +20 % (re-routing onto perimeter roads) | `docs/policies.md` |
+| Crash on Tahlia (Tier B, micro) | window mean delay +5.7 % | `docs/events.md` |
+| Emergency strategist | top 3 options in 11.6 s; best ambulance route 68 s vs 173 s with no strategy | `docs/strategist.md` |
+| Evacuation, Al Hamra waterfront | T50 / T90 / T100 = 1,264 / 2,399 / 3,004 s | `docs/evacuation.md` |
+| Loop tunnel C1 (17.9 km) | about 63,000 vehicle-hours/day saved (two-seed mean, band 23k-103k), 28,820 passengers/day | `docs/loop.md` |
+
+Caveats that matter:
+- **Synthetic, uncalibrated.** Trip rates, start times and mode shares are documented assumptions
+  (`docs/assumptions.md`); calibration (M8) is built but idle until real counts exist.
+- **10 % sample.** The city runs use a 10 % population with capacity scaling; the full population
+  was never run.
+- **50.5 % teleports in the v1 network.** Half of the baseline's vehicles are teleported out of
+  jams at least once, because most OSM roads lack lane counts and signals are sparse. Network
+  capacity is the top realism gap; absolute delays are not meaningful, deltas are more robust.
+- **Mesoscopic Tier A underestimates congestion** (`docs/fidelity.md`); one noise replicate per
+  policy.
+
+## Hardware
+
+| use | needs | measured on |
+|---|---|---|
+| Demo window (`make demo CITY=0`, tests) | any recent laptop, 4 GB free RAM, 3 GB disk (1.3 GB of it Python and npm dependencies) | Apple M3 Pro, 18 GB |
+| City network + one-hour city smoke (`make demo`) | about 3 GB RAM, 2 GB disk (243 MB extract, 353 MB network) | same |
+| 24 h city baseline at 10 % (`make city`) | about 3 GB peak RAM, about 2 h uncached, 0.3-0.6 GB per run | same |
+| Films (`make movies`) | ffmpeg, Google Chrome, about 1.5 GB browser RAM, 0.3 GB scratch per film | same |
+
+Linux works (CI runs on ubuntu-latest; `docker compose up --build` is verified). Windows is untested.
+
+## Project status
+
+v0.1.0: milestones M0-M9 of `PROJECT.md` are done, plus Loop tunnels and the films; M8
+calibration is built but dormant. Open work: the lane audit from imagery is **blocked** on
+accuracy (60 % held-out precision against an 80 % gate), network capacity (teleports), larger
+samples (25 %, 100 %), mode choice, induced demand, Friday and Ramadan films, and the viewer
+comparison across network variants. Good first issues: [`docs/issues/`](docs/issues/).
+Per-milestone status: `docs/STATUS.md`, `docs/status/`.
+
+## Documentation
+
+| topic | doc |
+|---|---|
+| Brief, scope, milestones | [`PROJECT.md`](PROJECT.md) |
+| Status and measured numbers | [`docs/STATUS.md`](docs/STATUS.md), [`docs/status/`](docs/status/) |
+| Architecture | [`docs/architecture.md`](docs/architecture.md) |
+| 5-minute demo walkthrough | [`docs/demo-script.md`](docs/demo-script.md) |
+| Assumptions register | [`docs/assumptions.md`](docs/assumptions.md) |
+| Data sources and licences | [`docs/data-sources.md`](docs/data-sources.md), [`NOTICE`](NOTICE), [`docs/release-audit.md`](docs/release-audit.md) |
+| Network and its QA | [`docs/network-qa.md`](docs/network-qa.md), [`docs/lane-audit.md`](docs/lane-audit.md) |
+| Population and baseline | [`docs/population.md`](docs/population.md), [`docs/fidelity.md`](docs/fidelity.md) |
+| Policies | [`docs/policies.md`](docs/policies.md) |
+| Events and evacuation | [`docs/events.md`](docs/events.md), [`docs/evacuation.md`](docs/evacuation.md) |
+| Strategist | [`docs/strategist.md`](docs/strategist.md) |
+| Loop tunnels | [`docs/loop.md`](docs/loop.md) |
+| Calibration | [`docs/calibration.md`](docs/calibration.md) |
+| Viewer and API | [`docs/viewer.md`](docs/viewer.md), [`docs/contracts/run-outputs.md`](docs/contracts/run-outputs.md), [`api/README.md`](api/README.md) |
+| Films | [`docs/movies.md`](docs/movies.md) |
+| Contributing, conduct, security | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), [`SECURITY.md`](SECURITY.md) |
+| Changes, citation, releasing | [`CHANGELOG.md`](CHANGELOG.md), [`CITATION.cff`](CITATION.cff), [`docs/release-checklist.md`](docs/release-checklist.md) |
 
 ## Quickstart (one command)
 
@@ -14,7 +136,7 @@ Needs macOS (Apple silicon) or Linux with [uv](https://docs.astral.sh/uv/), Node
 `apt install osmium-tool`).
 
 ```bash
-git clone <this repo> TrafficTwin && cd TrafficTwin
+git clone https://github.com/OWNER/TrafficTwin.git && cd TrafficTwin
 make demo            # opens http://localhost:5173 when ready; Ctrl-C stops the servers
 ```
 
@@ -226,4 +348,4 @@ decision logic, `api/` + `web/` presentation, `docs/` status, assumptions and da
 Code: Apache-2.0 (`LICENSE`). Data derived from OpenStreetMap is (c) OpenStreetMap contributors,
 ODbL; SUMO is EPL-2.0 (dependency, not vendored); GASTAT open data with attribution. See `NOTICE`.
 
-Contributing: `CONTRIBUTING.md`. Changes: `CHANGELOG.md`.
+Contributing: `CONTRIBUTING.md`. Changes: `CHANGELOG.md`. Cite: `CITATION.cff`.

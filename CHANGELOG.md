@@ -4,9 +4,22 @@ All notable changes. Dates are build dates; every result is **synthetic demand, 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow the milestones
 of `PROJECT.md` section 12.
 
-## [0.1.0] - 2026-10-16: first runnable release (M9)
+## [0.1.0] - 2026-10-17: first public release
 
 ### Added
+- **Open-source release readiness (Track G):** CI on ubuntu-latest (ruff, pytest on the demo
+  window, web typecheck and build; actions pinned to commit SHAs; uv and npm caches), a manual
+  `demo-smoke` workflow (`make demo` with the servers probed over HTTP), a GitHub Pages workflow
+  for the static project page `site/` (`scripts/build_site.sh`), `SECURITY.md`,
+  `CODE_OF_CONDUCT.md`, issue and PR templates, `CITATION.cff`, good first issues in
+  `docs/issues/`, `docs/release-audit.md` (licences, data, secrets, history) and
+  `docs/release-checklist.md`. README: what it is, hero GIF, 60-second quickstart, films table,
+  headline results with caveats, hardware, project status, documentation index. NOTICE: basemap
+  (OpenFreeMap / OpenMapTiles), produced works and third-party software.
+- **Loop tunnels (Track D):** corridor siting, tunnel network variants, shuttle and private-EV
+  policies, sweep and recommendation (C1 Al-Salamah - King Abdulaziz University), `docs/loop.md`.
+- **Films (Track E):** eight films and a showreel rendered from the runs with headless deck.gl
+  and ffmpeg (`make movies`), GIF previews and stills in `docs/img/movies/`, `docs/movies.md`.
 - **One-command demo:** `make demo` (setup, Jeddah network, demo runs, API and viewer on
   http://localhost:5173), `./run_app.sh` (serve `runs/`, `--detach`, `TT_API_PORT` /
   `TT_WEB_PORT`), `make city` (network variant, zones and the 10 % weekday 24 h baseline),
@@ -27,8 +40,10 @@ of `PROJECT.md` section 12.
 - `make setup` runs `npm ci` only when `web/package-lock.json` changed.
 
 ### Known issues
-- No demo video (screenshots and `docs/demo-script.md` instead); Loop tunnels (Track D) not merged;
-  open items per goal in `docs/status/final.md`.
+- City baseline teleports 50.5 % of vehicles (network capacity, missing OSM lane counts); the lane
+  audit from imagery is blocked on accuracy. Results are synthetic demand, uncalibrated, 10 % sample.
+- Population hash differs between macOS and Linux (geometry float last bits); viewer compare is
+  limited to runs on the same network; open items in `docs/status/final.md` and `docs/issues/`.
 
 ## [0.0.8] - 2026-10-16: integration of tracks A, B and C
 - Merged M2-M8 into `main`; `sim.runner --scenario evac_*` dispatches to the evacuation runner;

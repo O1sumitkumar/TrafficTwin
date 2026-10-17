@@ -32,6 +32,33 @@ Esri World Imagery
   imagery-derived lane count is applied to the network, and no imagery is redistributed in this
   repository (crops stay local under data/imagery/ and docs/img/lane-audit/, both gitignored).
 
+Basemap tiles in the viewer
+  The web viewer loads its background map at runtime from OpenFreeMap
+  (https://openfreemap.org/, style "dark"): OpenFreeMap (c) OpenMapTiles
+  (https://openmaptiles.org/), data (c) OpenStreetMap contributors (ODbL). No
+  tiles are redistributed; the viewer shows the attribution on the map. The films
+  use an offline basemap built from the Geofabrik extract (OpenStreetMap, ODbL).
+
+Images and films
+  Screenshots, stills and GIF previews under docs/img/ (and films rendered into
+  movies/) depict OpenStreetMap-derived data and are Produced Works under the
+  ODbL: keep the attribution "(c) OpenStreetMap contributors" when reusing them.
+  Title cards are set with fonts installed on the rendering machine; no font
+  files are redistributed in this repository.
+
+Third-party software (dependencies, not vendored)
+  Python (installed by uv from uv.lock): fastapi, starlette, uvicorn, pydantic,
+  typer, numpy, pandas, pyarrow, duckdb, shapely, pyproj, geopandas, pyogrio,
+  matplotlib, pillow, pyyaml, psutil, adhanpy and their dependencies, under
+  permissive licences (MIT, BSD-2/3-Clause, Apache-2.0, ISC, PSF-2.0, MIT-CMU,
+  matplotlib licence) except certifi (MPL-2.0, unmodified) and SUMO's sumolib,
+  traci and eclipse-sumo (EPL-2.0 OR GPL-2.0-or-later).
+  Web viewer (installed by npm from web/package-lock.json): React (MIT),
+  deck.gl (MIT), MapLibre GL JS (BSD-3-Clause), Vite and TypeScript (dev only)
+  and their dependencies, under MIT, ISC, BSD-2/3-Clause, Apache-2.0 and 0BSD
+  licences; jszip is used under its MIT option and pako under MIT AND Zlib.
+  The full per-package inventory is in docs/release-audit.md.
+
 Synthetic demand
   All simulation results are produced from synthetic demand and are
   uncalibrated unless explicitly stated otherwise.

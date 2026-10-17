@@ -23,8 +23,8 @@ import pyarrow.parquet as pq
 import pytest
 from fastapi.testclient import TestClient
 
+from api import settings
 from api.main import create_app
-from sim.common import REPO_ROOT
 from sim.metrics import edgedata_to_parquet
 from sim.runner import run_smoke
 from sim.scenarios.outputs import elements_to_parquet, fcd_to_parquet
@@ -195,7 +195,7 @@ def prod(tmp_path_factory: pytest.TempPathFactory) -> Iterator[dict[str, Any]]:
         runs / "base_demo" / "metrics.json",
         {"label": LABEL, "run_id": "base_demo", "summary": {"vkt": 1000.0, "mean_speed_kmh": 30.0}},
     )
-    feats = json.loads((REPO_ROOT / "data/jeddah/districts.geojson").read_text())["features"]
+    feats = json.loads(settings.districts_path().read_text())["features"]
     names = [f["properties"]["name_en"] for f in feats[:2]]
     pq.write_table(
         pa.table(
