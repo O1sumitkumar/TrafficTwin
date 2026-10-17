@@ -1,0 +1,40 @@
+# Sharm Obhur (Obhur Creek) window for the Track J bridge study, about 29.8 km2 of which about 5.4 km2
+# is creek water (24.4 km2 land), polygon 2026-10-17.
+# purpose: Tier B evaluation of the OBHUR_BRIDGE crossings (B1 mouth, B2 mid-creek, B3 both) against a
+# matched control, weekday AM and PM peaks (docs/obhur-bridge.md).
+# Built as the OSM creek outline (natural=coastline, Geofabrik PBF, inner creek from the mouth neck at
+# 39.0947 E, 21.7098 N to the head at about 39.15 E, 21.775 N; the drainage channel east of 39.152 E is
+# left out) buffered by 1,000 m in UTM 37N, simplified at 250 m, plus the outer mouth channel box
+# 39.080-39.100 E, 21.700-21.716 N; corners rounded to 4 decimals. At the head the polygon is widened
+# to 39.173 E / 21.796 N so the whole King Abdulaziz Rd / Madinah Rd / Prince Khalid bin Abdullah Rd
+# interchange is inside: with the plain buffer its ramps left the window and the two banks fell into
+# separate strongly connected components (the head detour was cut).
+# Why not Track I's `obhur` window: it covers the mouth only (up to 21.739 N), so the detour that
+# cross-creek trips make around the creek head today lies outside it and a bridge could not shorten it
+# inside the window (decision J-D-002). Both banks' arterials are inside: Prince Abdullah Al-Faisal St
+# (north bank), North Corniche Rd and King Abdulaziz Rd (south bank), and the head junctions where
+# King Abdulaziz Rd meets Madinah Rd.
+name: obhur_creek
+title: "Sharm Obhur (Obhur Creek), both banks from the mouth to the head"
+# polygon: list of [lon, lat]
+polygon:
+  - [39.0875, 21.7235]
+  - [39.1010, 21.7329]
+  - [39.1081, 21.7527]
+  - [39.1203, 21.7594]
+  - [39.1255, 21.7720]
+  - [39.1360, 21.7900]
+  - [39.1600, 21.7960]
+  - [39.1720, 21.7880]
+  - [39.1730, 21.7680]
+  - [39.1600, 21.7570]
+  - [39.1477, 21.7560]
+  - [39.1405, 21.7431]
+  - [39.1264, 21.7281]
+  - [39.1201, 21.7141]
+  - [39.1000, 21.7018]
+  - [39.1000, 21.7000]
+  - [39.0800, 21.7000]
+  - [39.0800, 21.7160]
+  - [39.0868, 21.7160]
+out_dir: data/windows/obhur_creek
