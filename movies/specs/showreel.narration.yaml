@@ -18,7 +18,9 @@ lines:
     text: "The policy lab: remote work cuts mean delay by 9.3 percent."
   - film: loop
     text: "And the Loop tunnel: 28,820 passengers a day on corridor C1."
-  - film: obhur-bridge
-    text: "Bridges across Sharm Obhur would shorten 145,370 car trips a day, at window scale still inside the noise."
-  - film: obhur-bridge
+  - film: loop
     text: "Synthetic demand, uncalibrated."
+  # obhur-bridge is not in order.yaml; it joins the reel only once rendered, so the caveat above
+  # stays on loop and this headline carries its own.
+  - film: obhur-bridge
+    text: "Bridges across Sharm Obhur would shorten 145,370 car trips a day; at window scale the effect stays inside the noise. Synthetic demand, uncalibrated."

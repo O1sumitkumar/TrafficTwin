@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-17 (integration pass 5: Track J Obhur Creek bridges merged; city runs deferred to the v2 network)
+Last updated: 2026-10-17 (integration pass 6: Track I movies v2 and Track F network v2 merged; policy re-evaluation on v2)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -27,6 +27,7 @@ All results: **synthetic demand, uncalibrated**.
 | MODECHOICE | Loop mode choice (Track H) | done (Track H), merged in integration pass 4 | C1 central 19,530 (measured) / 31,450 (vendor) riders/day vs 28,820 at fixed alpha 0.3; demo window 24 / 58 reproduced on main; docs/loop-mode-choice.md |
 | OBHUR_BRIDGE | Obhur Creek bridges (Track J) | done (Track J, window scale), merged in integration pass 5; city runs pending (v2 network) | six `network_change` policies validate (all new edges in the main SCC); window AM/PM matched control: no effect beyond the +/- 20 s noise band; detour screen 145,370 trips/day shortened by 6.0 km (free flow); docs/obhur-bridge.md |
 | MOVIES_V2 | Narration, map labels, Obhur evacuation (Track I) | done (Track I), merged in integration pass 6 | 8 films + showreel re-rendered with Kokoro voice-over, subtitles, street/district/landmark labels, compass, scale bar, callouts; audio = video length on all 9; evacuation film moved to Obhur (`evac_obhur`); docs/status/trackI.md |
+| NETWORK_V2 | Tier A network v2 (Track F) | blocked - teleport target (Track F), merged in integration pass 6 as the default profile | v2 `jeddah.v2.net.xml` (ae764558): 10 % weekday baseline teleports 28.3 % vs 50.5 % on m2 (target < 10 % not reached), mean delay 1,172.6 s vs 1,876.5 s; v1 and m2 still build; docs/network-v2.md |
 
 ## Integration — 2026-10-16
 Merged on `main`: trackC (c5b3203), trackB (46fc412), trackA (13ed16e), in that order. Conflicts only
@@ -229,6 +230,41 @@ Open (carried from the tracks):
   mode choice for the Loop); the issue can be narrowed to city-wide mode choice and road-time feedback.
 - Mode-choice city runs (`evaluate --mode-choice ... --ids C1`) not run on main; Track H's offline
   sweep read Track D's baseline (TH-004). Not started here (city runs belong to another agent).
+
+## Integration pass 6 (Track I movies v2, Track F network v2) — 2026-10-17
+Merged `trackI` (`MOVIES_V2: done`; 02c353a) then `trackF` (`NETWORK_V2: blocked` = teleport target
+missed, code complete; 725a8e5), both `--no-ff`.
+
+Conflicts and fixes:
+- trackI: `.gitignore` (both: `_site/` and `!movies/landmarks.yaml`), `NOTICE` (both: basemap/images
+  /dependencies blocks from Track G and the Kokoro-82M block), `CHANGELOG.md` (trackI's Unreleased
+  section above main's 0.1.0 public-release entry), `docs/STATUS.md` (both milestone rows).
+- trackF: `Makefile` `.PHONY` (both `city-net-v1` and `voice-setup`).
+- Fixes after the trackI merge (separate commit): README films table and results row and the Pages
+  site still described the withdrawn Al Hamra evacuation (Track G wrote them after trackI branched);
+  now Obhur (T50/T90/T100 933/1,702/2,115 s; strategist T90 1,402 s) and the v2 film lengths/sizes.
+  The `obhur-bridge` film (trackJ) had no narration, which trackI's test requires: its narration
+  moved from the spec comment to `movies/specs/obhur-bridge.narration.yaml`, `narrate` now also
+  checks numbers against `docs/obhur-bridge.md`, and the showreel narration has an `obhur-bridge`
+  headline (with its own caveat, since unrendered films are skipped). The Al Hamra window is not a
+  scenario any more (trackI deleted `evac_corniche_hamra`); the `tahlia` window stays for the other
+  Tier B events. Films were not re-rendered; trackI's renders stay in `.worktrees/trackI/movies/`.
+
+Gates after each merge: ruff check + format clean; pytest 371 passed, 2 skipped; `npm run build` OK.
+
+Network v2 on main: `sim/population/config/{baseline,zones}.yaml`, `sim/config/runner.yaml` and the
+Makefile now point at `data/jeddah/jeddah.v2.net.xml` (hash ae7645589de321f9, shared symlink).
+Untracked data on main: the m2-based zones moved to `data/population/zones-m2/`; the v2 zones
+(d949c812), population dir `pop-0609d42c29-s1-f0.1` (hash 346893f2) and route cache `373481fcdd235924`
+copied from the trackF worktree (123 MB). Runs linked, not copied (1.4 GB):
+`runs/baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1`, `runs/smoke-A-s1-ae764558-ab76d081` and
+the ten `runs/probes/*` -> `.worktrees/trackF/runs/`. `python -m scripts.pass6_v2 check` resolves the v2
+baseline from main (network ae764558, population 346893f2), so `sim.policies.run` would not start a new
+assignment.
+
+v2 policy runs go to `runs/v2/` (`scripts/pass6_v2.py`), because `run_policy` deletes an existing
+`runs/<policy id>` and the v1/m2 runs (e.g. `runs/remote_work_30`) must stay; `runs/v2/<baseline id>`
+links to the same trackF run. Run log: `logs/orch/pass6-runs.log`.
 
 ## Integration pass 5 (Track J Obhur Creek bridges) — 2026-10-17
 Merged `trackJ` (`OBHUR_BRIDGE: done`, verifier PASS after three fixes on the branch; head 4c5d387) with
