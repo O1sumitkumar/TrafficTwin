@@ -9,6 +9,11 @@
 - trips-<src>.bin vehicle paths for TripsLayer (starts, lon/lat offsets, times, speeds, class)
 - overlays.json   events, closures, evacuation zone/exits/phases/contraflow, strategist routes
 - buildings.json, water.json (copied from the basemap cache)
+- labels.json     street, district and landmark labels for the map area (scripts/movies/labels.py)
+
+The manifest also carries `fictional`, `annotations` (labels, compass, scale bar, subtitles) and
+`narration` (the voice-over lines with their film times, for the subtitles); overlay items carry an
+English `callout` where the renderer draws a leader-line label (MOVIES_V2).
 
 The browser only interpolates between what is stored here, so the same spec and the same runs
 give the same frames. Sources are resolved through the API's run registry (TT_RUNS_DIR), read
@@ -34,6 +39,7 @@ import pyarrow.parquet as pq
 
 from scripts.movies import basemap as bm
 from scripts.movies.camera import FramePlan, ease, plan_frames
+from scripts.movies.labels import build_labels
 from scripts.movies.spec import Film, Shot, load_settings
 from scripts.movies.sun import lighting, sun_for_film
 from sim.common import REPO_ROOT, SYNTHETIC_LABEL
@@ -581,6 +587,64 @@ def tripinfo_series(run: Any, kind: str, times: list[float]) -> list[float]:
 # ----------------------------------------------------------------------------- overlays
 
 
+def _is_edge_id(name: str) -> bool:
+    return not name or bool(re.search(r"[#_]|^-?\d+$|Added", name))
+
+
+def street_en(name: str | None, names_en: dict[str, str]) -> str:
+    """English street name for a network (Arabic OSM) name, '' when unnamed."""
+    if not name or _is_edge_id(name):
+        return ""
+    return names_en.get(name, name)
+
+
+def edges_street(net: FilmNet, edges: list[str], names_en: dict[str, str]) -> str:
+    """The most common English street name over the edges ('' when none is named)."""
+    counts: dict[str, int] = {}
+    for e in edges:
+        k = net.position.get(e)
+        if k is not None and (nm := street_en(net.names[k], names_en)):
+            counts[nm] = counts.get(nm, 0) + 1
+    return max(sorted(counts), key=lambda n: counts[n]) if counts else ""
+
+
+CALLOUT_EVENT = {"accident": "Crash", "flood": "Flooding", "motorcade": "Motorcade"}
+
+
+def add_callouts(
+    o: dict[str, Any], src: SourceData, net: FilmNet, names_en: dict[str, str]
+) -> None:
+    """English callout text on overlay items the renderer labels with a leader line."""
+
+    def on(text: str, street: str) -> str:
+        return f"{text} on {street}" if street else text
+
+    rep = src.report or {}
+    edges_of = {ev["id"]: ev.get("edges") or [] for ev in rep.get("events") or []}
+    edges_of.update({c["id"]: c.get("edges") or [] for c in rep.get("closures") or []})
+    for ev in o["events"]:
+        kind = CALLOUT_EVENT.get(ev["type"])
+        if kind is None:
+            continue
+        if src.kind == "strategist":
+            ev["callout"] = "Crash: one lane closed"
+        else:
+            ev["callout"] = on(kind, edges_street(net, edges_of.get(ev["id"], []), names_en))
+    for c in o["closures"]:
+        street = edges_street(net, edges_of.get(c["id"], []), names_en)
+        flooded = "flood" in c["id"]
+        c["callout"] = "Flooded sites closed" if flooded else on("Road closed", street)
+    for k, ex in enumerate(o["exits"], start=1):
+        eid = str(ex["id"]).removeprefix("exit:")
+        street = edges_street(net, [eid], names_en)
+        ex["callout"] = f"Exit {k}: {street}" if street else f"Exit {k}"
+    for c in o["contraflow"]:
+        name = street_en(c.get("name"), names_en)
+        c["name_en"] = name
+        num = str(c.get("id") or "").removeprefix("cf")
+        c["callout"] = f"Contraflow: {name}" if name else f"Contraflow {num}"
+
+
 def build_overlays(src: SourceData, net: FilmNet) -> dict[str, Any]:
     out: dict[str, Any] = {
         "events": [],
@@ -886,9 +950,29 @@ def sha_file(path: Path) -> str:
     return h.hexdigest()[:16]
 
 
+def film_labels(
+    film: Film, plans: list[FramePlan], bbox: tuple[float, ...], settings: dict[str, Any]
+) -> dict[str, Any]:
+    """Labels for the film's map area, thinned to the street classes its cameras get close to."""
+    data = json.loads(build_labels(tuple(bbox)).read_text())  # type: ignore[arg-type]
+    max_zoom = max(p.camera.zoom for p in plans)
+    gate = settings["labels"]["street_min_zoom"]
+    data["streets"] = [s for s in data["streets"] if gate[s["cls"]] <= max_zoom + 0.3]
+    data["landmarks"] = [lm for lm in data["landmarks"] if lm["min_zoom"] <= max_zoom]
+    return data
+
+
 def build_bundle(
-    film: Film, fps: int, width: int, height: int, letterbox: bool, out: Path | None = None
+    film: Film,
+    fps: int,
+    width: int,
+    height: int,
+    letterbox: bool,
+    out: Path | None = None,
+    narration: list[dict[str, Any]] | None = None,
+    subtitles: bool = True,
 ) -> Path:
+    """Write the bundle; `narration` = voice-over lines [{text, start_s, end_s}] (film seconds)."""
     settings = load_settings()
     out = out or movies_runs_dir() / film.film / "bundle"
     shutil.rmtree(out, ignore_errors=True)
@@ -947,8 +1031,17 @@ def build_bundle(
                 continue
             trips = read_fcd(src.run, t0 - trail, t1, step)
         files["trips"][sid] = write_trips(trips, origin, out / f"trips-{sid}.bin")
+    # labels (street names in English where OSM has them, Arabic second line)
+    names_en: dict[str, str] = {}
+    if film.annotations.labels:
+        labels = film_labels(film, plans, bbox, settings)
+        text = json.dumps(labels, ensure_ascii=False, separators=(",", ":"))
+        (out / "labels.json").write_text(text)
+        names_en = {s["ar"]: s["en"] for s in labels["streets"] if s.get("ar")}
     # overlays
     overlays = {sid: build_overlays(src, net) for sid, src in sorted(sources.items())}
+    for sid, o in overlays.items():
+        add_callouts(o, sources[sid], net, names_en)
     (out / "overlays.json").write_text(json.dumps(overlays, separators=(",", ":")))
     # basemap
     if film.basemap.buildings or film.basemap.water:
@@ -979,6 +1072,14 @@ def build_bundle(
         "title": film.title,
         "subtitle": film.subtitle,
         "tier": film.tier,
+        "fictional": film.fictional,
+        "annotations": {
+            "labels": "labels.json" if film.annotations.labels else None,
+            "compass": film.annotations.compass,
+            "scale_bar": film.annotations.scale_bar,
+            "subtitles": bool(narration) and subtitles,
+        },
+        "narration": narration or [],
         "width": width,
         "height": height,
         "fps": fps,

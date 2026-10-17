@@ -13,11 +13,11 @@ PROJECT.md 9.7 (evacuation event), 9.8 (clearance metrics), 9.9 (evacuation stra
 ```bash
 # demo command: reference (scenario without the evacuation) + the evacuation as written, in parallel;
 # writes runs/<id>-<window>-s<seed>-<hash>/evacuation_report.{json,md} (+ M5 FCD Parquet), copied to runs/<id>/
-uv run python -m sim.events.evacuation run --scenario evac_corniche_hamra --seed 1   # Al Hamra (tahlia window)
+uv run python -m sim.events.evacuation run --scenario evac_obhur --seed 1          # Obhur Creek mouth (obhur window)
 uv run python -m sim.events.evacuation run --scenario evac_flood_balad --seed 1      # Al Balad flood day
 uv run python -m sim.events.evacuation run --scenario evac_demo --seed 1 --no-fcd    # demo window, ~15 s
 # evacuation strategies: candidates, parallel what-ifs, ranking, explanations, decision log
-uv run python -m strategist.evacuation run --scenario evac_corniche_hamra --seed 1 [--workers 11] [--only a,b]
+uv run python -m strategist.evacuation run --scenario evac_obhur --seed 1 [--workers 11] [--only a,b]
 uv run python -m strategist.evacuation approve <recommendation_id> [--option 1] [--actor name] [--reject]
 uv run python -m strategist.log verify            # same hash-chained log as M6
 # helpers
@@ -179,45 +179,50 @@ demand, uncalibrated; fictional scenarios.** Clearance counts vehicles leaving t
 teleports (300 s, A-sim-002) move stuck vehicles forward and so flatter clearance in congested
 runs, which is why they are listed.
 
-### Al Hamra Corniche crowd (tahlia window)
+### Obhur Creek mouth (obhur window)
 
-`evac_corniche_hamra`: order at 900 s, 2,000 vehicles (~5,000 persons) from 377 zone edges (2.063 km2), release 1200 s, run end 7200 s (horizon 6300 s after the order). Exits: `1510709655#1` الاندلس الفرعي 4 lanes; `133875683#0` طريق المدينة المنورة 3 lanes; `133875680#13.s2` طريق المدينة المنورة 3 lanes; `406629917#6-AddedOffRampEdge` طريق فلسطين 3 lanes; `43232435#12` شارع غرناطة 3 lanes; `73324168#13.s1` طريق الأمير سلطان 3 lanes.
-Contraflow corridors: cf1 towards `1510709655#1` (82161453#0-AddedOffRampEdge, 857 m, 17 edges, 1.713 lane-km); cf2 towards `73324168#13.s1` (شارع الأمير محمد بن عبدالعزيز, 1775 m, 29 edges, 3.55 lane-km); cf3 towards `133875680#13.s2` (شارع الحمرا, 1996 m, 28 edges, 1.996 lane-km). Edited net `data/windows/tahlia/tahlia.evac-a7569a7539.net.xml`.
+The public evacuation demo is at the mouth of Obhur Creek (Sharm Obhur), on the south bank across
+the water from the Jeddah Tower site (decision TI-002: the earlier Al Hamra demo was withdrawn from
+the public set). Window `obhur` (`sim/network/windows/obhur.yaml`): 2,339 edges, 1,014 junctions,
+no signals, cut from the city net with the same Tier A route set as the other windows (2,757
+vehicles; flow check PASS, GEH < 5 on 100 % of 91 edges, total ratio 1.000).
 
-**Demo command** (`python -m sim.events.evacuation run --scenario evac_corniche_hamra --seed 1`, run `evac_corniche_hamra-tahlia-s1-162d21cb`, wall 307.55 s):
+`evac_obhur`: order at 900 s, 1,500 vehicles (~3,750 persons) from 285 zone edges (1.42 km2), release 1200 s, run end 7200 s (horizon 6300 s after the order). Exits: `31134844#4` طريق الملك عبد العزيز (King Abdulaziz Road, south) 4 lanes; `43055955#5` طريق الملك عبد العزيز 3 lanes; `43065390#15.s3` طريق الكورنيش الشمالي (North Corniche) 3 lanes; `444402913#6` (unnamed ramp towards Madinah Road) 3 lanes; `240251260#0` طريق الكورنيش الشمالي 3 lanes; `43097485#13` طريق المدينة المنورة (Madinah Road) 2 lanes.
+Contraflow corridors: cf1 towards `31134844#4` (طريق الملك عبد العزيز, 1497 m, 4.49 lane-km); cf2 towards `240251260#0` (طريق الكورنيش الشمالي, 650 m, 0.65 lane-km); cf3 towards `444402913#6` (444402913#0, 1183 m, 3.55 lane-km). Edited net `data/windows/obhur/obhur.evac-c9c151686f.net.xml`.
+
+**Demo command** (`python -m sim.events.evacuation run --scenario evac_obhur --seed 1`, run `evac_obhur-obhur-s1-ecff823b`, wall 118.31 s):
 
 | run | T50 | T90 | T100 | out | teleports (evacuees) | background delay veh-h |
 |---|---|---|---|---|---|---|
-| reference (no evacuation) | - | - | - | - | 38 | 537.4 |
-| evacuation as written | 1,264 | 2,399 | 3,004 | 2000/2000 | 214 (125) | 627.5 (+90.1) |
+| reference (no evacuation) | - | - | - | - | 0 | 13.464 |
+| evacuation as written | 933 (15.6 min) | 1,702 (28.4 min) | 2,115 (35 min 15 s) | 1500/1500 | 11 (11) | 16.548 (+3.08) |
 
 Bottleneck edges (evacuation as written):
 
 | edge | name | type | lanes | halted veh-h | max halted | planned evacuee share |
 |---|---|---|---|---|---|---|
-| `-1486721509#7.s5` | شارع حائل | highway.primary | 2 | 16.16 | 53 | 0.216 |
-| `-1486721509#7.s4` | شارع حائل | highway.primary | 2 | 15.11 | 42 | 0.216 |
-| `-1486721509#7.s1` | شارع حائل | highway.primary | 2 | 13.8 | 33 | 0.213 |
-| `-1486721509#7` | شارع حائل | highway.primary | 2 | 8.44 | 22 | 0.213 |
-| `-1486721509#9` | شارع حائل | highway.primary | 2 | 8.06 | 26 | 0.183 |
+| `140335803#7` | طريق الملك عبد العزيز | highway.secondary | 1 | 7.06 | 35 | 0.401 |
+| `140335803#10` | طريق الملك عبد العزيز | highway.secondary | 1 | 6.73 | 27 | 0.401 |
+| `140335806` | (unnamed) | highway.secondary_link | 1 | 5.87 | 18 | 0.401 |
+| `-157288780#0` | (unnamed) | highway.residential | 1 | 4.05 | 15 | 0.093 |
+| `157288736#1` | (unnamed) | highway.residential | 1 | 4.04 | 13 | 0.093 |
 
-**Strategies** (`python -m strategist.evacuation run --scenario evac_corniche_hamra --seed 1`, recommendation `rec-20261016T053046Z-750c78f4`, 11 what-ifs + 1 noise replicate in 631 s on 11 workers, fingerprint `cac0abd33e53160d`). Noise band (replicate, SUMO seed 1001): T90 +/- 3 s, T100 +/- 19 s, background delay +/- 8.1 veh-h.
+**Strategies** (`python -m strategist.evacuation run --scenario evac_obhur --seed 1 --workers 6`, recommendation `rec-20261017T000240Z-9a7e8298`, 8 what-ifs + 1 noise replicate in 216 s on 6 workers, fingerprint `353c178d00b0ed14`; the window has no signals, so the signal-plan candidates resolve to equivalent plans and are dropped). Noise band (replicate, SUMO seed 1001): T90 +/- 17 s, T100 +/- 8 s, background delay +/- 0.9 veh-h.
 
-| rank | option | T50 | T90 | T100 | out | bg delay vs no strategy (veh-h) | lane-km reversed | signals | score | class |
-|---|---|---|---|---|---|---|---|---|---|---|
-| - | `no_strategy`: no strategy (scenario as written) | 1,264 | 2,399 | 3,004 | 2000/2000 | +0.0 | 0.00 | 0 | 2,702 | none |
-| 1 | `near_first`: near-first phased release | 1,288 | 2,417 | 3,041 | 2000/2000 | -7.2 | 0.00 | 0 | 2,849 | approval_required |
-| 2 | `contraflow`: contraflow cf1 (82161453#0-AddedOffRampEdge) + cf2 (شارع الأمير محمد بن عبدالعزيز) | 1,300 | 2,309 | 2,746 | 2000/2000 | +25.3 | 5.26 | 0 | 2,857 | approval_required |
-| 3 | `far_first`: far-first phased release | 1,439 | 2,548 | 3,189 | 2000/2000 | +47.8 | 0.00 | 0 | 3,385 | approval_required |
-| 4 | `signals`: evacuation signal plan | 1,267 | 2,458 | 3,061 | 2000/2000 | +75.0 | 0.00 | 1 | 3,430 | approval_required |
-| 5 | `near_first_full`: near-first phased release, balanced exit guidance, evacuation signal plan, contraflow cf1 (82161453#0-AddedOffRampEdge) + cf2 (شارع الأمير محمد بن عبدالعزيز) + cf3 (شارع الحمرا) | 1,365 | 2,934 | 3,673 | 2000/2000 | -30.4 | 7.26 | 3 | 3,647 | approval_required |
-| 6 | `balanced_cf`: balanced exit guidance, contraflow cf1 (82161453#0-AddedOffRampEdge) + cf2 (شارع الأمير محمد بن عبدالعزيز) + cf3 (شارع الحمرا) | 1,478 | 3,167 | 3,852 | 2000/2000 | -13.2 | 7.26 | 0 | 3,727 | approval_required |
-| 7 | `balanced`: balanced exit guidance | 1,324 | 3,346 | 3,966 | 2000/2000 | +28.7 | 0.00 | 0 | 3,861 | approval_required |
-| 8 | `balanced_cf_signals`: balanced exit guidance, evacuation signal plan, contraflow cf1 (82161453#0-AddedOffRampEdge) + cf2 (شارع الأمير محمد بن عبدالعزيز) + cf3 (شارع الحمرا) | 1,427 | 3,331 | 4,073 | 2000/2000 | -12.2 | 7.26 | 3 | 3,926 | approval_required |
-| 9 | `balanced_signals`: balanced exit guidance, evacuation signal plan | 1,311 | 3,316 | 4,012 | 2000/2000 | +52.8 | 0.00 | 3 | 4,117 | approval_required |
-| 10 | `far_first_full`: far-first phased release, balanced exit guidance, evacuation signal plan, contraflow cf1 (82161453#0-AddedOffRampEdge) + cf2 (شارع الأمير محمد بن عبدالعزيز) + cf3 (شارع الحمرا) | 1,659 | 3,654 | 4,346 | 2000/2000 | -18.9 | 7.26 | 3 | 4,344 | approval_required |
+| rank | option | T50 | T90 | T100 | out | bg delay vs no strategy (veh-h) | lane-km reversed | score | class |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | `balanced`: balanced exit guidance | 830 | 1,402 (23.4 min) | 1,789 | 1500/1500 | -1.61 | 0.00 | 1,596 | auto_eligible |
+| 2 | `balanced_cf`: balanced exit guidance, contraflow cf1 + cf2 + cf3 | 824 | 1,403 | 1,814 | 1500/1500 | -0.98 | 8.69 | 1,869 | approval_required |
+| - | `no_strategy`: no strategy (scenario as written) | 933 | 1,702 | 2,115 | 1500/1500 | +0.00 | 0.00 | 1,908 | none |
+| 3 | `far_first_full`: far-first phased release, balanced exit guidance, contraflow cf1 + cf2 + cf3 | 815 | 1,349 (22.5 min) | 1,746 | 1500/1500 | -0.54 | 8.69 | 1,928 | approval_required |
+| 4 | `near_first_full`: near-first phased release, balanced exit guidance, contraflow cf1 + cf2 + cf3 | 842 | 1,418 | 1,787 | 1500/1500 | -0.14 | 8.69 | 1,983 | approval_required |
+| 5 | `far_first`: far-first phased release | 1,004 | 1,670 | 2,077 | 1500/1500 | -0.38 | 0.00 | 1,994 | approval_required |
+| 6 | `near_first`: near-first phased release | 923 | 1,784 | 2,226 | 1500/1500 | -0.21 | 0.00 | 2,125 | approval_required |
+| 7 | `contraflow`: contraflow cf1 + cf2 + cf3 | 935 | 1,705 (~) | 2,146 | 1500/1500 | +0.81 | 8.69 | 2,186 | approval_required |
 
-Recommended: `no_strategy`; fastest clearance: `contraflow`.
+Recommended: `balanced`; fastest clearance: `far_first_full`.
+
+**Film run** (`uv run python -m sim.events.evacuation run --scenario movies/specs/scenarios/evac_obhur_film.yaml --seed 1`: the `far_first_full` option written into a copy of the scenario, same crowd, zone, timing and seed; run `evac_obhur_film-obhur-s1-83e89905`, wall 66.8 s): T50 815 s, T90 1,349 s, T100 1,746 s, 1500/1500 out, contraflow on cf1-cf3 at 1,500 s, background +2.55 veh-h; identical clearance to the strategist's what-if of the same option.
 
 ### Al Balad flood day (al_balad window)
 
@@ -262,16 +267,17 @@ Recommended: `balanced_signals`; fastest clearance: `balanced_signals`.
 
 ### Reading the results
 
-- **Al Hamra.** No strategy clears everyone in 50 min (T100 3,004 s); the bottleneck is Hail
-  Street (`-1486721509#7*`) carrying about a fifth of the planned evacuee routes. Under the
-  registered weights **no option beats the evacuation as written**, and the strategist says so
-  (recommendation: no strategy). Contraflow on cf1 + cf2 clears fastest (T90 -90 s, T100 -258 s,
-  well outside the noise band of +/- 3 s / +/- 19 s) but adds 25.3 veh-h of background delay (17.2
-  beyond the noise band, 171 s of score) and reverses 5.3 lane-km (158 s); it would rank first if
-  a background vehicle-hour were valued below about 0.9 s of clearance, or a reversed lane-km below
-  about 0.5 s, so the ranking here is a value judgement carried by A-evac-029/030, not a modelling
-  result. Balanced exit guidance is ~15 min slower: it sends evacuees past the bottleneck to
-  farther exits. Phased release does not help (near-first +18 s T90, far-first +149 s).
+- **Obhur.** No strategy clears everyone in about 35 min (T100 2,115 s); 40 % of the planned evacuee
+  routes run south over the single-lane stretch of King Abdulaziz Road (`140335803#*`) and its
+  link (`140335806`), the bottleneck. **Balanced exit guidance** sends part of the crowd to the
+  North Corniche and the ramp towards Madinah Road instead and clears 90 % 5.0 min sooner (T90
+  1,402 s, well outside the noise band of +/- 17 s); it is reversible, auto-eligible and the
+  recommendation. Contraflow on top of it does not help (T90 1,403 s) and costs 8.69 reversed
+  lane-km; contraflow alone is within noise of no strategy (~). A far-first phased release added
+  to balanced guidance and contraflow is the fastest plan (T90 1,349 s, T100 1,746 s) but its
+  staged orders and contraflow cost more score (381 s) than the 353 s of T90 it saves, so it ranks
+  third and needs approval. The `evacuation` film shows that fastest plan (phasing and contraflow
+  are visible) and says on screen that the recommendation is balanced guidance alone.
 - **Al Balad, flood day.** With the storm (speed x 0.85, longer headways) and the FS-002 underpass
   closed, no strategy gets only 1,755 of 2,000 out by the run end (95 min after the order; T90
   not reached, 503 evacuee jam teleports). **Balanced exit guidance + the evacuation signal plan
@@ -285,7 +291,7 @@ Recommended: `balanced_signals`; fastest clearance: `balanced_signals`.
   mechanism (diverted inbound traffic or evacuees re-planning onto it) was not analysed further.
 - The demo command and the strategist's no-strategy what-if are the same simulation: identical
   clearance on both windows (and checked by a test on the demo window). Two strategist runs of
-  each scenario (three for each after later reporting-only changes) gave the same fingerprint (Al Hamra `cac0abd33e53160d`, Al Balad
+  each scenario (three for each after later reporting-only changes) gave the same fingerprint (Obhur `353c178d00b0ed14`, two runs, Al Balad
   `ff134cd308b9f3e9`).
 
 ## Assumptions (M7)
@@ -330,7 +336,7 @@ register (decision B-D-031).
 | A-evac-032 | strategy.w_order | 60.0 | s per extra staged order | 0-300 | Each extra staged evacuation order (phased release) costs 1 min of clearance equivalent (communication, compliance risk) | assumed | sim/scenarios/evac_settings.yaml |
 | A-evac-033 | strategy.auto_max_added_veh_h | 5.0 | veh-h beyond noise | 1-20 | A signal plan or exit guidance is auto-eligible only while the option adds at most 5 background vehicle-hours versus no strategy; contraflow and staged evacuation orders always need approval (A-strat-020) | assumed | sim/scenarios/evac_settings.yaml |
 | A-evac-034 | event.evacuee_types | passenger_share_of_mix | vType shares |  | Evacuees are private cars: each draws its vType (seeded) from the passenger-class members of the scenario's driver mix, renormalised (normal / slow / aggressive); trucks and buses are background only | assumed | sim/scenarios/evac_settings.yaml |
-| A-evac-035 | strategy.noise_replicates | 1 | replicate runs | 1-5 | Run-to-run noise is estimated from one replicate of the no-strategy run with another SUMO seed (same evacuees and departure times): the absolute T90 / T100 / background-delay differences form the noise band. Background delay counts as a penalty, and towards the auto-eligibility limit, only beyond that band; T90 differences inside it are flagged. One replicate is a crude estimate (measured band: Al Hamra +/-8.1 veh-h, Al Balad +/-13.3 veh-h); where neither run reaches 90 % the T90 band is not measurable (n/a) | assumed | sim/scenarios/evac_settings.yaml |
+| A-evac-035 | strategy.noise_replicates | 1 | replicate runs | 1-5 | Run-to-run noise is estimated from one replicate of the no-strategy run with another SUMO seed (same evacuees and departure times): the absolute T90 / T100 / background-delay differences form the noise band. Background delay counts as a penalty, and towards the auto-eligibility limit, only beyond that band; T90 differences inside it are flagged. One replicate is a crude estimate (measured band: Obhur +/-0.9 veh-h, Al Balad +/-13.3 veh-h); where neither run reaches 90 % the T90 band is not measurable (n/a) | assumed | sim/scenarios/evac_settings.yaml |
 | A-evac-036 | contraflow.antiparallel_deg | 135 | deg | 120-170 | An edge is the inbound carriageway of a corridor edge only if their headings differ by more than 135 deg (same threshold as the M5 rubbernecking search, sim/events/netindex.py); excludes cross streets | assumed | sim/scenarios/evac_settings.yaml |
 | A-evac-037 | contraflow.partner_search_m | 60 | m | 30-100 | The inbound carriageway is searched within 60 m of the corridor edge's start, middle and end; covers Jeddah divided arterials with wide medians (not measured) | assumed | sim/scenarios/evac_settings.yaml |
 | A-evac-038 | contraflow.partner_coverage | 0.5 | share of corridor length | 0.3-0.9 | A corridor is reversible only if an inbound carriageway was found beside at least half of its length (short gaps: split edges, junction areas) | assumed | sim/scenarios/evac_settings.yaml |

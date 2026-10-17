@@ -13,6 +13,7 @@ logs/
 .env
 .env.*
 .venv/
+.venv-tts/
 __pycache__/
 *.pyc
 node_modules/
@@ -32,3 +33,4 @@ movies/*
 !movies/specs/
 # GitHub Pages build output (scripts/build_site.sh)
 _site/
+!movies/landmarks.yaml

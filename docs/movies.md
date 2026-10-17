@@ -3,12 +3,18 @@
 Track E turns existing runs into short films, one per simulation mode, plus a showreel. Every
 frame is drawn from run outputs (edge bins, FCD trajectories, event and evacuation reports, the
 strategist's recommendation); nothing is animated by hand. Every film carries the footer
-**synthetic demand, uncalibrated**.
+**synthetic demand, uncalibrated** (plus **fictional demo parameters** on the scenario films).
+Track I (MOVIES_V2) added an offline voice-over with subtitles, street, district and landmark
+labels, a compass, a scale bar and event callouts, and moved the evacuation demo to Obhur Creek.
 
 ```bash
-make movies                          # every film in movies/specs/ + movies/showreel.mp4
-make movie FILM=tahlia-street        # one film -> movies/tahlia-street.mp4 (+ .poster.png, .gif, .json)
+make voice-setup                     # once: offline TTS venv (.venv-tts, Kokoro-82M; downloads the weights)
+make movies                          # every film in movies/specs/ + movies/showreel.mp4, with voice-over
+make movie FILM=tahlia-street        # one film -> movies/tahlia-street.mp4 (+ .srt, .poster.png, .gif, .json)
 make movie FILM=city-24h MOVIE_FLAGS="--4k --fps 60 --letterbox"
+make movies MOVIE_FLAGS=--no-voice   # silent films with the specs' own timing (no TTS needed)
+uv run python -m scripts.movies.narrate validate     # check every narration script
+uv run python -m scripts.movies.narrate speak evacuation   # speak one film's lines, print the timing
 uv run python -m scripts.movies.preview strategist   # http://127.0.0.1:8765/?cinema=strategist&play=1
 uv run python -m scripts.movies.spec validate        # check every spec
 ```
@@ -22,15 +28,15 @@ frames are cached in `runs/movies/` (`TT_MOVIES_DIR` overrides; the render smoke
 
 | film | what it shows | runs (all seed 1) | length |
 |---|---|---|---|
-| `city-24h` | Tier A weekday baseline as a 24 h time-lapse (02:00 to 02:00): edge speed/limit per 5-minute bin, camera pulls back from the Corniche to the whole city, sun rises and sets over Jeddah | `baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` (10 % sample, meso) | 40 s |
-| `tahlia-street` | Street level (pitch about 60 deg) dolly east along Tahlia Street, then north into the queue on the corridor to Madinah Road; trails, vehicles coloured by speed | `accident_tahlia-tahlia-s1-257eae8d~baseline` (window baseline) | 30 s |
-| `incident` | Split screen, window baseline against the crash run (both lanes of the northbound corridor closed 08:10 to 08:30), then the speed difference map; KPIs from the scenario report | `accident_tahlia-tahlia-s1-257eae8d` and its `~baseline` | 32 s |
-| `events` | One cut each: heavy rain (difference against the dry baseline), storm flood with the closed flood-site edges, a six-vehicle motorcade on Tahlia Street | `rain_tahlia-…-67ab9112` (+ `~baseline`), `flood_tahlia-…-48d26de0`, `motorcade_tahlia-…-060b80d4` | 36 s |
-| `strategist` | The 08:30 ambulance situation: no strategy, then the top 3 ranked options one after another, with the strategist's own reasons and ETAs on the HUD | `runs/strategist/rec-20261016T114454Z-22d13986` (emergency_tahlia_0830); cars around the ambulance from the window baseline | 40 s |
-| `evacuation` | Al Hamra waterfront evacuation with a near-first phased release (three bands lighting up), balanced exits, evacuation signal plan and contraflow on three corridors; clearance times from the run | `evac_corniche_hamra_film-tahlia-s1-99ab2558` (run for the film, see below) | 40 s |
-| `policy-lab` | Difference mode (blue = faster, red = slower): 30 % remote work against the baseline, staggered schools and the central cordon against their matched controls; KPI values from docs/policies.md | `remote_work_30`, `staggered_schools_60` (+ `--control`), `cordon_center` (+ `--control`), the weekday baseline | 36 s |
-| `loop` | The recommended Loop tunnel from docs/loop.md: corridor C1 Al-Salamah - King Abdulaziz University (17.9 km, 8 stations, cyan line and stations) over the morning-peak baseline, then difference mode (Loop minus baseline) in the morning peak along the corridor and the evening peak across the city; KPIs from the docs/loop.md recommendation table | `loop_recommended` (shuttle, alpha 0.3, measured capacity; run for the film, see below) against `baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` | 34 s |
-| `showreel` | All eight films in order, each after a title card, cut to the spec's `showreel: [start, end]` excerpt (20 s each), joined with 0.6 s crossfades | the films above | 2 min 51 s |
+| `city-24h` | Tier A weekday baseline as a 24 h time-lapse (02:00 to 02:00): edge speed/limit per 5-minute bin, camera pulls back from the Corniche to the whole city, sun rises and sets over Jeddah | `baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` (10 % sample, meso) | 40 s (narrated) |
+| `tahlia-street` | Street level (pitch about 60 deg) dolly east along Tahlia Street, then north into the queue on the corridor to Madinah Road; trails, vehicles coloured by speed | `accident_tahlia-tahlia-s1-257eae8d~baseline` (window baseline) | 30 s (narrated) |
+| `incident` | Split screen, window baseline against the crash run (both lanes of the northbound corridor closed 08:10 to 08:30), then the speed difference map; KPIs from the scenario report | `accident_tahlia-tahlia-s1-257eae8d` and its `~baseline` | 41.53 s (narrated) |
+| `events` | One cut each: heavy rain (difference against the dry baseline), storm flood with the closed flood-site edges, a six-vehicle motorcade on Tahlia Street | `rain_tahlia-…-67ab9112` (+ `~baseline`), `flood_tahlia-…-48d26de0`, `motorcade_tahlia-…-060b80d4` | 40.13 s (narrated) |
+| `strategist` | The 08:30 ambulance situation: no strategy, then the top 3 ranked options one after another, with the strategist's own reasons and ETAs on the HUD | `runs/strategist/rec-20261016T114454Z-22d13986` (emergency_tahlia_0830); cars around the ambulance from the window baseline | 47.10 s (narrated) |
+| `evacuation` | Obhur Creek mouth evacuation (fictional), across the water from the Jeddah Tower site: far-first phased release (three bands lighting up), balanced exits and contraflow on three corridors; clearance times from the run; the HUD and voice say the strategist recommends balanced exits alone | `evac_obhur_film-obhur-s1-83e89905` (run for the film, see below) | 52.37 s (narrated) |
+| `policy-lab` | Difference mode (blue = faster, red = slower): 30 % remote work against the baseline, staggered schools and the central cordon against their matched controls; KPI values from docs/policies.md | `remote_work_30`, `staggered_schools_60` (+ `--control`), `cordon_center` (+ `--control`), the weekday baseline | 45 s (narrated) |
+| `loop` | The recommended Loop tunnel from docs/loop.md: corridor C1 Al-Salamah - King Abdulaziz University (17.9 km, 8 stations, cyan line and stations) over the morning-peak baseline, then difference mode (Loop minus baseline) in the morning peak along the corridor and the evening peak across the city; KPIs from the docs/loop.md recommendation table | `loop_recommended` (shuttle, alpha 0.3, measured capacity; run for the film, see below) against `baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` | 45.67 s (narrated) |
+| `showreel` | All eight films in order, each after a title card, cut to the spec's `showreel: [start, end]` excerpt (20 s each), joined with 0.6 s crossfades | the films above | 2 min 51 s, one spoken headline per film |
 
 Stills (poster frames, from the middle of each film):
 
@@ -51,13 +57,16 @@ Stills (poster frames, from the middle of each film):
   trajectory. The film moves the ambulance along each edge over exactly that time (A-mov-008), so
   the ETAs on screen are the runs' own; the cars around it come from the window baseline (the
   what-ifs saved no FCD) and the crash marker is the closed lane of the snapshot.
-- **Evacuation.** The M7 runs in `runs/` are "as written" (simultaneous release, no contraflow).
-  For the film, one window run was added with the strategist's `near_first_full` candidate written
-  into a copy of the scenario (`movies/specs/scenarios/evac_corniche_hamra_film.yaml`, same zone,
-  crowd, timing and seed):
-  `uv run python -m sim.events.evacuation run --scenario movies/specs/scenarios/evac_corniche_hamra_film.yaml --seed 1`
-  (about 5 min). Release bands are drawn as hulls of where each band's evacuees start, lit from the
-  band's first departure in the FCD.
+- **Evacuation.** The public demo is the fictional `evac_obhur` (window `obhur`, Obhur Creek
+  mouth near the Jeddah Tower site; the earlier waterfront demo in the tahlia window was withdrawn, TI-002). Its demo run
+  is "as written" (simultaneous release, nearest exits). For the film, one window run was added
+  with the strategist's fastest-clearance option `far_first_full` written into a copy of the
+  scenario (`movies/specs/scenarios/evac_obhur_film.yaml`, same zone, crowd, timing and seed):
+  `uv run python -m sim.events.evacuation run --scenario movies/specs/scenarios/evac_obhur_film.yaml --seed 1`
+  (about 1.5 min; T50 815 s, T90 1,349 s, T100 1,746 s, identical to the strategist's what-if).
+  The strategist recommends balanced exit guidance alone (T90 1,402 s, no approval needed); the
+  last shot's caption and the voice-over say so (docs/evacuation.md). Release bands are drawn as
+  hulls of where each band's evacuees start, lit from the band's first departure in the FCD.
 - **Policy lab.** Edge colours are the policy run minus its comparison run, per 5-minute bin. The
   KPI numbers are copied from the docs/policies.md results table (matched controls where the
   policy re-routes baseline vehicles, TA-018), never the raw unmatched deltas.
@@ -73,6 +82,78 @@ Stills (poster frames, from the middle of each film):
   +/- 34,000 VHT/day), so isolated red and blue roads far from the corridor are noise, not effect.
 - **Tier B clock.** Window runs start at t = 0; the HUD shows t = 0 as 08:00 (A-mov-007), as the
   strategist scenario does.
+
+## Voice-over and subtitles
+
+Each film has a narration script `movies/specs/<film>.narration.yaml` (the showreel has
+`showreel.narration.yaml`): 4-8 plain-English lines, each tied to a shot by `at` (seconds into the
+shot, a camera moment) or `sim_t` (when the shot's sim clock reaches it), saying what the viewer
+sees and the measured number, and ending with the caveat. Every number spoken must already be in
+docs/policies.md, docs/loop.md, docs/evacuation.md, docs/strategist.md, docs/events.md or this
+file: `narrate validate` (and a test) reject any other number.
+
+```yaml
+film: evacuation
+lines:
+  - {shot: before, at: 0.6, text: "A fictional evacuation at the mouth of Obhur Creek ..."}
+  - {shot: release, sim_t: 1500, text: "From eight twenty-five, three corridors run in contraflow ..."}
+  - {shot: clearance, text: "All parameters are fictional. Synthetic demand, uncalibrated."}
+```
+
+- **Model.** Kokoro-82M (Apache-2.0, code and weights; https://huggingface.co/hexgrad/Kokoro-82M),
+  kokoro 0.9.4 with misaki 0.9.4 and torch 2.14.1, model revision `f3ff3571`, voice **af_heart**
+  (American English, calm documentary read) at speed 0.95 for every film (A-mov-009). It runs fully
+  offline in its own pinned venv (`make voice-setup` -> `.venv-tts`,
+  `scripts/movies/tts-requirements.txt`; the weights are fetched once into the Hugging Face cache,
+  every later run sets `HF_HUB_OFFLINE=1`). No cloud TTS. Piper was the fallback; it was not needed.
+- **Timing.** `scripts/movies/narrate.py` speaks each line to a WAV (cached per text, voice and
+  versions in `runs/movies/_voice/`), measures it and places it at its anchor, never before the
+  previous line has ended plus 0.45 s, the first after the title card (A-mov-010). If a shot's lines
+  do not fit, the shot is slowed down: its duration and camera keyframes are stretched, the sim
+  clock keeps its keyframes, so the time-lapse runs slower. Shots stretch to fit speech, never the
+  reverse; the showreel excerpts follow the stretched films.
+- **Audio.** The lines are mixed into one 24 kHz voice track of the film's exact length,
+  loudness-normalised to -16 LUFS integrated and -1.5 dBTP (EBU R128, two-pass, linear,
+  A-mov-011) and muxed as AAC 160 kbit/s 48 kHz with a soft English subtitle track (mov_text);
+  `movies/<film>.srt` sits next to the MP4. The showreel speaks one headline per film over its title
+  card (the films' own tracks are not cut) and ends with the caveat, so its script has one line
+  per film plus the caveat (9 lines; the 4-8 rule is for the films). The README shows the films'
+  GIFs; `make movies-docs` exports the showreel's still but not a showreel GIF (by design).
+  Muxing trims the voice back to the film's exact length (loudnorm pads to 100 ms blocks), and
+  stretched shots last a whole number of frames, so audio and video end on the same frame.
+- **Subtitles** are drawn by the HUD from the same lines (Homebrew's ffmpeg has no libass or
+  drawtext). `--no-subtitles` keeps the voice without them; `--no-voice` renders silent films with
+  the specs' own timing.
+- **Determinism.** Same script + model + settings => same audio: the TTS worker seeds torch before
+  every line (Kokoro's vocoder draws noise), runs one thread with deterministic algorithms and
+  PYTHONHASHSEED=0 (its G2P iterates over sets; without it two processes differed by up to 368
+  LSB). The voice track's SHA-256 is recorded in `movies/<film>.json` (`audio.voice_sha256_16`).
+
+## Map labels, compass, scale bar and callouts
+
+- **Street names** come from the same OSM extract as the network (`scripts/movies/labels.py`,
+  cached per map area in `runs/movies/_labels/`): `name:en` on the first line, the Arabic `name` as
+  a smaller second line; ways named only in Arabic borrow the English name most often paired with
+  the same Arabic name nearby, otherwise they are labelled in Arabic only (A-mov-012). Each named
+  road gets anchors every 240-700 m (closer for minor roads) with the road's bearing. The renderer
+  (`web/src/cinema/annotate.ts`) projects them per frame, rotates each label along the road (kept
+  upright), and places them greedily by priority (landmarks, districts, then motorways, primaries,
+  secondaries ...) with collision boxes that also avoid the HUD; streets appear by class as the
+  camera comes down (A-mov-013), so only arterials label at city zoom. Labels are HTML, not deck.gl
+  text: the browser shapes Arabic, deck.gl's TextLayer does not (TI-007). A label's opacity is the
+  share of the last 8 frames in which it fits, so labels fade rather than pop and each frame is
+  still a pure function of its index.
+- **Districts** (admin_level=10 polygons, `data/jeddah/districts.geojson`) label at city zoom;
+  **landmarks** (KAIA, KAU, Al Balad, Obhur Creek, the Jeddah Tower site, the Corniche) come from
+  the reviewed `movies/landmarks.yaml` (OSM features, A-mov-014).
+- **HUD**: a north arrow that turns with the camera bearing, a scale bar at the camera centre that
+  follows the zoom, the colour legend (speed / difference / vehicle class, plus a key for the
+  evacuation zone, exits, contraflow and release bands when they are on screen), the simulated
+  clock and the footer (synthetic demand, uncalibrated; fictional demo parameters on the scenario
+  films: `fictional: true` in the spec).
+- **Callouts**: short leader-line labels at the crash, the flooded sites, the motorcade route, the
+  evacuation exits and the contraflow corridors while they are active, with English street names
+  where OSM has them (`callout` on the overlay items in the bundle).
 
 ## How it works
 
@@ -146,6 +227,8 @@ duration_s: 30               # must equal the sum of the shot durations
 date: 2026-10-18             # sun model date (default)
 clock_t0: "08:00"            # local time of sim t = 0 (Tier B windows); omit for Tier A (t = seconds of day)
 tier: B                      # A (city, meso) | B (window, micro): HUD tier line
+fictional: false             # true: footer adds "fictional demo parameters" (scenario films)
+annotations: {labels: true, compass: true, scale_bar: true}   # MOVIES_V2 map annotations
 title_card_s: 2.5            # title card over the first seconds (0 = none)
 showreel: [2.5, 24.5]        # excerpt used in the showreel
 basemap: {bbox: null, margin_deg: 0.01, buildings: true, water: true, road_classes: all}
@@ -177,6 +260,7 @@ shots:
       detail: Colour = vehicle speed; trails = last 40 simulated seconds
       legend: speed          # speed | diff | class | none
       split_labels: null     # [left, right]
+      labels: {streets: true, districts: true, landmarks: true, callouts: true}   # per shot
       kpis:                  # up to 3; exactly one of value / series / fact
         - {label: Vehicles in the window, series: running, source: base}       # running | halted | arrived | mean_speed_kmh
         - {label: Mean delay, fact: delta.mean_delay_s.pct, source: crash, unit: "%", decimals: 1, sign: true}
@@ -222,24 +306,28 @@ is constant within a segment: rate = (sim_t1 - sim_t0) / (t1 - t0).
 ## Performance (M3 Pro, 1920x1080, 30 fps)
 
 Budgets: browser at most 2 GB RSS, at most 1 GB per film on disk during the render (bundle plus one
-chunk of 150 PNG frames), no frames left behind. Measured on the final full render of 16 Oct 2026 (`make movies`; `loop` and the 8-film showreel rendered on main after the Track D merge, the showreel excerpts trimmed to 20 s each to stay within 3 min)
-(`movies/<film>.json`; hardware WebGL, ANGLE Metal on the Apple M3 Pro; another agent was
-simulating in parallel):
+chunk of 150 PNG frames), no frames left behind. Measured on the narrated full render of 17 Oct 2026
+(Track I, `make movies` with labels and voice-over; `evacuation` re-rendered after the Ras Obhur landmark was added, then the showreel; `movies/<film>.json`; hardware WebGL, ANGLE
+Metal on the Apple M3 Pro; other agents were simulating in parallel). Durations are after the
+narration stretch (the specs say 30-40 s). Voice = SHA-256 (16 hex) of the mixed voice track
+before AAC; loudness = measured integrated loudness of the muxed AAC track (target -16 LUFS; the
+-1.5 dBTP true-peak limit keeps a few films 0.4-0.9 LU below the target in linear mode).
 
-| film | size | frames | duration | MP4 | GIF | per frame | total | browser RSS max | disk max |
-|---|---|---|---|---|---|---|---|---|---|
-| `city-24h` | 1920x1080 | 1200 | 40.00 s | 85.4 MB | 2.49 MB | 0.16 s | 253 s | 1133 MB | 278 MB |
-| `tahlia-street` | 1920x1080 | 900 | 30.00 s | 21.6 MB | 2.83 MB | 0.12 s | 154 s | 1009 MB | 97 MB |
-| `incident` | 1920x1080 | 960 | 32.00 s | 30.1 MB | 2.25 MB | 0.14 s | 180 s | 1119 MB | 152 MB |
-| `events` | 1920x1080 | 1080 | 36.00 s | 37.0 MB | 2.19 MB | 0.13 s | 197 s | 1036 MB | 158 MB |
-| `strategist` | 1920x1080 | 1200 | 40.00 s | 28.1 MB | 2.43 MB | 0.13 s | 205 s | 1134 MB | 119 MB |
-| `evacuation` | 1920x1080 | 1200 | 40.00 s | 49.0 MB | 2.42 MB | 0.18 s | 269 s | 1216 MB | 195 MB |
-| `policy-lab` | 1920x1080 | 1080 | 36.00 s | 41.2 MB | 2.20 MB | 0.17 s | 234 s | 1475 MB | 241 MB |
-| `loop` | 1920x1080 | 1020 | 34.00 s | 69.7 MB | 2.44 MB | 0.19 s | 246 s | 1363 MB | 308 MB |
-| `showreel` | 1920x1080 | 5130 | 171.0 s | 186.3 MB | 2.60 MB | - | about 3 min | - | - |
+| film | size | frames | duration | MP4 | GIF | per frame | total | browser RSS max | disk max | loudness | voice |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `city-24h` | 1920x1080 | 1200 | 40.00 s | 84.8 MB | 2.55 MB | 0.18 s | 306 s | 1319 MB | 299 MB | -16.6 LUFS | `94ad8c7c1c9d045a` |
+| `tahlia-street` | 1920x1080 | 900 | 30.00 s | 25.9 MB | 2.93 MB | 0.14 s | 176 s | 1067 MB | 127 MB | -16.9 LUFS | `d6159532e3419a82` |
+| `incident` | 1920x1080 | 1246 | 41.53 s | 40.4 MB | 2.23 MB | 0.16 s | 278 s | 1292 MB | 184 MB | -16.4 LUFS | `5a654a5099513955` |
+| `events` | 1920x1080 | 1204 | 40.13 s | 44.6 MB | 2.94 MB | 0.15 s | 261 s | 1447 MB | 191 MB | -16.5 LUFS | `a317dfdc0af44f95` |
+| `strategist` | 1920x1080 | 1413 | 47.10 s | 35.0 MB | 2.42 MB | 0.14 s | 278 s | 1286 MB | 152 MB | -16.6 LUFS | `83fefd7d0e152b21` |
+| `evacuation` | 1920x1080 | 1571 | 52.37 s | 34.6 MB | 1.66 MB | 0.12 s | 262 s | 1496 MB | 120 MB | -16.6 LUFS | `bb102eabf0b202f9` |
+| `policy-lab` | 1920x1080 | 1350 | 45.00 s | 47.9 MB | 1.90 MB | 0.19 s | 336 s | 1137 MB | 275 MB | -16.5 LUFS | `a0f1fd236b66a8b4` |
+| `loop` | 1920x1080 | 1370 | 45.67 s | 93.7 MB | 2.19 MB | 0.25 s | 439 s | 1098 MB | 360 MB | -16.5 LUFS | `7c24d6f2b63268a6` |
+| `showreel` | 1920x1080 | 5130 | 171.0 s | 192.0 MB | 2.61 MB | - | - | - | - | -16.1 LUFS | `9a7b02445042d790` |
 
-"per frame" is draw + screenshot; "total" adds the bundle, chunk encoding, concat and GIF. All
-eight films render in about 30 minutes; the bundles take 1-10 s each (the first build of a
+"per frame" is draw + screenshot (labels add about 1 ms); "total" adds the narration (cached
+after the first run), the bundle, chunk encoding, concat, the audio mux and the GIF. All eight
+films render in about 39 minutes; the bundles take 1-10 s each (the first build of a
 policy run's edge bins takes longer). `--4k` quadruples the pixels (not measured).
 
 ## Licences and credits

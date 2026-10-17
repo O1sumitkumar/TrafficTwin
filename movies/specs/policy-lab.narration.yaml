@@ -1,0 +1,16 @@
+# Narration for policy-lab (scripts/movies/narrate.py). Numbers only from the docs (docs/policies.md).
+film: policy-lab
+lines:
+  - shot: remote-work
+    at: 0.6
+    text: "The policy lab. Blue roads get faster, red roads slower, against a comparison run."
+  - shot: remote-work
+    text: "With 30 percent of office workers at home three days a week, mean delay falls by 9.3 percent."
+  - shot: staggered-schools
+    at: 0.6
+    text: "Staggering school start times by 60 minutes spreads the peak: morning-peak delay falls by 9.1 percent."
+  - shot: cordon
+    at: 0.6
+    text: "A 10 riyal cordon charge around the centre pushes traffic onto the perimeter roads: mean delay rises by 20.1 percent."
+  - shot: cordon
+    text: "Results are indicative. Synthetic demand, uncalibrated."

@@ -17,7 +17,7 @@ All results: **synthetic demand, uncalibrated**.
 | M4 | Policy lab | done (Track A) | remote_work_30 reproduced on main: mean delay -9.3 %, AM peak -9.4 %, VKT -1.6 %, CO2 -6.9 % |
 | M5 | Focus windows and events | done (Track B) | accident_tahlia on main: mean delay +5.7 % vs window baseline, 130 s wall |
 | M6 | Emergency strategist | done (Track B) | top 3 in 11.6 s on main; best (68 s) beats no strategy (173 s) |
-| M7 | Evacuation | done (Track B) | evac_corniche_hamra via `sim.runner --scenario`: T50/T90/T100 1,264/2,399/3,004 s |
+| M7 | Evacuation | done (Track B); public demo moved to Obhur (Track I) | evac_obhur via `sim.runner --scenario`: T50/T90/T100 933/1,702/2,115 s; strategist recommends balanced exits (T90 1,402 s); the Al Hamra demo was withdrawn (TI-002) |
 | M8 | Calibration (dormant) | done (Track A) | synthetic round trip GEH<5 100 %; no real counts |
 | M9 | Docs and release | done | `make demo` from a fresh clone: 6 min 23 s, screenshots docs/img/final-*.png; `docker compose up --build` verified; section below |
 | LANE_AUDIT, v2 | Lane counts from imagery | blocked - accuracy (Track C) | held-out precision 60 % < 80 % gate; `jeddah.lanes.net.xml` not written, so not promoted |
@@ -26,6 +26,7 @@ All results: **synthetic demand, uncalibrated**.
 | RELEASE | Release readiness (Track G) | done (Track G), merged in integration pass 4 | CI + demo-smoke + Pages workflows, README, community files, `docs/release-checklist.md`; owner must remove the Esri crops from history before any push |
 | MODECHOICE | Loop mode choice (Track H) | done (Track H), merged in integration pass 4 | C1 central 19,530 (measured) / 31,450 (vendor) riders/day vs 28,820 at fixed alpha 0.3; demo window 24 / 58 reproduced on main; docs/loop-mode-choice.md |
 | OBHUR_BRIDGE | Obhur Creek bridges (Track J) | done (Track J, window scale), merged in integration pass 5; city runs pending (v2 network) | six `network_change` policies validate (all new edges in the main SCC); window AM/PM matched control: no effect beyond the +/- 20 s noise band; detour screen 145,370 trips/day shortened by 6.0 km (free flow); docs/obhur-bridge.md |
+| MOVIES_V2 | Narration, map labels, Obhur evacuation (Track I) | done (Track I), merged in integration pass 6 | 8 films + showreel re-rendered with Kokoro voice-over, subtitles, street/district/landmark labels, compass, scale bar, callouts; audio = video length on all 9; evacuation film moved to Obhur (`evac_obhur`); docs/status/trackI.md |
 
 ## Integration — 2026-10-16
 Merged on `main`: trackC (c5b3203), trackB (46fc412), trackA (13ed16e), in that order. Conflicts only
@@ -61,7 +62,7 @@ End to end on the merged code (10 % sample, seed 1; all **synthetic demand, unca
 | remote_work_30 | `sim.runner --policy remote_work_30 --daytype weekday --sample 0.10 --seed 1` | 779 s (about 13 min) | mean delay -9.3 %, AM-peak -9.4 %, VKT -1.6 %, VHT -7.7 %, CO2 -6.9 % (same routes hash 01ff40085fb11d11 as Track A) |
 | accident_tahlia-tahlia-s1-257eae8d | `sim.runner --scenario accident_tahlia --window tahlia --seed 1` | 130 s | mean delay 97.8 -> 103.5 s (+5.7 %), as in M5 |
 | strategist rec-20261016T114454Z-22d13986 | `strategist.run --scenario emergency_tahlia_0830 --window tahlia --seed 1` | 11.6 s | Route A + rescue lane 68 s, Route B + preemption 89 s, Route C 95 s; no strategy 173 s |
-| evac_corniche_hamra-tahlia-s1-162d21cb | `sim.runner --scenario evac_corniche_hamra --seed 1` | 328 s | 2,000/2,000 out; T50 1,264 s, T90 2,399 s, T100 3,004 s; background +90.1 veh-h |
+| evac_corniche_hamra-tahlia-s1-162d21cb | `sim.runner --scenario evac_corniche_hamra --seed 1` (scenario withdrawn by Track I, TI-002; replaced by `evac_obhur`, docs/evacuation.md) | 328 s | 2,000/2,000 out; T50 1,264 s, T90 2,399 s, T100 3,004 s; background +90.1 veh-h |
 
 Viewer: all five appear in `/api/runs`; the baseline, policy, accident and evacuation runs carry their comparison runs (the strategist recommendation has none: it has no run of its own, `strategist~...`); screenshots
 `docs/img/integration-{baseline,policy,policy-districts,accident,strategist,evacuation}.png`
@@ -652,7 +653,7 @@ replicate, score, classification, explanations, explicit recommendation, decisio
 `evac_flood_balad.yaml`; `docs/evacuation.md` (method, contraflow mechanics, results tables,
 register block); 42 tests in `tests/test_evacuation.py` and `tests/test_evacuation_run.py`.
 Commands:
-`uv run python -m sim.events.evacuation run --scenario evac_corniche_hamra --seed 1`,
+`uv run python -m sim.events.evacuation run --scenario evac_obhur --seed 1` (was `evac_corniche_hamra`, withdrawn by Track I),
 `uv run python -m sim.events.evacuation run --scenario evac_flood_balad --seed 1`,
 `uv run python -m strategist.evacuation run --scenario <id> --seed 1`,
 `uv run python -m strategist.evacuation approve <recommendation_id> --option 1`.

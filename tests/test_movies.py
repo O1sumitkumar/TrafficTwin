@@ -216,7 +216,7 @@ def test_spec_rejects_unsorted_keyframes_and_bad_kpis() -> None:
 
 def test_spec_file_names_match_film_ids() -> None:
     for path in SPECS_DIR.glob("*.yaml"):
-        if path.stem != "order":
+        if path.stem != "order" and "." not in path.stem:  # <film>.narration.yaml = scripts
             assert load_film(str(path)).film == path.stem
 
 
@@ -286,7 +286,12 @@ def test_render_smoke_ten_frames_deterministic(
     metas = []
     for k in range(2):
         out = tmp_path / f"r{k}"
-        metas.append(render_film("tahlia-street", size=(640, 360), frames=(100, 110), out_dir=out))
+        # silent: the voice-over needs the TTS venv (tests/test_narration.py covers it)
+        metas.append(
+            render_film(
+                "tahlia-street", size=(640, 360), frames=(100, 110), out_dir=out, voice=False
+            )
+        )
         mp4 = out / "tahlia-street.mp4"
         assert mp4.exists() and (out / "tahlia-street.poster.png").exists()
         info = metas[-1]["mp4"]
@@ -309,7 +314,7 @@ def test_settings_assumptions_are_registered() -> None:
 
     settings = (REPO_ROOT / "scripts" / "movies" / "settings.yaml").read_text()
     ids = set(re.findall(r"A-mov-\d{3}", settings))
-    register = (REPO_ROOT / "docs" / "assumptions-trackE.md").read_text()
+    register = (REPO_ROOT / "docs" / "assumptions.md").read_text()  # merged (Track E + Track I)
     assert ids and ids <= set(re.findall(r"^\| (A-mov-\d{3}) ", register, re.M))
     for block in yaml.safe_load(settings).values():
         if isinstance(block, dict):

@@ -32,7 +32,38 @@ export interface ShotSpec {
     kpis: KpiSpec[];
     legend: "speed" | "diff" | "class" | "none";
     split_labels: [string, string] | null;
+    /** Which map annotations this shot draws (default: all true when the bundle has them). */
+    labels?: ShotLabels;
   };
+}
+
+export interface ShotLabels {
+  streets: boolean;
+  districts: boolean;
+  landmarks: boolean;
+  callouts: boolean;
+}
+
+export interface Annotations {
+  /** File name of the labels JSON in the bundle, or null for none. */
+  labels: string | null;
+  compass: boolean;
+  scale_bar: boolean;
+  subtitles: boolean;
+}
+
+/** One subtitle line, in film seconds (frame i is at i / fps). */
+export interface NarrationLine {
+  text: string;
+  start_s: number;
+  end_s: number;
+}
+
+/** labels.json. Street cls: 0 motorway/trunk, 1 primary, 2 secondary, 3 tertiary, 4 other. */
+export interface Labels {
+  streets: { en: string; ar: string | null; cls: number; anchors: [number, number, number][] }[];
+  districts: { en: string; ar: string | null; lon: number; lat: number }[];
+  landmarks: { id: string; en: string; ar: string | null; lon: number; lat: number; min_zoom: number; max_zoom: number }[];
 }
 
 export interface HeatFile {
@@ -80,6 +111,10 @@ export interface Manifest {
   };
   frames: string;
   shots: ShotSpec[];
+  /** Footer adds "fictional demo parameters" when true. */
+  fictional?: boolean;
+  annotations?: Annotations;
+  narration?: NarrationLine[];
 }
 
 export interface Frames {
@@ -121,14 +156,15 @@ export interface Trips {
   speedScale: number;
 }
 
+/** `callout`: optional English text drawn next to the item on the map while it is active. */
 export interface OverlaySet {
-  events: { id: string; type: string; begin_s: number; end_s: number; paths: number[][][]; point?: number[] }[];
-  closures: { id: string; begin_s: number; end_s: number; paths: number[][][] }[];
+  events: { id: string; type: string; begin_s: number; end_s: number; paths: number[][][]; point?: number[]; callout?: string }[];
+  closures: { id: string; begin_s: number; end_s: number; paths: number[][][]; point?: number[]; callout?: string }[];
   zone: { ring: number[][]; begin_s: number } | null;
-  exits: { id: string; begin_s: number; point?: number[]; paths: number[][][] }[];
+  exits: { id: string; begin_s: number; point?: number[]; paths: number[][][]; callout?: string }[];
   routes: { name: string; paths: number[][][] }[];
   phases: { band: number; begin_s: number; end_s: number; vehicles: number; ring: number[][]; points: number[][] }[];
-  contraflow: { id: string; name: string; begin_s: number; paths: number[][][] }[];
+  contraflow: { id: string; name: string; begin_s: number; paths: number[][][]; point?: number[]; callout?: string }[];
 }
 
 export interface Buildings {

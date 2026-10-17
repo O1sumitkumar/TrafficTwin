@@ -5,7 +5,9 @@
 #   make test        ruff + pytest (demo window only, about 3 min)
 #   make stop        stop servers started with `./run_app.sh --detach`
 #   make movies      render every film in movies/specs/ + the showreel (needs ffmpeg, Chrome)
+#                    with the offline voice-over (MOVIE_FLAGS=--no-voice for silent films)
 #   make movie FILM=tahlia-street   render one film to movies/<film>.mp4
+#   make voice-setup the offline TTS venv for the narration (.venv-tts, Kokoro-82M, ~1 GB)
 #
 # Variables: CITY=0 skips the 243 MB OSM download and the Tier A smoke; SEED=1; SAMPLE=0.10;
 # DETACH=1 leaves the servers running in the background (used by the screenshot proof).
@@ -20,7 +22,7 @@ CITY_NET := data/jeddah/jeddah.net.xml
 M2_NET := data/jeddah/jeddah.m2.net.xml
 
 .PHONY: demo setup city-net demo-runs ingest serve city city-baseline test screenshots stop clean-demo \
-	movies movie showreel movies-check movies-docs
+	movies movie showreel movies-check movies-docs voice-setup
 
 demo: setup $(if $(filter 1,$(CITY)),city-net) demo-runs ingest serve
 
@@ -84,20 +86,32 @@ clean-demo:
 # deleted after encoding. MOVIE_FLAGS passes options through (e.g. --4k, --fps 60, --letterbox).
 FILM ?= tahlia-street
 MOVIE_FLAGS ?=
+NO_VOICE := $(findstring --no-voice,$(MOVIE_FLAGS))
+TTS_PY := .venv-tts/bin/python
+# Narration TTS (docs/movies.md "Voice-over"): pinned, kept out of the project lock (torch is
+# large); the first run downloads the Kokoro-82M weights (Apache-2.0) into the Hugging Face cache,
+# every later run is offline (HF_HUB_OFFLINE=1).
+voice-setup: $(TTS_PY)
+$(TTS_PY): scripts/movies/tts-requirements.txt
+	$(UV) venv --python 3.12 .venv-tts
+	$(UV) pip install --python $(TTS_PY) -r scripts/movies/tts-requirements.txt
+	echo '[{"text": "Voice check.", "out": "/tmp/tt-voice-check.wav"}]' | $(TTS_PY) scripts/movies/tts_kokoro.py
+	touch $(TTS_PY)
 movies-check:
 	@command -v ffmpeg >/dev/null || { \
 	  if command -v brew >/dev/null; then brew install ffmpeg; \
 	  else echo "ffmpeg is required (apt install ffmpeg)"; exit 1; fi; }
 	@$(MAKE) --no-print-directory web/node_modules/.package-lock.json
+	@$(if $(NO_VOICE),true,$(MAKE) --no-print-directory voice-setup)
 movie: movies-check
 	mkdir -p logs
 	set -o pipefail; $(UV) run python -m scripts.movies.render $(FILM) $(MOVIE_FLAGS) 2>&1 | tee logs/movie-$(FILM).log
 movies: movies-check
 	mkdir -p logs
 	set -o pipefail; $(UV) run python -m scripts.movies.render --all $(MOVIE_FLAGS) 2>&1 | tee logs/movies.log
-	$(UV) run python -m scripts.movies.showreel
+	$(UV) run python -m scripts.movies.showreel $(NO_VOICE)
 	$(UV) run python -m scripts.movies.assets
 showreel:
-	$(UV) run python -m scripts.movies.showreel
+	$(UV) run python -m scripts.movies.showreel $(NO_VOICE)
 movies-docs:
 	$(UV) run python -m scripts.movies.assets

@@ -10,6 +10,7 @@ duration_s: 32
 showreel: [6, 26]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
+fictional: true             # fictional scenario parameters (PROJECT.md section 11): footer says so
 sources:
   base: {run: "accident_tahlia-tahlia-s1-257eae8d~baseline"}
   crash: {run: accident_tahlia-tahlia-s1-257eae8d}

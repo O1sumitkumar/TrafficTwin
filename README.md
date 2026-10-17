@@ -282,8 +282,8 @@ Pipeline, actions and measured runs: `docs/strategist.md`.
 
 ```bash
 uv run python -m sim.runner --scenario evac_demo --seed 1             # demo window, ~15 s
-uv run python -m sim.runner --scenario evac_corniche_hamra --seed 1   # Al Hamra (tahlia window)
-uv run python -m strategist.evacuation run --scenario evac_corniche_hamra --seed 1
+uv run python -m sim.runner --scenario evac_obhur --seed 1            # Obhur Creek mouth (obhur window)
+uv run python -m strategist.evacuation run --scenario evac_obhur --seed 1
 ```
 `sim.runner --scenario evac_*` dispatches to `sim.events.evacuation run`. Method and results:
 `docs/evacuation.md`.
@@ -314,10 +314,13 @@ Synthetic counts only exercise the pipeline. See `docs/calibration.md`.
 ## Movies
 
 Short films rendered from the runs (edge bins, trajectories, event and strategist outputs), one
-per simulation mode, plus a showreel. Needs ffmpeg and Google Chrome; output in `movies/`.
+per simulation mode, plus a showreel, with an English voice-over (Kokoro-82M, open model, fully
+offline), subtitles (`movies/<film>.srt`), street, district and landmark labels, a compass and a
+scale bar. Needs ffmpeg and Google Chrome; output in `movies/`.
 
 ```bash
-make movies                         # all films + movies/showreel.mp4
+make voice-setup                    # once: offline TTS venv (.venv-tts)
+make movies                         # all films + movies/showreel.mp4 (MOVIE_FLAGS=--no-voice: silent)
 make movie FILM=tahlia-street       # one film; MOVIE_FLAGS="--4k --fps 60 --letterbox" optional
 ```
 
@@ -328,11 +331,12 @@ make movie FILM=tahlia-street       # one film; MOVIE_FLAGS="--4k --fps 60 --let
 | ![incident](docs/img/movies/incident.gif) | ![events](docs/img/movies/events.gif) |
 | `incident`: crash run against its baseline | `events`: rain, flood, motorcade |
 | ![strategist](docs/img/movies/strategist.gif) | ![evacuation](docs/img/movies/evacuation.gif) |
-| `strategist`: the top 3 ambulance options | `evacuation`: phased release with contraflow |
+| `strategist`: the top 3 ambulance options | `evacuation`: Obhur Creek, phased release with contraflow (fictional) |
 | ![policy-lab](docs/img/movies/policy-lab.gif) | ![loop](docs/img/movies/loop.gif) |
 | `policy-lab`: policies in difference mode | `loop`: the recommended Loop tunnel C1 against the baseline |
 
-How it works, the spec schema and the camera-path cookbook: `docs/movies.md`.
+How it works, the narration scripts, the spec schema and the camera-path cookbook:
+`docs/movies.md`.
 
 ## Lane audit from imagery (blocked)
 

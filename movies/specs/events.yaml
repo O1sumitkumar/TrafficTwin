@@ -7,6 +7,7 @@ duration_s: 36
 showreel: [14, 34]           # excerpt in the showreel (2-3 min total)
 clock_t0: "08:00"            # A-mov-007
 tier: B
+fictional: true             # fictional scenario parameters (PROJECT.md section 11): footer says so
 sources:
   rain: {run: rain_tahlia-tahlia-s1-67ab9112}
   rain_base: {run: "rain_tahlia-tahlia-s1-67ab9112~baseline"}

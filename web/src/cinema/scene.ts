@@ -605,7 +605,7 @@ export class Scene {
   }
 }
 
-function midpoint(paths: number[][][]): number[] | null {
+export function midpoint(paths: number[][][]): number[] | null {
   const p = paths[Math.floor(paths.length / 2)];
   if (!p || !p.length) return null;
   return p[Math.floor(p.length / 2)] ?? null;

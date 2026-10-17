@@ -12,6 +12,13 @@ headless Chrome and writes PNGs to runs/movies/<film>/frames/ in chunks; each ch
 joined without re-encoding into movies/<film>.mp4; then movies/<film>.poster.png (middle frame),
 movies/<film>.gif (<= 6 s, <= 3 MB) and movies/<film>.json (sizes, hashes of the first, middle and
 last frame, browser RSS, disk peak, timings). Frames are deleted after a successful encode.
+
+Voice-over (MOVIES_V2): before the bundle, the film's narration script is spoken offline
+(scripts/movies/narrate.py, Kokoro-82M) and the shots are stretched to fit the speech; the
+subtitles are drawn by the HUD from the same lines. After the encode the lines are mixed into one
+voice track, loudness-normalised (EBU R128, two-pass, linear) and muxed as AAC with a soft
+subtitle track; movies/<film>.srt is written next to the MP4. `--no-voice` renders silently with
+the spec's own timing; `--no-subtitles` keeps the voice but draws no subtitles.
 """
 
 from __future__ import annotations
@@ -32,6 +39,7 @@ from typing import Any
 import psutil
 import typer
 
+from scripts.movies import narrate
 from scripts.movies.bundle import build_bundle, movies_runs_dir, sha_file
 from scripts.movies.spec import SPECS_DIR, film_names, load_film, load_settings, spec_path
 from sim.common import REPO_ROOT, SYNTHETIC_LABEL
@@ -276,6 +284,67 @@ def probe(path: Path) -> dict[str, Any]:
     }
 
 
+def probe_audio(path: Path) -> dict[str, Any] | None:
+    exe = shutil.which("ffprobe") or "ffprobe"
+    res = subprocess.run(
+        [exe, "-v", "error", "-select_streams", "a:0", "-show_entries",
+         "stream=codec_name,sample_rate,channels,bit_rate,duration", "-of", "json", str(path)],
+        capture_output=True, text=True, check=True,
+    )  # fmt: skip
+    streams = json.loads(res.stdout).get("streams") or []
+    if not streams:
+        return None
+    a = streams[0]
+    return {
+        "codec": a.get("codec_name"),
+        "sample_rate": int(a.get("sample_rate") or 0),
+        "channels": a.get("channels"),
+        "bit_rate": int(a.get("bit_rate") or 0),
+        "duration_s": float(a.get("duration") or 0.0),
+    }
+
+
+def loudness(path: Path, extra: list[str] | None = None) -> dict[str, Any]:
+    """EBU R128 measurement of the first audio stream (ffmpeg loudnorm, print_format json)."""
+    v = load_settings()["voice"]
+    res = subprocess.run(
+        [ffmpeg(), "-hide_banner", "-nostats", "-i", str(path), *(extra or []), "-af",
+         f"loudnorm=I={v['lufs']}:TP={v['true_peak_db']}:LRA=11:print_format=json",
+         "-f", "null", "-"],
+        capture_output=True, text=True, check=True,
+    )  # fmt: skip
+    err = res.stderr
+    return json.loads(err[err.rindex("{") : err.rindex("}") + 1])
+
+
+def mux_voice(video: Path, wav: Path, srt: Path | None, out: Path) -> dict[str, Any]:
+    """video + voice WAV (+ SRT) -> MP4 with AAC voice (loudness-normalised) and mov_text subs.
+
+    loudnorm works in 100 ms blocks and pads its output to a whole block, so the track is trimmed
+    back to the voice WAV's exact length (= the film's frames / fps)."""
+    v = load_settings()["voice"]
+    m = loudness(wav)
+    dur = narrate.wav_seconds(wav)
+    af = (
+        f"loudnorm=I={v['lufs']}:TP={v['true_peak_db']}:LRA=11:measured_I={m['input_i']}:"
+        f"measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}:"
+        f"measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true,"
+        f"aresample=48000,atrim=end={dur:.6f}"
+    )
+    cmd = [ffmpeg(), "-y", "-loglevel", "error", "-i", str(video), "-i", str(wav)]
+    maps = ["-map", "0:v", "-map", "1:a"]
+    if srt is not None:
+        cmd += ["-i", str(srt)]
+        maps += ["-map", "2:s", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng"]
+    cmd += [*maps, "-c:v", "copy", "-af", af, "-c:a", "aac", "-b:a", f"{v['aac_kbps']}k",
+            "-ar", "48000", "-ac", "1", "-metadata:s:a:0", "language=eng", "-fflags",
+            "+bitexact", "-flags:a", "+bitexact", "-movflags", "+faststart", str(out)]  # fmt: skip
+    _run(cmd)
+    after = loudness(out)
+    return {"input_lufs": float(m["input_i"]), "output_lufs": float(after["input_i"]),
+            "output_true_peak_db": float(after["input_tp"]), "target_lufs": v["lufs"]}  # fmt: skip
+
+
 def make_gif(mp4: Path, gif: Path, start: float, r: dict[str, Any]) -> dict[str, Any]:
     """Palette GIF of gif_seconds; shrinks the width until it is under gif_max_bytes.
 
@@ -350,6 +419,8 @@ def render_film(
     out_dir: Path | None = None,
     keep_frames: bool = False,
     build_web: bool = True,
+    voice: bool = True,
+    subtitles: bool = True,
 ) -> dict[str, Any]:
     os.environ.setdefault("TT_RUNS_READONLY", "1")
     settings = load_settings()
@@ -366,8 +437,21 @@ def render_film(
     )
     t_start = time.time()
     work = movies_runs_dir() / film.film
+    timing = narrate.prepare(film, fps) if voice else None
+    if timing is not None:
+        film = narrate.apply_timing(film, timing)
+        log(f"{name}: narration {len(timing.lines)} lines, voice {timing.voice}, "
+            f"stretch {timing.stretch}, {film.duration_s:.2f} s")  # fmt: skip
+    lines = (
+        [{"text": t.text, "start_s": round(t.start_s, 3), "end_s": round(t.end_s, 3)}
+         for t in timing.lines]
+        if timing is not None else None
+    )  # fmt: skip
     log(f"{name}: bundle ({width}x{height}, {fps} fps)")
-    bundle = build_bundle(film, fps, width, height, letterbox, out=work / "bundle")
+    bundle = build_bundle(
+        film, fps, width, height, letterbox, out=work / "bundle", narration=lines,
+        subtitles=subtitles,
+    )  # fmt: skip
     manifest = json.loads((bundle / "manifest.json").read_text())
     n = int(manifest["n_frames"])
     a, b = frames or (0, n)
@@ -432,7 +516,21 @@ def render_film(
         driver.close()
         server.shutdown()
     mp4 = out_dir / f"{film.film}.mp4"
-    concat(segments, mp4)
+    srt = out_dir / f"{film.film}.srt"
+    audio: dict[str, Any] | None = None
+    if timing is not None and (a, b) == (0, n):
+        video = work / "video.mp4"
+        concat(segments, video)
+        wav = work / "voice.wav"
+        voice_sha = narrate.voice_track([(t.start_s, t.wav) for t in timing.lines], n / fps, wav)
+        narrate.write_srt([(t.start_s, t.end_s, t.text) for t in timing.lines], srt)
+        loud = mux_voice(video, wav, srt, mp4)
+        video.unlink()
+        audio = {"voice_sha256_16": voice_sha, "loudness": loud, "srt": srt.name,
+                 "timing": timing.as_json()}  # fmt: skip
+    else:
+        concat(segments, mp4)
+        srt.unlink(missing_ok=True)
     shutil.rmtree(seg_dir, ignore_errors=True)
     shutil.rmtree(frames_dir, ignore_errors=True)
     info = probe(mp4)
@@ -456,9 +554,12 @@ def render_film(
         "width": width,
         "height": height,
         "fps": fps,
+        "duration_s": film.duration_s,  # after the narration stretch
+        "showreel_excerpt": list(film.showreel) if film.showreel else None,
         "frames_rendered": [a, b],
         "expected_duration_s": (b - a) / fps,
         "mp4": info,
+        "audio": ({**audio, "stream": probe_audio(mp4)} if audio else None),
         "frame_sha256_16": hashes,
         "gif": gif,
         "browser_rss_max_mb": round(rss_max, 1),
@@ -505,6 +606,8 @@ def main(
     frames: str = typer.Option("", help="render only frames A:B (smoke tests)"),
     out: Path = typer.Option(None, help="output directory (default movies/)"),
     keep_frames: bool = typer.Option(False, help="keep the PNG frames (debugging)"),
+    no_voice: bool = typer.Option(False, "--no-voice", help="silent render, spec timing"),
+    no_subtitles: bool = typer.Option(False, "--no-subtitles", help="voice without subtitles"),
 ) -> None:
     names = film_names() if all_ else list(films or [])
     if not names:
@@ -524,6 +627,8 @@ def main(
                 parse_frames(frames),
                 out,
                 keep_frames,
+                voice=not no_voice,
+                subtitles=not no_subtitles,
             )
         except Exception as exc:  # noqa: BLE001 - keep going with the other films
             log(f"{name}: FAILED {exc}")
