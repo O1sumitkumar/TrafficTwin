@@ -120,6 +120,7 @@ delay and VHT, see below):
 
 ### Re-evaluation on network v2 (integration pass 6, 2026-10-17)
 
+All rows: **synthetic demand, uncalibrated**.
 Same policies, same seed 1 and 10 % sample, on the Tier A network v2 (`docs/network-v2.md`, hash
 ae764558; zones d949c812, population 346893f2) against the v2 weekday baseline
 `baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1` (28.3 % teleports per vehicle vs 50.5 % on m2).
@@ -152,7 +153,7 @@ Reading the v2 rows:
   peak buys much less.
 - **Remote work 30 %** removes the same share of work tours (7,318 in the sample, 2,596 induced
   tours added) and still cuts delay by 11 % (AM peak -13 %); in VHT it saves 167,819 h/day (-8.7 %)
-  against 210,563 h on v1, because the v2 baseline has fewer vehicle-hours to save (1.95 M vs 2.74 M).
+  against 210,563 h on v1, because the v2 baseline has fewer vehicle-hours to save (1.94 M vs 2.74 M).
   Far outside the v1 noise band; its ranking as the strongest demand lever holds on v2.
 - **Cordon** (SAR 10, 07-19 h): the same mechanism as on v1 (9.6 % of 33,500 charged tours
   suppressed; 42,460 crossers re-routed with the 15-min penalty onto the perimeter) makes things

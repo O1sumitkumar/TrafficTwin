@@ -241,13 +241,13 @@ per 3-hour peak, Obhur districts).
 | bridge vehicles/day | *pending city run* | *pending city run* | B1 189,250 (NS 98,770 / SN 90,480); B2 14,650 (13,810 / 840); B1 saturated, see below | *pending city run* |
 | noise band (second seed) | not measured on v2 (no second-seed v2 baseline; v1: ±34k VHT/day) | | | |
 
-**B3 2+2 on network v2 (integration pass 6, 2026-10-17).** Run `runs/v2/obhur_bridge_b3` against
+**B3 2+2 on network v2 (integration pass 6, 2026-10-17; synthetic demand, uncalibrated).** Run `runs/v2/obhur_bridge_b3` against
 `runs/v2/obhur_bridge_b3--control` (37,365 vehicles re-routed in both; bridge network rebuilt on v2:
 `data/jeddah/jeddah.v2.bridge-9d34020b07.net.xml.gz`, run network hash 66b9a922; starting baseline
 `baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1`; 10 % sample, seed 1, 28 min wall). Command:
 `uv run python -m scripts.pass6_v2 run bridge_b3`. **Quality flags:** (1) 28-30 % of vehicles teleport
 on v2 (0.296 in the control, 0.305 with the bridges), so the relief is measured on a network that is
-still gridlocked in the peaks; (2) the B1 span is jammed (edge mean speed 1.1-1.5 m/s from 06 to 11 h
+still gridlocked in the peaks; (2) the B1 span is jammed (hourly edge mean speed about 1-2 m/s from 06 to 11 h
 and 18 to 01 h; up to 1,104 sampled vehicles/h on two lanes, more than lane capacity at x10 scaling),
 so its daily volume is a meso count through a standing queue, not a capacity-feasible flow; only 76
 of the run's 118,557 teleports are on bridge edges; (3) the relief (-178,909 h/day) is five times
