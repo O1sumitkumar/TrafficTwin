@@ -175,6 +175,11 @@ def headline_track(
         )
         prev_end = start + narrate.wav_seconds(wav)
         placed.append((start, prev_end, ln.text, wav))
+    if placed and placed[-1][1] > total_s:  # the caveat closes the reel: it must not be cut off
+        raise ValueError(
+            f"showreel headline {placed[-1][2][:40]!r} ends at {placed[-1][1]:.2f} s, after the "
+            f"reel ({total_s:.2f} s): shorten it"
+        )
     wav_out = work / "showreel.voice.wav"
     sha = narrate.voice_track([(a, w) for a, _, _, w in placed], total_s, wav_out, lang)
     srt = out_dir / f"showreel{tag}.srt"
