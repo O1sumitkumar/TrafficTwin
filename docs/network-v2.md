@@ -118,7 +118,7 @@ Not completed: the probe of v2j (join-dist 30 + no internal links) was stopped t
 machine for the city run; both of its parts were neutral or worse on their own. Built but never
 probed (superseded once no-split proved worse): v2e (no `--ramps.guess`), v2f (no-split + no
 internal links + join-dist 30), v2g (no-split + no internal links + `--ramps.min-highway-speed
-25`). Variant configs were generated from `city-v2.yaml` with one option changed each (scratch
+25`). Variant configs were generated from `city-v2.yaml` with the changes listed for each (scratch
 files, not committed); every probe's options and hash are in `runs/probes/<label>-<hash>-05-09/`.
 
 ## 4. City baseline on v2
