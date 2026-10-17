@@ -297,6 +297,9 @@ uv run python -m sim.loop.run loop_recommended          # recommended corridor C
 ```
 Siting, candidate ranking, the policy sweep and the recommendation (C1 Al-Salamah - King Abdulaziz
 University, shuttle mode capped at measured capacity): `docs/loop.md`.
+Car-vs-Loop mode choice (logit with capacity cap and queue, replaces the fixed shift share when a
+policy sets `mode_choice:`): `uv run python -m sim.loop.evaluate --mode-choice sim/loop/config/mode_choice.yaml --demo`;
+method and riders per candidate in `docs/loop-mode-choice.md`.
 
 ## Calibration (M8, dormant until counts exist)
 

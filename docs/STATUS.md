@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-16 (integration pass 3: Track D Loop merged, `loop` film rendered, showreel with 8 films)
+Last updated: 2026-10-17 (integration pass 4: Track G release readiness and Track H Loop mode choice merged)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -23,6 +23,8 @@ All results: **synthetic demand, uncalibrated**.
 | LANE_AUDIT, v2 | Lane counts from imagery | blocked - accuracy (Track C) | held-out precision 60 % < 80 % gate; `jeddah.lanes.net.xml` not written, so not promoted |
 | MOVIES | Cinematic films (Track E) | done (Track E), merged in integration pass 2; `loop` film added in pass 3 | 8 films; `loop` rendered on main 34.00 s, 246 s; showreel 171.0 s (8 films); docs/movies.md |
 | LOOP | Loop tunnels | done (Track D), merged in integration pass 3 | recommended C1 + shuttle alpha 0.3 reproduced on main: relief 57,671 VHT/day, 28,820 passengers/day; docs/loop.md |
+| RELEASE | Release readiness (Track G) | done (Track G), merged in integration pass 4 | CI + demo-smoke + Pages workflows, README, community files, `docs/release-checklist.md`; owner must remove the Esri crops from history before any push |
+| MODECHOICE | Loop mode choice (Track H) | done (Track H), merged in integration pass 4 | C1 central 19,530 (measured) / 31,450 (vendor) riders/day vs 28,820 at fixed alpha 0.3; demo window 24 / 58 reproduced on main; docs/loop-mode-choice.md |
 
 ## Integration — 2026-10-16
 Merged on `main`: trackC (c5b3203), trackB (46fc412), trackA (13ed16e), in that order. Conflicts only
@@ -196,6 +198,35 @@ Note: in this shell `NODE_ENV=production`, so a bare `npm ci` skips devDependenc
 `make setup` already passes `--include=dev`.
 Open: the `loop` film waits for Track D (next integration pass: merge trackD once `LOOP: done`, then
 `make movie FILM=loop`); incident film has no shockwave (E-D-008); strategist HUD shows raw edge ids.
+
+## Integration pass 4 (Track G release, Track H mode choice) — 2026-10-17
+Merged `trackG` (`RELEASE: done`, verifier PASS) then `trackH` (`MODECHOICE: done`, verifier PASS)
+with `--no-ff` (de540db, b0cca5e). No conflicts and no shared files between the two branches.
+trackF, trackI and trackJ were not merged and their worktrees not touched; nothing from `movies/` went
+into git; no push, no remote. Light pass (machine shared with three running agents): no city run,
+no render.
+
+Fixes on main: the 10 rows A-loop-021..030 from `docs/assumptions-trackH.md` merged into
+`docs/assumptions.md` (sub-table after A-loop-020), which turns TH-005
+(`test_merged_register_holds_every_track_row`, expected pre-integration failure) green; README Loop
+section gained the mode-choice command (TH-005 note).
+
+Gates: ruff check + format clean; pytest 326 passed, 1 skipped (9 min 54 s under load; the skip is
+the lane-audit fix-list test); `tsc --noEmit` passes. `make demo` (serves the app on ports 8000/5173,
+in use by other agents) was not run; Track G's verifier ran its steps on a fresh clone.
+
+Demo window on main (synthetic demand, uncalibrated): `sim.loop.evaluate --mode-choice
+sim/loop/config/mode_choice.yaml --demo` gives 24 riders/day (measured service) and `--service vendor`
+58 riders/day, of 286 eligible legs, 0 capped: identical to Track H's numbers. Logs
+`logs/integration4-mc-demo-{measured,vendor}.log`.
+
+Open (carried from the tracks):
+- Owner, before the first push: `docs/release-checklist.md` step 1 (remove the 12 Esri crops from
+  history with `git filter-repo`) is mandatory; step 2 fills `OWNER` and `CONDUCT_CONTACT` (G-D-004).
+- `docs/issues/04-mode-choice.md` was written before Track H; Track H now covers its core (logit
+  mode choice for the Loop); the issue can be narrowed to city-wide mode choice and road-time feedback.
+- Mode-choice city runs (`evaluate --mode-choice ... --ids C1`) not run on main; Track H's offline
+  sweep read Track D's baseline (TH-004). Not started here (city runs belong to another agent).
 
 ## Integration pass 3 (Track D Loop) — 2026-10-16
 Merged `trackD` (status `LOOP: done`, verifier PASS at 21:00) with `--no-ff` (b476837). No conflicts:
@@ -669,3 +700,20 @@ capped by the measured capacity (alpha 0.3): relief 63,349 VHT/day two-seed mean
 SAR 10 overloads the tunnel at measured capacity. Noise is about +/- 34,000 VHT/day per comparison.
 Assumptions A-loop-001..020 (merged); sources `docs/data-sources-trackD.md`.
 LOOP: done
+
+### RELEASE (Track G)
+Summary (full log in docs/status/trackG.md, decisions G-D-001..005): CI with pinned actions,
+demo-smoke and Pages workflows, project page `site/`, README for publication, NOTICE, CITATION,
+community files, 13 good-first issues, `docs/release-audit.md` and `docs/release-checklist.md`.
+Fixed pytest on a fresh clone (demo-window districts/buildings fixtures). Esri crops in history and
+the commit e-mail are owner actions (checklist step 1). No new behavioural assumptions.
+RELEASE: done
+
+### MODECHOICE (Track H)
+Summary (full log in docs/status/trackH.md, decisions TH-001..007): car-vs-Loop tour-level logit on
+generalised time with pair and segment capacity caps and a deterministic queue (MSA), replacing the
+fixed shift share alpha when a policy sets `mode_choice:`; the alpha path is unchanged (hash tested).
+Central C1 19,530 / 31,450 riders/day (measured / vendor service) vs 28,820 at alpha 0.3; C1
+measured is segment-capacity bound in the evening. Assumptions A-loop-021..030 (merged); sources
+`docs/data-sources-trackH.md`; method `docs/loop-mode-choice.md`.
+MODECHOICE: done

@@ -54,3 +54,16 @@ docs/STATUS.md (Integration pass 3, I-007..I-010).
 Open: viewer comparison across network variants (I-010).
 
 INTEGRATE: done
+
+## INTEGRATE pass 4 (Track G release, Track H mode choice) — 2026-10-17
+Merged `trackG` (`RELEASE: done`) and `trackH` (`MODECHOICE: done`) into `main` with `--no-ff`
+(de540db, b0cca5e); no conflicts. trackF, trackI, trackJ not merged or touched; nothing from
+`movies/` in git; no push.
+Fixes: A-loop-021..030 merged into `docs/assumptions.md` (register test green); README Loop section
+gained the mode-choice command.
+Gates: ruff clean; pytest 326 passed, 1 skipped; tsc passes. Demo window: mode choice 24 (measured) /
+58 (vendor) riders/day, identical to Track H. No city run, no render, `make demo` not run (ports in
+use by other agents). Details in docs/STATUS.md (Integration pass 4).
+Owner action before any push: release checklist step 1 (Esri crops out of history).
+
+INTEGRATE: done
