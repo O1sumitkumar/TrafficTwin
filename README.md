@@ -1,6 +1,6 @@
 # TrafficTwin Jeddah
 
-[![ci](https://github.com/OWNER/TrafficTwin/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/TrafficTwin/actions/workflows/ci.yml)
+[![ci](https://github.com/alturkestani/TrafficTwin/actions/workflows/ci.yml/badge.svg)](https://github.com/alturkestani/TrafficTwin/actions/workflows/ci.yml)
 [![licence: Apache-2.0](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
 [![python 3.12](https://img.shields.io/badge/python-3.12-blue)](pyproject.toml)
 [![Eclipse SUMO 1.28](https://img.shields.io/badge/Eclipse%20SUMO-1.28-green)](https://eclipse.dev/sumo/)
@@ -30,7 +30,7 @@ Needs macOS (Apple silicon) or Linux with [uv](https://docs.astral.sh/uv/), Node
 `make` and `curl`.
 
 ```bash
-git clone https://github.com/OWNER/TrafficTwin.git && cd TrafficTwin
+git clone https://github.com/alturkestani/TrafficTwin.git && cd TrafficTwin
 make demo CITY=0     # demo window only: setup + demo runs, viewer on http://localhost:5173
 ```
 
@@ -112,6 +112,31 @@ samples (25 %, 100 %), mode choice, induced demand, Friday and Ramadan films, an
 comparison across network variants. Good first issues: [`docs/issues/`](docs/issues/).
 Per-milestone status: `docs/STATUS.md`, `docs/status/`.
 
+## Join in
+
+TrafficTwin is one person's side project built in a week with AI coding agents, and it is at the
+point where it needs other people more than more code. If any of these is yours, open an issue or a
+pull request, or start a thread in Discussions:
+
+- **Real counts for Jeddah.** The whole model is synthetic. Traffic counts, travel-time samples or an
+  origin-destination survey (even a small, anonymised one) would switch on the calibration path
+  (`docs/calibration.md`) and turn comparisons into forecasts.
+- **Road inventory.** Lane counts and signal timings for the main corridors; the OpenStreetMap network
+  still teleports 28 % of vehicles in the peaks (`docs/network-v2.md`), and most of that is missing
+  capacity data, not code.
+- **Transport modelling.** Activity chains, mode choice, induced demand, the evening peak, larger
+  population samples; check the assumptions register (`docs/assumptions.md`) and argue with it.
+- **Another city.** The pipeline is Jeddah-specific only in its polygon, zones and day types. Riyadh,
+  Dammam, Makkah in Hajj season, or any city with a decent OpenStreetMap coverage is a fork away.
+- **Arabic and English.** Documentation, the viewer's labels and the narrated films exist in both;
+  a native-speaker pass on the Arabic narration scripts (`movies/specs/*.narration.ar.yaml`) is welcome.
+- **Front-end and visualisation.** The deck.gl viewer, the cinema mode and the films.
+
+Good first issues are in [`docs/issues/`](docs/issues/); the ground rules (determinism, tests on the
+demo window, every assumption sourced) are in [`CONTRIBUTING.md`](CONTRIBUTING.md). Decision-support
+only: nothing in this repository actuates real infrastructure, and nothing here should be used for
+an emergency without a competent authority in the loop.
+
 ## Documentation
 
 | topic | doc |
@@ -141,7 +166,7 @@ Needs macOS (Apple silicon) or Linux with [uv](https://docs.astral.sh/uv/), Node
 `apt install osmium-tool`).
 
 ```bash
-git clone https://github.com/OWNER/TrafficTwin.git && cd TrafficTwin
+git clone https://github.com/alturkestani/TrafficTwin.git && cd TrafficTwin
 make demo            # opens http://localhost:5173 when ready; Ctrl-C stops the servers
 ```
 

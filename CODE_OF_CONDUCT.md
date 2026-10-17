@@ -18,7 +18,7 @@ someone represents the project in public.
 
 ## Reporting
 
-Report unacceptable behaviour privately to the maintainers at **CONDUCT_CONTACT**. Reports are
+Report unacceptable behaviour privately to the maintainers at **tariq.lutf@gmail.com**. Reports are
 handled confidentially. Maintainers may remove comments or contributions, or temporarily or
 permanently ban a contributor, following the enforcement guidelines of the Contributor Covenant
 2.1.
