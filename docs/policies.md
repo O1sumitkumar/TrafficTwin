@@ -133,6 +133,8 @@ VHT/day; no second-seed v2 baseline exists, so the v2 band is not measured.
 |---|---|---|---|---|---|---|---|---|---|---|
 | `staggered_schools_60` | v1 (m2) | weekday (matched control) | -1.1 % | -9.1 % | +0.2 % | -0.7 % (-19,342 h) | -0.6 % | -19.1 % | +0.1 % | 0.478 -> 0.474 |
 | `staggered_schools_60` | **v2** | weekday (matched control) | +2.1 % | -1.8 % | -0.1 % | +1.2 % (+23,033 h) | +1.1 % | -13.3 % | -0.0 % | 0.274 -> 0.275 |
+| `remote_work_30` | v1 (m2) | weekday | -9.3 % | -9.4 % | -1.6 % | -7.7 % (-210,563 h) | -6.9 % | -1.0 % | -1.3 % | 0.505 -> 0.453 |
+| `remote_work_30` | **v2** | weekday | -11.4 % | -13.2 % | -1.8 % | -8.7 % (-167,819 h) | -7.4 % | -0.9 % | -1.4 % | 0.283 -> 0.244 |
 <!-- pass6-v2-rows -->
 
 Controls on v2 (each re-routes the policy's vehicles at their baseline times without the policy;
@@ -145,6 +147,10 @@ Reading the v2 rows:
   the extra v2 capacity the AM-peak delay gain shrinks from -9.1 % to -1.8 %, and the daily VHT
   change (+23k h) is inside the v1 noise band: on a less overloaded network, spreading the school
   peak buys much less.
+- **Remote work 30 %** removes the same share of work tours (7,318 in the sample, 2,596 induced
+  tours added) and still cuts delay by 11 % (AM peak -13 %); in VHT it saves 167,819 h/day (-8.7 %)
+  against 210,563 h on v1, because the v2 baseline has fewer vehicle-hours to save (1.95 M vs 2.74 M).
+  Far outside the v1 noise band; its ranking as the strongest demand lever holds on v2.
 
 Per-policy detail (districts, corridors, hourly profile): `runs/<policy>/policy_report.md`.
 
