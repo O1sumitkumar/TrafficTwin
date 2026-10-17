@@ -29,10 +29,13 @@ reroute:
 # Tier B window evaluation (python -m sim.bridge.window ...)
 window:
   name: obhur_creek
-  # weekday peaks, the same hours as the policy report (sim/policies/config/policy_run.yaml)
+  # weekday peak hours of the window (J-D-006): the hours with the most window entries in the cut
+  # baseline demand (06-07: 4,746, 18-19: 3,996 sampled vehicles). The policy report's 3-hour peaks
+  # (06-09, 16-19) cost ~30 min of wall time per micro run on the shared machine; one hour each
+  # keeps the 24-run grid near 4 h.
   peaks:
-    am: {begin: "06:00", end: "09:00"}
-    pm: {begin: "16:00", end: "19:00"}
+    am: {begin: "06:00", end: "07:00"}
+    pm: {begin: "18:00", end: "19:00"}
   # A-obh-020: vehicles enter from this many seconds before the peak so the window is loaded
   warmup_s: 1800
   # vehicles still running at the end get this long to finish (KPIs count completed trips)
@@ -47,6 +50,10 @@ window:
   max_congestion_factor: 4.0
   # one-shot routing of control and bridge runs on the window baseline's congested times
   weights_interval_s: 900
+  # edge bins of every window run (viewer, film, KPIs)
+  edgedata_freq_s: 300
+  # film runs write FCD only on edges within this distance (m) of a landing junction
+  fcd_radius_m: 900
   routing_algorithm: astar
   # micro options (same as the Tier B event runs: sim/config/runner.yaml tier B defaults)
   time_to_teleport_s: 300
