@@ -214,6 +214,31 @@ Vendor-capacity case (engineering headway 1.5 s, not demonstrated): private-EV, 
 Other options: shuttle, central (alpha 0.5, 90 km/h, measured capacity): 63,908 VHT/day (tunnel segment exceedance 30.0%); private-EV, SAR 10 toll, 90 km/h: 98,743 VHT/day (tunnel segment peak utilisation 2.98 (teleport-assisted)); private-EV, SAR 0 toll, 90 km/h: 163,662 VHT/day (tunnel segment exceedance 88.7%); private-EV, SAR 25 toll, 90 km/h: 44,913 VHT/day (only 750 Loop trips/day (< 5,000): relief is noise).
 <!-- /LOOP:recommendation -->
 
+### C1 on network v2 (integration pass 6, 2026-10-17)
+
+One city run on the v2 network (`docs/network-v2.md`) against the v2 weekday baseline
+`baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1` (seed 1, 10 % sample), with the Track H
+mode-choice logit (measured service) instead of the fixed alpha: run
+`runs/v2/loop_c1_mcmeasured_f26ed359` (`uv run python -m scripts.pass6_v2 run loop_mc`; 6.6 min wall).
+The assumed-share variant (alpha 0.3, `loop_recommended`) was not re-run on v2: it needs its own city
+run. v1 numbers above stay; the v1 alpha-0.3 run is not a like-for-like control for the logit run.
+
+| item | v1 (m2), alpha 0.3, seed 1 | v1, mode choice (offline, no SUMO) | **v2, mode choice, seed 1** |
+|---|---|---|---|
+| passengers per day | 28,820 | 19,530 | **14,630** (600 capped) |
+| congestion relief, VHT/day (remaining vehicles) | 57,671 (two-seed mean 63,349) | not run | **38,718** (+1.99 %) |
+| city VHT saved per day | 54,150 net person-h; city VHT -55,707 (alpha 0.5 row) | not run | 46,684 (-2.4 %) |
+| relief per day per USD M (central capex 446) | 129.2 | - | 86.8 |
+| AM-peak road delay change | -2.85 % | - | -4.81 % (city AM-peak -5.07 %) |
+| net person-hours per day | 54,150 | - | 42,062 |
+| riders slower than by car | 0.697 | - | 0.49 (generalised time 0.50) |
+| teleports per vehicle (base -> policy) | 0.482 | - | 0.283 -> 0.265 |
+
+Reading: on v2 the car is faster (baseline mean delay 1,173 s vs 1,877 s on m2), so fewer car tours
+choose the Loop (14,630 vs 19,530 riders/day under the same logit) and the relief is about two
+thirds of v1's alpha-0.3 run. It is about 1.1 times the v1 seed-noise band (±34k VHT/day); the v2
+band is not measured. 26-28 % of vehicles still teleport on v2: a quality flag on every number here.
+
 ## Noise and checks
 
 <!-- LOOP:noise -->

@@ -177,6 +177,19 @@ uv run python -m sim.loop.evaluate --mode-choice sim/loop/config/mode_choice.yam
 Results merge into `sim/loop/results/evaluation_mode_choice.json` (Track D's `evaluation.json` is
 untouched); run ids `loop_c1_mcmeasured_<hash>` and `loop_c1_mcvendor_<hash>_v160_capengineering`.
 
+### Done on network v2 (integration pass 6, 2026-10-17)
+
+C1, measured service, seed 1, on the v2 network (run `runs/v2/loop_c1_mcmeasured_f26ed359`, results
+`runs/v2/evaluation_mode_choice.json`; `uv run python -m scripts.pass6_v2 run loop_mc`): **14,630
+riders/day** (v1 offline central 19,530; 600 capped by capacity; expected 15,017), mean P(Loop) 0.148
+over 4,920 eligible tours, congestion relief **38,718 VHT/day** for the remaining vehicles, city VHT
+-46,684/day (-2.4 %), AM-peak road delay -4.8 %, 49 % of admitted riders slower than by car;
+teleports per vehicle 0.283 -> 0.265 (quality flag). The v2 car times are shorter than v1's (the
+"gridlock-affected baseline" limitation below is smaller on v2, not gone), which lowers ridership.
+Not run on v2: the vendor service, seed-2 replicates and C2/C4/C6 (commands above, with
+`--runs-dir`-style isolation: use `scripts/pass6_v2.py` as the pattern, because `sim.loop.evaluate`
+writes to `runs/`).
+
 ## Limitations
 
 - **Transferred coefficients.** No Jeddah or Saudi revealed-preference data; beta, the
