@@ -268,11 +268,11 @@ Per-district effects (from `policy_districts.parquet`; Obhur districts first):
 
 | district | Δ mean delay | Δ VHT | Δ trips through | notes |
 |---|---|---|---|---|
-| Abhur Al Janubiyah | B3: -635.7 s per trip (1,823 -> 1,188 s); B1: -475.9 s | | +1,010 trips | |
-| Abhur Ash Shamaliyah | B3: -787.8 s (2,161 -> 1,373 s); B1: -641.2 s | | +820 | |
-| Al Yaqoot, Ash Sheraa, As Swaryee, Az Zomorod, Al Amwaj, Al Loaloa | B3: -765, -641, -162, -473, -633, -662 s; B1: -687, -572, -126, -414, -633, -579 s | | +230 to +400 each | |
-| Al Murjaan, Al Basateen | B3: +289.6 s, +29.9 s; B1: +334.5 s, +63.9 s (worse: the B1 south landing queue) | | +180, +530 | |
-| Al-Salamah, Al-Zahra (long north-south trips) | B3: -87.2 s, -16.7 s | | +790, +300 | |
+| Abhur Al Janubiyah | B3: -635.7 s per trip (1,823 -> 1,188 s); B1: -475.9 s | | B3 +1,010 / B1 +980 trips | |
+| Abhur Ash Shamaliyah | B3: -787.8 s (2,161 -> 1,373 s); B1: -641.2 s | | B3 +820 / B1 +770 | |
+| Al Yaqoot, Ash Sheraa, As Swaryee, Az Zomorod, Al Amwaj, Al Loaloa | B3: -765, -641, -162, -473, -633, -662 s; B1: -687, -572, -126, -414, -633, -579 s | | B3 +230 to +400 each / B1 +220 to +400 | |
+| Al Murjaan, Al Basateen | B3: +289.6 s, +29.9 s; B1: +334.5 s, +63.9 s (worse: the B1 south landing queue) | | B3 +180, +530 / B1 +140, +560 | |
+| Al-Salamah, Al-Zahra (long north-south trips) | B3: -87.2 s, -16.7 s; B1: -90.0 s, +8.3 s | | B3 +790, +300 / B1 +880, +140 | |
 
 **Induced demand caveat.** These are fixed-demand, first-year effects: nobody makes a new trip,
 changes mode or departure time because the bridge exists (A-obh-006). New links usually attract
