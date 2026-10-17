@@ -252,3 +252,38 @@ def test_replicate_copies_and_jitter(tmp_path: Path) -> None:
     out2 = tmp_path / "d2.rou.xml"
     replicate(cut, out2, 10, 150.0, (0.0, 3600.0), seed=1)
     assert out.read_text() == out2.read_text()  # seeded
+
+
+def test_matched_control_on_synthetic_banks(
+    banks: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Same trips, same weights: re-routed without (control) and with the bridge; the bridge run
+    uses the span and is faster per vehicle (paired by id)."""
+    import sim.bridge.window as W
+    from sim.population.export_trips import vtype_lines
+
+    cfg = {**bridge_config()["window"], "warmup_s": 0, "cooldown_s": 600,
+           "peaks": {"am": {"begin": "00:00", "end": "00:10"}}}  # fmt: skip
+    monkeypatch.setattr(W, "wcfg", lambda: cfg)
+    demand = tmp_path / "demand.rou.xml"
+    veh = [f'  <vehicle id="v{i}" type="car" depart="{10 * i}"><route edges="s0s1 s1s2 s2s3 s3n3 '
+           f'n3n2 n2n1 n1n0"/></vehicle>' for i in range(20)]  # fmt: skip
+    demand.write_text("<routes>\n" + "\n".join(vtype_lines(1.0) + veh) + "\n</routes>\n")
+    weights = tmp_path / "weights.xml"
+    weights.write_text("<meandata/>\n")
+    variant, _, _ = build_bridge_net(banks, transform(), tmp_path / "nets")
+    out = {}
+    for name, net in (("control", banks), ("bridge", variant)):
+        d = tmp_path / name
+        d.mkdir()
+        info = W.reroute(net, demand, weights, d / "routes.rou.xml")
+        assert info["routed"] == 20
+        meta = W.simulate(net, d / "routes.rou.xml", d, "am", 1, {"run": name})
+        assert meta["tier"] == "B" and meta["network_hash"]
+        out[name] = pd.read_parquet(d / "tripinfo.parquet").set_index("veh_id")
+        if name == "bridge":
+            assert "obh_x1_SN" in (d / "routes.rou.xml").read_text()
+    both = out["bridge"].join(out["control"], rsuffix="_c", how="inner")
+    assert len(both) == 20
+    assert (both["route_m"] < both["route_m_c"] - 4000).all()  # ~7.3 km around vs ~3.2 km over
+    assert (both["duration"] < both["duration_c"]).all()
