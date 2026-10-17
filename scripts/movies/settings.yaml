@@ -111,7 +111,8 @@ voice:
   lufs: -16                # integrated loudness target (EBU R128 loudnorm, two-pass, linear)
   true_peak_db: -1.5
   aac_kbps: 160
-  # Arabic edition (pass 8, docs/movies-arabic.md RA-001): these keys override the ones above
+  # Arabic edition (pass 8, docs/movies-arabic.md RA-001; A-mov-015 voice, A-mov-016 clause
+  # synthesis in tts_ar.py): these keys override the ones above
   ar:
     engine: chatterbox-multilingual   # Resemble AI Chatterbox Multilingual (MIT), language id ar
     worker: tts_ar.py        # scripts/movies/tts_ar.py, run in the Arabic TTS venv
@@ -122,7 +123,7 @@ voice:
     voice: runs/movies/_voice_ar/ref/clartts-417-24k.wav
     speed: 1.0               # no time-stretch; the pace comes from exaggeration/cfg below
     seed: 1
-    workers: 4               # parallel one-thread CPU worker processes (each deterministic)
+    workers: 2               # parallel one-thread CPU worker processes (each ~3 GB; 4 swapped on 18 GB)
     args: [--device, cpu, --exaggeration, "0.9", --cfg-weight, "0.4"]   # fastest clean pace of 4 tested
 
 # Map labels (MOVIES_V2, scripts/movies/labels.py + web/src/cinema/annotate.ts): display choices,

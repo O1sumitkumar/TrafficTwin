@@ -1,6 +1,7 @@
 """Showreel: every rendered film in order, each after a short title card, joined with crossfades.
 
     python -m scripts.movies.showreel            # movies/showreel.mp4 (+ .poster.png, .gif, .json)
+    python -m scripts.movies.showreel --lang ar  # movies/showreel.ar.mp4 from movies/<film>.ar.mp4
 
 Inputs are movies/<film>.mp4 in the order of movies/specs/order.yaml (stub specs and films not
 rendered yet are skipped and listed), each cut to its spec's `showreel: [start, end]` excerpt so the
@@ -13,6 +14,10 @@ is spoken over its film's title card (the films' own voice tracks are not cut up
 is the caveat. The headlines are mixed, loudness-normalised and muxed like a film's voice track,
 with movies/showreel.srt beside the MP4. Excerpts follow the narrated (stretched) films: they
 start at the `showreel_excerpt` recorded in movies/<film>.json and keep the spec's length.
+
+Arabic edition (`--lang ar`): the same reel from the Arabic films (movies/<film>.ar.mp4 and their
+.ar.json excerpts and .ar.poster.png stills), with the headlines of showreel.narration.ar.yaml;
+the title cards keep the films' English titles (the specs carry no Arabic titles).
 """
 
 from __future__ import annotations
@@ -146,16 +151,22 @@ def excerpt(film: Any, mp4: Path, out: Path, fps: int, r: dict[str, Any]) -> Pat
 
 
 def headline_track(
-    names: list[str], starts: list[float], total_s: float, work: Path, out_dir: Path
+    names: list[str],
+    starts: list[float],
+    total_s: float,
+    work: Path,
+    out_dir: Path,
+    lang: str = "en",
 ) -> dict[str, Any] | None:
     """Voice WAV + SRT of the showreel headlines: each film's lines from its title card on."""
-    nar = narrate.load_narration("showreel")
+    nar = narrate.load_narration("showreel", lang)
     if nar is None:
         return None
-    cfg = load_settings()["voice"]
+    cfg = narrate._settings(lang)
+    tag = "" if lang == "en" else f".{lang}"
     voice = nar.voice or str(cfg["voice"])
     lines = [ln for ln in nar.lines if ln.film in names]
-    wavs = narrate.speak([ln.text for ln in lines], voice)
+    wavs = narrate.speak([narrate.spoken(ln) for ln in lines], voice, lang)
     placed: list[tuple[float, float, str, Path]] = []
     prev_end = -1.0
     for ln, wav in zip(lines, wavs, strict=True):
@@ -165,21 +176,22 @@ def headline_track(
         prev_end = start + narrate.wav_seconds(wav)
         placed.append((start, prev_end, ln.text, wav))
     wav_out = work / "showreel.voice.wav"
-    sha = narrate.voice_track([(a, w) for a, _, _, w in placed], total_s, wav_out)
-    srt = out_dir / "showreel.srt"
+    sha = narrate.voice_track([(a, w) for a, _, _, w in placed], total_s, wav_out, lang)
+    srt = out_dir / f"showreel{tag}.srt"
     narrate.write_srt([(a, b, t) for a, b, t, _ in placed], srt)
     return {"wav": wav_out, "srt": srt, "voice_sha256_16": sha, "voice": voice,
             "lines": [{"text": t, "start_s": round(a, 3), "end_s": round(b, 3)}
                       for a, b, t, _ in placed]}  # fmt: skip
 
 
-def build(out_dir: Path = MOVIES_DIR, voice: bool = True) -> dict[str, Any]:
+def build(out_dir: Path = MOVIES_DIR, voice: bool = True, lang: str = "en") -> dict[str, Any]:
     r = load_settings()["render"]
+    tag = "" if lang == "en" else f".{lang}"
     clips: list[tuple[str, Path]] = []
     skipped = []
     for name in film_names():
         film = load_film(name)
-        mp4 = out_dir / f"{name}.mp4"
+        mp4 = out_dir / f"{name}{tag}.mp4"
         if film.stub or not mp4.exists():
             skipped.append(name)
             continue
@@ -197,7 +209,7 @@ def build(out_dir: Path = MOVIES_DIR, voice: bool = True) -> dict[str, Any]:
                 raise ValueError(f"{name}: size/fps differ from {clips[0][0]}; render all alike")
             film = load_film(name)
             card = tmp / f"{name}.card.mp4"
-            title_card(film, out_dir / f"{name}.poster.png", card, w, h, fps, r)
+            title_card(film, out_dir / f"{name}{tag}.poster.png", card, w, h, fps, r)
             parts += [card, excerpt(film, mp4, tmp / f"{name}.cut.mp4", fps, r)]
         durations = [probe(p)["duration_s"] for p in parts]
         inputs: list[str] = []
@@ -213,11 +225,11 @@ def build(out_dir: Path = MOVIES_DIR, voice: bool = True) -> dict[str, Any]:
                 f"{prev}[{k}:v]xfade=transition=fade:duration={XFADE_S}:offset={offset:.3f}{label}"
             )
             prev = label
-        out = out_dir / "showreel.mp4"
+        out = out_dir / f"showreel{tag}.mp4"
         names = [n for n, _ in clips]
         starts = [sum(durations[: 2 * i]) - 2 * i * XFADE_S for i in range(len(clips))]
         total = sum(durations) - (len(parts) - 1) * XFADE_S
-        voice_info = headline_track(names, starts, total, tmp, out_dir) if voice else None
+        voice_info = headline_track(names, starts, total, tmp, out_dir, lang) if voice else None
         silent = tmp / "showreel.video.mp4" if voice_info else out
         subprocess.run(
             [
@@ -248,17 +260,20 @@ def build(out_dir: Path = MOVIES_DIR, voice: bool = True) -> dict[str, Any]:
         )
         audio = None
         if voice_info:
-            loud = mux_voice(silent, voice_info["wav"], voice_info["srt"], out)
+            loud = mux_voice(silent, voice_info["wav"], voice_info["srt"], out, lang)
             audio = {k: v for k, v in voice_info.items() if k not in ("wav", "srt")}
-            audio.update({"loudness": loud, "srt": "showreel.srt", "stream": probe_audio(out)})
+            audio.update(
+                {"loudness": loud, "srt": f"showreel{tag}.srt", "stream": probe_audio(out)}
+            )
         else:
-            (out_dir / "showreel.srt").unlink(missing_ok=True)
+            (out_dir / f"showreel{tag}.srt").unlink(missing_ok=True)
     info = probe(out)
-    poster = out_dir / "showreel.poster.png"
-    shutil.copyfile(out_dir / f"{clips[0][0]}.poster.png", poster)
-    gif = make_gif(out, out_dir / "showreel.gif", CARD_S + 4.0, r)
+    poster = out_dir / f"showreel{tag}.poster.png"
+    shutil.copyfile(out_dir / f"{clips[0][0]}{tag}.poster.png", poster)
+    gif = make_gif(out, out_dir / f"showreel{tag}.gif", CARD_S + 4.0, r)
     meta = {
         "label": SYNTHETIC_LABEL,
+        "lang": lang,
         "films": [n for n, _ in clips],
         "skipped": skipped,
         "card_s": CARD_S,
@@ -267,7 +282,7 @@ def build(out_dir: Path = MOVIES_DIR, voice: bool = True) -> dict[str, Any]:
         "audio": audio,
         "gif": gif,
     }
-    (out_dir / "showreel.json").write_text(json.dumps(meta, indent=1))
+    (out_dir / f"showreel{tag}.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
     return meta
 
 
@@ -278,9 +293,10 @@ app = typer.Typer(add_completion=False)
 def main(
     out: Path = typer.Option(MOVIES_DIR, help="directory holding the films"),
     no_voice: bool = typer.Option(False, "--no-voice", help="silent showreel"),
+    lang: str = typer.Option("en", help="edition: en | ar (movies/showreel.ar.mp4)"),
 ) -> None:
-    """Build movies/showreel.mp4 from the rendered films."""
-    meta = build(out, voice=not no_voice)
+    """Build movies/showreel.mp4 (or showreel.<lang>.mp4) from the rendered films."""
+    meta = build(out, voice=not no_voice, lang=lang)
     typer.echo(
         f"showreel: {len(meta['films'])} films, {meta['mp4']['duration_s']:.1f} s"
         f" (skipped: {', '.join(meta['skipped']) or 'none'})"

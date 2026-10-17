@@ -19,6 +19,11 @@ subtitles are drawn by the HUD from the same lines. After the encode the lines a
 voice track, loudness-normalised (EBU R128, two-pass, linear) and muxed as AAC with a soft
 subtitle track; movies/<film>.srt is written next to the MP4. `--no-voice` renders silently with
 the spec's own timing; `--no-subtitles` keeps the voice but draws no subtitles.
+
+Arabic edition (`--lang ar`, docs/movies-arabic.md): the same film with the Arabic narration
+(`<film>.narration.ar.yaml`, Chatterbox Multilingual): movies/<film>.ar.mp4 (+ .ar.srt,
+.ar.poster.png, .ar.gif, .ar.json), work files in runs/movies/<film>.ar/, subtitle and audio tracks
+tagged `ara`. The English outputs are not touched.
 """
 
 from __future__ import annotations
@@ -317,12 +322,18 @@ def loudness(path: Path, extra: list[str] | None = None) -> dict[str, Any]:
     return json.loads(err[err.rindex("{") : err.rindex("}") + 1])
 
 
-def mux_voice(video: Path, wav: Path, srt: Path | None, out: Path) -> dict[str, Any]:
+ISO639_2 = {"en": "eng", "ar": "ara"}
+
+
+def mux_voice(
+    video: Path, wav: Path, srt: Path | None, out: Path, lang: str = "en"
+) -> dict[str, Any]:
     """video + voice WAV (+ SRT) -> MP4 with AAC voice (loudness-normalised) and mov_text subs.
 
     loudnorm works in 100 ms blocks and pads its output to a whole block, so the track is trimmed
     back to the voice WAV's exact length (= the film's frames / fps)."""
     v = load_settings()["voice"]
+    code = ISO639_2[lang]
     m = loudness(wav)
     dur = narrate.wav_seconds(wav)
     af = (
@@ -335,9 +346,9 @@ def mux_voice(video: Path, wav: Path, srt: Path | None, out: Path) -> dict[str, 
     maps = ["-map", "0:v", "-map", "1:a"]
     if srt is not None:
         cmd += ["-i", str(srt)]
-        maps += ["-map", "2:s", "-c:s", "mov_text", "-metadata:s:s:0", "language=eng"]
+        maps += ["-map", "2:s", "-c:s", "mov_text", "-metadata:s:s:0", f"language={code}"]
     cmd += [*maps, "-c:v", "copy", "-af", af, "-c:a", "aac", "-b:a", f"{v['aac_kbps']}k",
-            "-ar", "48000", "-ac", "1", "-metadata:s:a:0", "language=eng", "-fflags",
+            "-ar", "48000", "-ac", "1", "-metadata:s:a:0", f"language={code}", "-fflags",
             "+bitexact", "-flags:a", "+bitexact", "-movflags", "+faststart", str(out)]  # fmt: skip
     _run(cmd)
     after = loudness(out)
@@ -421,8 +432,10 @@ def render_film(
     build_web: bool = True,
     voice: bool = True,
     subtitles: bool = True,
+    lang: str = "en",
 ) -> dict[str, Any]:
     os.environ.setdefault("TT_RUNS_READONLY", "1")
+    tag = "" if lang == "en" else f".{lang}"  # output and work-dir suffix of the edition
     settings = load_settings()
     r = settings["render"]
     film = load_film(name)
@@ -436,11 +449,11 @@ def render_film(
         (int(r["width_4k"]), int(r["height_4k"])) if k4 else (int(r["width"]), int(r["height"]))
     )
     t_start = time.time()
-    work = movies_runs_dir() / film.film
-    timing = narrate.prepare(film, fps) if voice else None
+    work = movies_runs_dir() / f"{film.film}{tag}"
+    timing = narrate.prepare(film, fps, lang) if voice else None
     if timing is not None:
         film = narrate.apply_timing(film, timing)
-        log(f"{name}: narration {len(timing.lines)} lines, voice {timing.voice}, "
+        log(f"{name}{tag}: narration {len(timing.lines)} lines, voice {timing.voice}, "
             f"stretch {timing.stretch}, {film.duration_s:.2f} s")  # fmt: skip
     lines = (
         [{"text": t.text, "start_s": round(t.start_s, 3), "end_s": round(t.end_s, 3)}
@@ -471,12 +484,12 @@ def render_film(
     hash_ks = {content[0], content[len(content) // 2], content[-1]}
     picks = sorted(hash_ks | {poster_k})
     hashes: dict[str, str] = {}
-    poster = out_dir / f"{film.film}.poster.png"
+    poster = out_dir / f"{film.film}{tag}.poster.png"
     rss_max = 0.0
     disk_max = 0.0
     segments: list[Path] = []
     chunk = int(r["chunk_frames"])
-    driver = Driver(url, film.film, width, height)
+    driver = Driver(url, work.name, width, height)  # /cinema-data/<work dir>/ (bundle key)
     t_frames = 0.0
     try:
         gpu = driver.ready.get("gpu", {}).get("renderer")
@@ -515,16 +528,18 @@ def render_film(
     finally:
         driver.close()
         server.shutdown()
-    mp4 = out_dir / f"{film.film}.mp4"
-    srt = out_dir / f"{film.film}.srt"
+    mp4 = out_dir / f"{film.film}{tag}.mp4"
+    srt = out_dir / f"{film.film}{tag}.srt"
     audio: dict[str, Any] | None = None
     if timing is not None and (a, b) == (0, n):
         video = work / "video.mp4"
         concat(segments, video)
         wav = work / "voice.wav"
-        voice_sha = narrate.voice_track([(t.start_s, t.wav) for t in timing.lines], n / fps, wav)
+        voice_sha = narrate.voice_track(
+            [(t.start_s, t.wav) for t in timing.lines], n / fps, wav, lang
+        )
         narrate.write_srt([(t.start_s, t.end_s, t.text) for t in timing.lines], srt)
-        loud = mux_voice(video, wav, srt, mp4)
+        loud = mux_voice(video, wav, srt, mp4, lang)
         video.unlink()
         audio = {"voice_sha256_16": voice_sha, "loudness": loud, "srt": srt.name,
                  "timing": timing.as_json()}  # fmt: skip
@@ -536,13 +551,14 @@ def render_film(
     info = probe(mp4)
     gif_start = max(0.0, min(info["duration_s"] - float(r["gif_seconds"]), film.title_card_s + 0.5))
     try:
-        gif: dict[str, Any] = make_gif(mp4, out_dir / f"{film.film}.gif", gif_start, r)
+        gif: dict[str, Any] = make_gif(mp4, out_dir / f"{film.film}{tag}.gif", gif_start, r)
         gif["start_s"] = round(gif_start, 3)
     except subprocess.CalledProcessError as exc:  # e.g. a one-frame partial render
         gif = {"error": f"gif not made: {exc.returncode}"}
         log(f"{name}: GIF preview not made ({exc.returncode})")
     meta = {
         "film": film.film,
+        "lang": lang,
         "label": SYNTHETIC_LABEL,
         "title": film.title,
         "spec": str(spec_path(name).relative_to(REPO_ROOT))
@@ -567,7 +583,7 @@ def render_film(
         "seconds": {"frames": round(t_frames, 1), "total": round(time.time() - t_start, 1)},
         "gpu": driver.ready.get("gpu"),
     }
-    (out_dir / f"{film.film}.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
+    (out_dir / f"{film.film}{tag}.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
     log(
         f"{name}: {mp4.relative_to(REPO_ROOT) if mp4.is_relative_to(REPO_ROOT) else mp4} "
         f"{info['width']}x{info['height']} {info['duration_s']:.2f} s, "
@@ -608,6 +624,7 @@ def main(
     keep_frames: bool = typer.Option(False, help="keep the PNG frames (debugging)"),
     no_voice: bool = typer.Option(False, "--no-voice", help="silent render, spec timing"),
     no_subtitles: bool = typer.Option(False, "--no-subtitles", help="voice without subtitles"),
+    lang: str = typer.Option("en", help="narration language: en | ar (movies/<film>.ar.mp4)"),
 ) -> None:
     names = film_names() if all_ else list(films or [])
     if not names:
@@ -629,6 +646,7 @@ def main(
                 keep_frames,
                 voice=not no_voice,
                 subtitles=not no_subtitles,
+                lang=lang,
             )
         except Exception as exc:  # noqa: BLE001 - keep going with the other films
             log(f"{name}: FAILED {exc}")

@@ -190,6 +190,7 @@ export class Hud {
     if (an?.subtitles && m.narration?.length) {
       this.sub = el("div", "cin-sub", hud);
       this.subSpan = el("span", "", this.sub);
+      this.subSpan.dir = "auto"; // Arabic narration (pass 8): right-to-left base direction from the text
     }
     const footer = el("div", "cin-footer", hud);
     const fictional = m.fictional ? ` &middot; <b>fictional demo parameters</b>` : "";
@@ -399,6 +400,7 @@ export class Hud {
       probe.style.width = `${s.width}px`;
       probe.style.bottom = "0";
       const sp = el("span", "", probe, this.m.narration![s.line]!.text);
+      sp.dir = "auto";
       sp.style.fontSize = `${s.font}px`;
       h = sp.getBoundingClientRect().height;
       probe.remove();

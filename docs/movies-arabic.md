@@ -28,7 +28,7 @@ their caches are untouched (the English WAV cache keys are unchanged; Arabic wor
 cloning the voice of one 10.7 s clip of the ClArTTS corpus (utterance
 `ch_02_arabic_tts_dataset_417`, one male reader, MBZUAI, CC-BY-4.0, recorded from a LibriVox
 audiobook). It runs offline on the Mac's CPU in its own venv `.venv-tts-ar` (torch 2.6.0; the
-English `.venv-tts` is untouched), one thread per worker process, four workers in parallel.
+English `.venv-tts` is untouched), one thread per worker process, two workers in parallel (four swapped on the 18 GB Mac).
 Settings: `voice.ar` in `scripts/movies/settings.yaml` (seed 1, exaggeration 0.9, cfg weight 0.4,
 no time-stretch). Chatterbox embeds Resemble's inaudible Perth watermark in every output.
 
@@ -88,7 +88,7 @@ What the checks showed:
   22.05 kHz (below the 24-48 kHz asked for), sounds robotic, and its training-data licence is not
   stated. Kept as the fallback, not installed by `make voice-setup-ar`.
 - **Speed.** Chatterbox on the CPU takes about 8 s per second of speech in one thread (MPS about
-  6.7 s/s but its take of line 3 held a 2.1 s silence); four one-thread workers in parallel make
+  6.7 s/s but its take of line 3 held a 2.1 s silence); two one-thread workers in parallel make
   up for it. Every sample is 24 kHz mono, no truncation (the last word is in each transcript).
 - **Rate.** The chosen settings speak about 4.6 counted syllables/s on the long line (about 4.2
   spoken), a little above the 2.5-4 asked for; slower settings made the films longer than the

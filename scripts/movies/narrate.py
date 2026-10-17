@@ -2,7 +2,9 @@
 
     uv run python -m scripts.movies.narrate validate          # movies/specs/*.narration.yaml
     uv run python -m scripts.movies.narrate speak evacuation  # WAVs + timing for one film
+    uv run python -m scripts.movies.narrate speak evacuation --lang ar   # the Arabic edition
     make voice-setup                                          # the offline TTS venv (.venv-tts)
+    make voice-setup-ar                                       # the Arabic TTS venv (.venv-tts-ar)
 
 A narration script (`movies/specs/<film>.narration.yaml`) has 4-8 plain-English lines, each tied to
 a shot of the film: `at` (seconds into the shot, i.e. a camera moment) or `sim_t` (the moment the
@@ -16,6 +18,14 @@ starts at its anchor, never before the previous line has ended (+ gap), and the 
 shots stretch to fit speech, never the reverse. `apply_timing` returns the stretched film;
 `voice_track` mixes the lines into one WAV of the film's length; `write_srt` writes the subtitles.
 Same script + model + settings => same samples (seeded TTS), so the voice track hash is stable.
+
+Arabic edition (`--lang ar`, docs/movies-arabic.md): `<film>.narration.ar.yaml` has the same lines
+and anchors in Modern Standard Arabic. Each line's `text` is the subtitle (Western digits, the same
+figures as the English line) and `say` the fully vowelised text the TTS speaks, numbers in words.
+`check` compares the subtitle's numbers with the English line's and reads the spoken number words
+back (`ar_numbers`) so the voice says the same figures. The Arabic voice is Chatterbox
+Multilingual (scripts/movies/tts_ar.py in `.venv-tts-ar`, settings `voice.ar`), cached in
+runs/movies/_voice_ar/.
 """
 
 from __future__ import annotations
@@ -40,6 +50,7 @@ from scripts.movies.spec import SPECS_DIR, Film, Strict, film_names, load_film, 
 from sim.common import REPO_ROOT
 
 NARRATION_SUFFIX = ".narration.yaml"
+LANGS = ("en", "ar")
 TTS_WORKER = Path(__file__).with_name("tts_kokoro.py")
 # numbers spoken in a narration must appear in one of these (MOVIES_V2: never invent a number)
 NUMBER_DOCS = [
@@ -52,10 +63,12 @@ NUMBER_DOCS = [
     "docs/movies.md",
 ]
 CAVEAT_WORDS = ("synthetic", "uncalibrated")
+CAVEAT_AR = "طلب اصطناعي، غير معاير"
 
 
 class Line(Strict):
-    text: str = Field(min_length=3)
+    text: str = Field(min_length=3)  # what is spoken, and the subtitle
+    say: str | None = None  # Arabic edition: the vowelised text spoken instead (numbers in words)
     shot: str | None = None  # film narration: shot id the line belongs to
     film: str | None = None  # showreel narration: film whose excerpt the line belongs to
     at: float | None = Field(default=None, ge=0)  # seconds into the shot (camera moment)
@@ -76,12 +89,18 @@ class Narration(Strict):
     lines: list[Line] = Field(min_length=1, max_length=12)
 
 
-def narration_path(film: str) -> Path:
-    return SPECS_DIR / f"{film}{NARRATION_SUFFIX}"
+def suffix(lang: str = "en") -> str:
+    if lang not in LANGS:
+        raise ValueError(f"language {lang!r}: one of {LANGS}")
+    return NARRATION_SUFFIX if lang == "en" else f".narration.{lang}.yaml"
 
 
-def load_narration(film: str) -> Narration | None:
-    path = narration_path(film)
+def narration_path(film: str, lang: str = "en") -> Path:
+    return SPECS_DIR / f"{film}{suffix(lang)}"
+
+
+def load_narration(film: str, lang: str = "en") -> Narration | None:
+    path = narration_path(film, lang)
     if not path.exists():
         return None
     nar = Narration.model_validate(yaml.safe_load(path.read_text()))
@@ -109,6 +128,138 @@ def doc_numbers() -> set[str]:
     return nums
 
 
+DIACRITICS = re.compile("[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]")
+AR_UNITS = {
+    "واحد": 1, "واحده": 1, "احد": 1, "احدى": 1, "اثنان": 2, "اثنين": 2, "اثنتان": 2,
+    "اثنتين": 2, "ثلاثه": 3, "ثلاث": 3, "اربعه": 4, "اربع": 4, "خمسه": 5, "خمس": 5, "سته": 6,
+    "ست": 6, "سبعه": 7, "سبع": 7, "ثمانيه": 8, "ثماني": 8, "ثمان": 8, "تسعه": 9, "تسع": 9,
+    "عشره": 10, "عشر": 10, "اثني": 2, "اثنا": 2, "اثنتي": 2, "اثنتا": 2,
+}  # fmt: skip
+for _w in ("واحد", "ثلاث", "اربع", "خمس", "ست", "سبع", "ثماني", "تسع", "عشر"):
+    AR_UNITS[f"{_w}ا"] = AR_UNITS[_w]  # accusative with tanween: خمسًا، واحدًا
+AR_TENS = {
+    "عشرون": 20, "عشرين": 20, "ثلاثون": 30, "ثلاثين": 30, "اربعون": 40, "اربعين": 40,
+    "خمسون": 50, "خمسين": 50, "ستون": 60, "ستين": 60, "سبعون": 70, "سبعين": 70, "ثمانون": 80,
+    "ثمانين": 80, "تسعون": 90, "تسعين": 90,
+}  # fmt: skip
+AR_HUNDREDS = {"مئه": 100, "مائه": 100, "مئتان": 200, "مئتين": 200, "مائتان": 200, "مائتين": 200}
+for _w, _v in (("ثلاث", 3), ("اربع", 4), ("خمس", 5), ("ست", 6), ("سبع", 7), ("ثمان", 8),
+               ("تسع", 9)):  # fmt: skip
+    AR_HUNDREDS[f"{_w}مئه"] = AR_HUNDREDS[f"{_w}مائه"] = _v * 100
+AR_THOUSAND = {"الف": 1, "الفا": 1, "الاف": 1, "الفان": 2, "الفين": 2}
+AR_POINT = "فاصله"
+
+
+def ar_bare(text: str) -> str:
+    """Arabic without diacritics or tatweel; alef forms unified, ة as ه, ى as ي."""
+    t = DIACRITICS.sub("", text)
+    return re.sub("[إأآٱ]", "ا", t).replace("ة", "ه").replace("ى", "ي")
+
+
+def _ar_word(w: str) -> tuple[str, int] | None:
+    """(kind, value) of an Arabic number word, with an optional و / ب prefix; None otherwise."""
+    for cand in (w, w[1:] if w[:1] in "وب" else ""):
+        if cand in AR_UNITS:
+            return "unit", AR_UNITS[cand]
+        if cand in AR_TENS:
+            return "ten", AR_TENS[cand]
+        if cand in AR_HUNDREDS:
+            return "hundred", AR_HUNDREDS[cand]
+        if cand in AR_THOUSAND:
+            return "thousand", AR_THOUSAND[cand]
+        if cand == AR_POINT:
+            return "point", 0
+    return None
+
+
+def _ar_int(toks: list[tuple[str, int] | None], j: int) -> tuple[int, int]:
+    """One integer read greedily from toks[j]; returns (value, index after it)."""
+    rank = {"hundred": 3, "unit": 2, "ten": 1}
+    total = group = 0
+    last = 9  # rank of the last part of the current group (9 = group empty)
+    teen = thousands = False
+    while j < len(toks) and toks[j] is not None:
+        kind, v = toks[j]  # type: ignore[misc]
+        if kind == "point":
+            break
+        if kind == "thousand":
+            if thousands:
+                break
+            total += (group or v) * 1000 if group else v * 1000
+            group, last, thousands = 0, 9, True
+        elif kind == "unit" and v == 10 and last == 2 and not teen and group % 10:
+            group += 10  # ثلاثة عشر = 13
+            teen = True
+        else:
+            r = rank[kind]
+            if last != 9 and r >= last:
+                break  # cannot follow the part before: a new number starts here
+            group += v
+            last, teen = r, False
+        j += 1
+    return total + group, j
+
+
+def ar_numbers(text: str) -> list[str]:
+    """The numbers spoken in Arabic words, as digit strings ('مئة وثمانية وسبعون ألفًا وتسعمئة
+    وتسع' -> '178909', 'ثمانية فاصلة سبعة' -> '8.7'). Within a number the parts come hundreds,
+    units, tens, and ألف multiplies the group before it; a part that cannot follow the one before
+    starts a new number ('ستمئة وأربعمئة' = 600 and 400)."""
+    toks = [_ar_word(w) for w in re.findall(r"[\u0621-\u064a]+", ar_bare(text))]
+    out: list[str] = []
+    j = 0
+    while j < len(toks):
+        if toks[j] is None or toks[j][0] == "point":  # type: ignore[index]
+            j += 1
+            continue
+        v, j = _ar_int(toks, j)
+        num = str(v)
+        if j + 1 < len(toks) and toks[j] == ("point", 0) and toks[j + 1] is not None:
+            f, j = _ar_int(toks, j + 1)
+            num = f"{v}.{f}"
+        out.append(num)
+    return out
+
+
+def _num_key(n: str) -> str:
+    return n.rstrip("0").rstrip(".") if "." in n else n
+
+
+def check_ar(nar: Narration, en: Narration | None, film: Film | None) -> list[str]:
+    """Problems with an Arabic narration: anchors and figures against its English counterpart."""
+    errs = []
+    if en is None:
+        return ["no English narration to compare with"]
+    if len(nar.lines) != len(en.lines):
+        errs.append(f"{len(nar.lines)} lines, the English script has {len(en.lines)}")
+    if film is not None:
+        ids = [s.id for s in film.shots]
+        bad = [ln.shot for ln in nar.lines if ln.shot not in ids]
+        if bad:
+            errs.append(f"unknown shot in {bad}")
+    if CAVEAT_AR not in ar_bare(nar.lines[-1].text).replace("معايره", "معاير"):
+        errs.append(f"the last line must carry the caveat «{CAVEAT_AR}»")
+    for k, (ar, e) in enumerate(zip(nar.lines, en.lines, strict=False), start=1):
+        where = f"line {k}"
+        if (ar.shot, ar.film, ar.at, ar.sim_t) != (e.shot, e.film, e.at, e.sim_t):
+            errs.append(f"{where}: anchor differs from the English line")
+        want = sorted(_numbers(e.text))
+        got = sorted(_numbers(ar.text))
+        if got != want:
+            errs.append(f"{where}: subtitle numbers {got} != English {want}")
+        if ar.say is None:
+            continue
+        if re.search(r"[0-9\u0660-\u0669]", ar.say):
+            errs.append(f"{where}: `say` has digits (write numbers in words)")
+        spoken = [_num_key(n) for n in ar_numbers(ar.say)]
+        for n in want:
+            if _num_key(n) not in spoken:
+                errs.append(f"{where}: {n} is not spoken in `say` (read {spoken})")
+                continue
+            spoken.remove(_num_key(n))
+    return errs
+
+
 def check(nar: Narration, film: Film | None, known: set[str]) -> list[str]:
     """Problems with a narration script (empty list = OK)."""
     errs = []
@@ -134,14 +285,22 @@ def check(nar: Narration, film: Film | None, known: set[str]) -> list[str]:
 # ----------------------------------------------------------------------------- speech
 
 
-def _settings() -> dict[str, Any]:
-    return load_settings()["voice"]
+def _settings(lang: str = "en") -> dict[str, Any]:
+    """Voice settings for a language: `voice` (English), `voice.ar` overriding it for Arabic."""
+    v = dict(load_settings()["voice"])
+    per_lang = {k: v.pop(k) for k in LANGS if isinstance(v.get(k), dict)}
+    return {**v, **per_lang.get(lang, {})}
 
 
-def tts_python() -> Path:
-    py = REPO_ROOT / str(_settings()["venv"]) / "bin" / "python"
+def tts_worker(lang: str = "en") -> Path:
+    return Path(__file__).with_name(str(_settings(lang).get("worker", TTS_WORKER.name)))
+
+
+def tts_python(lang: str = "en") -> Path:
+    py = REPO_ROOT / str(_settings(lang)["venv"]) / "bin" / "python"
     if not py.exists():
-        raise FileNotFoundError(f"{py} missing: run `make voice-setup` (offline TTS venv)")
+        target = "voice-setup" if lang == "en" else f"voice-setup-{lang}"
+        raise FileNotFoundError(f"{py} missing: run `make {target}` (offline TTS venv)")
     return py
 
 
@@ -153,26 +312,41 @@ def tts_env() -> dict[str, str]:
     return env
 
 
-_VERSIONS: dict[str, str] | None = None
+_VERSIONS: dict[str, dict[str, str]] = {}
 
 
-def tts_versions() -> dict[str, str]:
-    global _VERSIONS
-    if _VERSIONS is None:
+def _worker_args(lang: str) -> list[str]:
+    """Worker options beyond voice/speed/seed (settings `voice.<lang>.args`, e.g. Chatterbox's)."""
+    return [str(x) for x in _settings(lang).get("args", [])]
+
+
+def tts_versions(lang: str = "en") -> dict[str, str]:
+    if lang not in _VERSIONS:
         res = subprocess.run(
-            [str(tts_python()), str(TTS_WORKER), "--versions"],
+            [str(tts_python(lang)), str(tts_worker(lang)), "--versions", *_worker_args(lang)],
             capture_output=True, text=True, check=True, env=tts_env(),
         )  # fmt: skip
-        _VERSIONS = json.loads(res.stdout.strip().splitlines()[-1])
-    return _VERSIONS
+        _VERSIONS[lang] = json.loads(res.stdout.strip().splitlines()[-1])
+    return _VERSIONS[lang]
 
 
-def voice_dir() -> Path:
-    return REPO_ROOT / "runs" / "movies" / "_voice"
+def voice_dir(lang: str = "en") -> Path:
+    return REPO_ROOT / "runs" / "movies" / ("_voice" if lang == "en" else f"_voice_{lang}")
 
 
-def line_key(text: str, voice: str, cfg: dict[str, Any], ver: dict[str, str]) -> str:
-    raw = json.dumps([text, voice, cfg["speed"], cfg["seed"], ver], sort_keys=True)
+def voice_ref(voice: str) -> str:
+    """A voice that names a file (Arabic reference clip) as an absolute path; others unchanged."""
+    p = REPO_ROOT / voice
+    return str(p) if "/" in voice and p.exists() else voice
+
+
+def line_key(
+    text: str, voice: str, cfg: dict[str, Any], ver: dict[str, str], extra: list[str] | None = None
+) -> str:
+    items: list[Any] = [text, voice, cfg["speed"], cfg["seed"], ver]
+    if extra:  # the Arabic worker's options (English keys stay as they were)
+        items.append(extra)
+    raw = json.dumps(items, sort_keys=True)
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
@@ -181,20 +355,37 @@ def wav_seconds(path: Path) -> float:
         return w.getnframes() / w.getframerate()
 
 
-def speak(texts: list[str], voice: str) -> list[Path]:
-    """WAV per text (cached); missing ones are synthesised in one TTS process."""
-    cfg = _settings()
-    ver = tts_versions()
-    paths = [voice_dir() / f"{line_key(t, voice, cfg, ver)}.wav" for t in texts]
+def speak(texts: list[str], voice: str, lang: str = "en") -> list[Path]:
+    """WAV per text (cached); missing ones are synthesised in `workers` TTS processes."""
+    cfg = _settings(lang)
+    ver = tts_versions(lang)
+    extra = _worker_args(lang) or None
+    paths = [voice_dir(lang) / f"{line_key(t, voice, cfg, ver, extra)}.wav" for t in texts]
     jobs = [{"text": t, "out": str(p)} for t, p in zip(texts, paths, strict=True) if not p.exists()]
     if jobs:
-        cmd = [str(tts_python()), str(TTS_WORKER), "--voice", voice, "--speed", str(cfg["speed"]),
-               "--seed", str(cfg["seed"])]  # fmt: skip
-        res = subprocess.run(
-            cmd, input=json.dumps(jobs), capture_output=True, text=True, env=tts_env()
-        )
-        if res.returncode != 0:
-            raise RuntimeError(f"TTS failed: {res.stderr[-2000:]}")
+        cmd = [str(tts_python(lang)), str(tts_worker(lang)), "--voice", voice_ref(voice),
+               "--speed", str(cfg["speed"]), "--seed", str(cfg["seed"])]  # fmt: skip
+        cmd += extra or []
+        n = max(1, min(int(cfg.get("workers", 1)), len(jobs)))
+        logs = voice_dir(lang) / "_logs"
+        logs.mkdir(parents=True, exist_ok=True)
+        procs = []
+        for k in range(n):  # start every worker first, so they run in parallel
+            err = (logs / f"worker-{k}.log").open("w")  # stderr; stdout in .out
+            out = (logs / f"worker-{k}.out").open("a")
+            pr = subprocess.Popen(
+                cmd, stdin=subprocess.PIPE, stdout=out, stderr=err, text=True, env=tts_env()
+            )  # fmt: skip
+            out.close()
+            assert pr.stdin is not None
+            pr.stdin.write(json.dumps(jobs[k::n]))
+            pr.stdin.close()
+            procs.append((pr, err, logs / f"worker-{k}.log"))
+        for pr, err, log in procs:
+            pr.wait()
+            err.close()
+            if pr.returncode != 0:
+                raise RuntimeError(f"TTS failed: {log.read_text()[-2000:]}")
     missing = [p for p in paths if not p.exists()]
     if missing:
         raise RuntimeError(f"TTS wrote no audio for {missing}")
@@ -259,10 +450,15 @@ def _sim_anchor(shot: Any, sim_t: float) -> float:
 
 
 def plan_timing(
-    film: Film, nar: Narration, seconds: list[float], wavs: list[Path], fps: int | None = None
+    film: Film,
+    nar: Narration,
+    seconds: list[float],
+    wavs: list[Path],
+    fps: int | None = None,
+    lang: str = "en",
 ) -> Timing:
     """Place the lines, find each shot's stretch (with `fps`: stretched shots last whole frames)."""
-    cfg = _settings()
+    cfg = _settings(lang)
     gap, lead, tail = float(cfg["gap_s"]), float(cfg["lead_s"]), float(cfg["tail_s"])
     by_shot: dict[str, list[int]] = {}
     for i, ln in enumerate(nar.lines):
@@ -330,18 +526,24 @@ def apply_timing(film: Film, timing: Timing) -> Film:
     return Film.model_validate(data)
 
 
-def prepare(film: Film, fps: int | None = None) -> Timing | None:
+def spoken(ln: Line) -> str:
+    """What the voice says: `say` (Arabic edition) or the subtitle text."""
+    return ln.say or ln.text
+
+
+def prepare(film: Film, fps: int | None = None, lang: str = "en") -> Timing | None:
     """Speak a film's narration (cached) and plan its timing; None when the film has none."""
-    nar = load_narration(film.film)
+    nar = load_narration(film.film, lang)
     if nar is None:
         return None
-    voice = nar.voice or str(_settings()["voice"])
-    wavs = speak([ln.text for ln in nar.lines], voice)
-    timing = plan_timing(film, nar, [wav_seconds(w) for w in wavs], wavs, fps)
+    cfg = _settings(lang)
+    voice = nar.voice or str(cfg["voice"])
+    wavs = speak([spoken(ln) for ln in nar.lines], voice, lang)
+    timing = plan_timing(film, nar, [wav_seconds(w) for w in wavs], wavs, fps, lang)
     timing.voice = voice
-    timing.versions = tts_versions()
+    timing.versions = tts_versions(lang)
     k_max = max(timing.stretch.values(), default=1.0)
-    if k_max > float(_settings()["max_stretch"]):
+    if k_max > float(cfg["max_stretch"]):
         print(f"[narrate] {film.film}: a shot is stretched x{k_max:.2f} to fit its speech")
     return timing
 
@@ -354,9 +556,11 @@ def _read_wav(path: Path) -> np.ndarray:
         return np.frombuffer(w.readframes(w.getnframes()), dtype="<i2").astype(np.int32)
 
 
-def voice_track(lines: list[tuple[float, Path]], duration_s: float, out: Path) -> str:
+def voice_track(
+    lines: list[tuple[float, Path]], duration_s: float, out: Path, lang: str = "en"
+) -> str:
     """Mix (start_s, wav) lines into one 16-bit mono WAV of duration_s; return its sha256[:16]."""
-    rate = int(_settings()["sample_rate"])
+    rate = int(_settings(lang)["sample_rate"])
     n = int(round(duration_s * rate))
     mix = np.zeros(n, dtype=np.int32)
     for start, wav in lines:
@@ -398,37 +602,65 @@ def _cli() -> None:
     """Film narration tools."""
 
 
+def validate_all() -> list[tuple[str, list[str]]]:
+    """(file name, problems) for every narration script, English and Arabic."""
+    known = doc_numbers()
+    out = []
+    for lang in LANGS:
+        suf = suffix(lang)
+        paths = sorted(p for p in SPECS_DIR.glob(f"*{suf}") if lang != "en" or
+                       not any(p.name.endswith(suffix(o)) for o in LANGS if o != "en"))  # fmt: skip
+        for path in paths:
+            name = path.name[: -len(suf)]
+            try:
+                nar = load_narration(name, lang)
+                assert nar is not None
+                film = load_film(name) if name in film_names() else None
+                if lang == "en":
+                    errs = check(nar, film, known)
+                else:
+                    errs = check_ar(nar, load_narration(name), film)
+            except (ValueError, OSError) as exc:
+                errs = [str(exc)]
+            out.append((path.name, errs))
+    return out
+
+
 @app.command()
 def validate() -> None:
-    """Check every narration script: anchors, 4-8 lines, caveat last, numbers from the docs."""
-    known = doc_numbers()
+    """Check every narration script: anchors, 4-8 lines, caveat last, numbers from the docs; the
+    Arabic scripts against their English counterparts (anchors, figures, spoken number words)."""
+    results = validate_all()
     bad = 0
-    paths = sorted(SPECS_DIR.glob(f"*{NARRATION_SUFFIX}"))
-    for path in paths:
-        name = path.name[: -len(NARRATION_SUFFIX)]
-        try:
-            nar = load_narration(name)
-            assert nar is not None
-            film = load_film(name) if name in film_names() else None
-            errs = check(nar, film, known)
-        except (ValueError, OSError) as exc:
-            errs = [str(exc)]
+    for name, errs in results:
         bad += bool(errs)
         detail = "".join(f"\n     {e}" for e in errs)
-        typer.echo(f"{'FAIL' if errs else 'OK  '} {path.name}{detail}")
-    missing = [n for n in film_names() if not narration_path(n).exists() and not load_film(n).stub]
-    for n in missing:
-        typer.echo(f"WARN {n}: no narration script")
+        typer.echo(f"{'FAIL' if errs else 'OK  '} {name}{detail}")
+    for lang in LANGS:
+        for n in film_names():
+            if not narration_path(n, lang).exists() and not load_film(n).stub:
+                typer.echo(f"WARN {n}: no {suffix(lang)[1:]} narration script")
     raise typer.Exit(1 if bad else 0)
 
 
 @app.command("speak")
-def speak_cmd(film: str) -> None:
+def speak_cmd(film: str, lang: str = typer.Option("en", help="en | ar")) -> None:
     """Synthesise one film's narration and print the timing (shot stretch factors)."""
-    timing = prepare(load_film(film))
+    timing = prepare(load_film(film), lang=lang)
     if timing is None:
-        raise typer.BadParameter(f"no {narration_path(film).name}")
+        raise typer.BadParameter(f"no {narration_path(film, lang).name}")
     typer.echo(json.dumps(timing.as_json(), indent=1, ensure_ascii=False))
+
+
+@app.command("speak-all")
+def speak_all_cmd(lang: str = typer.Option("en", help="en | ar")) -> None:
+    """Synthesise every narration line of a language at once (all TTS workers busy; cached)."""
+    texts = []
+    for name in [*film_names(), "showreel"]:
+        nar = load_narration(name, lang)
+        texts += [spoken(ln) for ln in nar.lines] if nar else []
+    voice = str(_settings(lang)["voice"])
+    typer.echo(f"{len(speak(texts, voice, lang))} lines in {voice_dir(lang)}")
 
 
 if __name__ == "__main__":
