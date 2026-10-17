@@ -28,15 +28,16 @@ frames are cached in `runs/movies/` (`TT_MOVIES_DIR` overrides; the render smoke
 
 | film | what it shows | runs (all seed 1) | length |
 |---|---|---|---|
-| `city-24h` | Tier A weekday baseline as a 24 h time-lapse (02:00 to 02:00): edge speed/limit per 5-minute bin, camera pulls back from the Corniche to the whole city, sun rises and sets over Jeddah | `baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` (10 % sample, meso) | 40 s (narrated) |
+| `city-24h` | Tier A weekday baseline as a 24 h time-lapse (02:00 to 02:00): edge speed/limit per 5-minute bin, camera pulls back from the Corniche to the whole city, sun rises and sets over Jeddah; the voice states the v2 teleport share (28.3 %, 50.5 % on v1) as a model-quality caveat | `baseline-weekday-f0.1-s1-ae764558-346893f2-a998e1` (network v2, 10 % sample, meso) | 45.87 s (narrated) |
 | `tahlia-street` | Street level (pitch about 60 deg) dolly east along Tahlia Street, then north into the queue on the corridor to Madinah Road; trails, vehicles coloured by speed | `accident_tahlia-tahlia-s1-257eae8d~baseline` (window baseline) | 30 s (narrated) |
 | `incident` | Split screen, window baseline against the crash run (both lanes of the northbound corridor closed 08:10 to 08:30), then the speed difference map; KPIs from the scenario report | `accident_tahlia-tahlia-s1-257eae8d` and its `~baseline` | 41.53 s (narrated) |
 | `events` | One cut each: heavy rain (difference against the dry baseline), storm flood with the closed flood-site edges, a six-vehicle motorcade on Tahlia Street | `rain_tahlia-…-67ab9112` (+ `~baseline`), `flood_tahlia-…-48d26de0`, `motorcade_tahlia-…-060b80d4` | 40.13 s (narrated) |
 | `strategist` | The 08:30 ambulance situation: no strategy, then the top 3 ranked options one after another, with the strategist's own reasons and ETAs on the HUD | `runs/strategist/rec-20261016T114454Z-22d13986` (emergency_tahlia_0830); cars around the ambulance from the window baseline | 47.10 s (narrated) |
 | `evacuation` | Obhur Creek mouth evacuation (fictional), across the water from the Jeddah Tower site: far-first phased release (three bands lighting up), balanced exits and contraflow on three corridors; clearance times from the run; the HUD and voice say the strategist recommends balanced exits alone | `evac_obhur_film-obhur-s1-83e89905` (run for the film, see below) | 52.37 s (narrated) |
-| `policy-lab` | Difference mode (blue = faster, red = slower): 30 % remote work against the baseline, staggered schools and the central cordon against their matched controls; KPI values from docs/policies.md | `remote_work_30`, `staggered_schools_60` (+ `--control`), `cordon_center` (+ `--control`), the weekday baseline | 45 s (narrated) |
+| `policy-lab` | Difference mode (blue = faster, red = slower): 30 % remote work against the baseline, staggered schools and the central cordon against their matched controls; KPI values from the docs/policies.md network-v2 rows, the voice gives the v1 figure in the same sentence | `v2-remote_work_30`, `v2-staggered_schools_60` (+ `--control`), `v2-cordon_center` (+ `--control`) (symlinks to `runs/v2/<policy>`), the v2 weekday baseline | 50.93 s (narrated) |
 | `loop` | The recommended Loop tunnel from docs/loop.md: corridor C1 Al-Salamah - King Abdulaziz University (17.9 km, 8 stations, cyan line and stations) over the morning-peak baseline, then difference mode (Loop minus baseline) in the morning peak along the corridor and the evening peak across the city; KPIs from the docs/loop.md recommendation table | `loop_recommended` (shuttle, alpha 0.3, measured capacity; run for the film, see below) against `baseline-weekday-f0.1-s1-e5f1906a-65fac195-65b0f3` | 45.67 s (narrated) |
-| `showreel` | All eight films in order, each after a title card, cut to the spec's `showreel: [start, end]` excerpt (20 s each), joined with 0.6 s crossfades | the films above | 2 min 51 s, one spoken headline per film |
+| `obhur-bridge` | Sharm Obhur bridges (Track J): the two crossings over the AM peak hour of the `obhur_creek` window, bridges against the matched control side by side, the window difference map, then a city-scale result card (B1 -170,801, B1 + B2 -178,909, B2 on top of B1 about -8,100 vehicle-hours/day on network v2) | window `obhur-am-s1-obhur_bridge_b3` and `obhur-am-s1-control`; card values from docs/obhur-bridge.md section 5 (`runs/v2/obhur_bridge_b1`, `runs/v2/obhur_bridge_b3`, + `--control`) | 80.37 s (narrated) |
+| `showreel` | All nine films in order (order.yaml, then `obhur-bridge`), each after a title card, cut to the spec's `showreel: [start, end]` excerpt, joined with 0.6 s crossfades | the films above | 3 min 6 s, one spoken headline per film |
 
 Stills (poster frames, from the middle of each film):
 
@@ -46,6 +47,27 @@ Stills (poster frames, from the middle of each film):
 | ![incident](img/movies/incident.jpg) | ![events](img/movies/events.jpg) |
 | ![strategist](img/movies/strategist.jpg) | ![evacuation](img/movies/evacuation.jpg) |
 | ![policy-lab](img/movies/policy-lab.jpg) | ![loop](img/movies/loop.jpg) |
+
+### What changed on network v2 (pass 7, 2026-10-17)
+
+`city-24h`, `policy-lab` and `obhur-bridge` were re-rendered on main for the network-v2 runs of
+integration pass 6, then the showreel (it embeds all three); the other six films are unchanged (their
+narrated renders were taken from Track I). The v2 policy runs keep the bare policy ids under
+`runs/v2/`, which collide with the v1 runs in `runs/`, so the API sees them through symlinks
+`runs/v2-<policy> -> v2/<policy>` (the API is unchanged); the v2 baseline was already listed.
+- `city-24h`: the v2 weekday baseline; the voice says once that 28.3 % of vehicles still teleport
+  (50.5 % on the first network). 40.00 s -> 45.87 s (the caveat line stretches the time-lapse).
+- `policy-lab`: v2 KPIs (remote work VHT -8.7 %, AM-peak -13.2 %; staggered schools AM-peak -1.8 %,
+  top-hour share -13.3 %; cordon VHT +17.2 %, mean delay +29.7 %); each spoken number comes with its
+  v1 figure ("on the first network it was ..."). 45.00 s -> 50.93 s.
+- `obhur-bridge`: first narrated render on main; a fourth shot carries the city-scale v2 result
+  card; the voice says the window showed no saving beyond noise while the city run gives -178,909
+  VHT/day for B3 (9.2 %), with the 28-30 % teleport caveat. 80.37 s (the site shot's two lines
+  stretch it x2.03, the 9 s result card x3.30).
+- `showreel`: nine films (obhur-bridge joins after loop), 171.0 s -> 186.3 s; policy-lab headline
+  = remote work -8.7 % vehicle-hours, obhur-bridge headline = window noise vs the 9.2 % city saving.
+- Not refreshed: the README GIFs and stills in `docs/img/movies/` (`make movies-docs`) still show the
+  v1 `city-24h` and `policy-lab` renders; regenerate them when the films are next published.
 
 ### What the films do and do not show
 
@@ -68,8 +90,13 @@ Stills (poster frames, from the middle of each film):
   last shot's caption and the voice-over say so (docs/evacuation.md). Release bands are drawn as
   hulls of where each band's evacuees start, lit from the band's first departure in the FCD.
 - **Policy lab.** Edge colours are the policy run minus its comparison run, per 5-minute bin. The
-  KPI numbers are copied from the docs/policies.md results table (matched controls where the
+  KPI numbers are copied from the docs/policies.md network-v2 rows (matched controls where the
   policy re-routes baseline vehicles, TA-018), never the raw unmatched deltas.
+- **Obhur bridges.** The window shots are the Tier B AM-peak runs, where the bridges show no saving
+  beyond noise. The last shot is a result card: its KPIs are the city-scale v2 numbers copied from
+  docs/obhur-bridge.md section 5, drawn over the window difference map (the caption says so). The
+  v2 city runs are not drawn as a map layer: the window network was cut from the first city
+  network, and the film schema would only map v2 edges onto it by id (no new rendering code).
 - **Loop.** Track D's city runs (`loop_opt_c1_a0p3` and the sweep) were pruned of their edge
   Parquet to save disk, so the film's run was produced on main with the recommended policy file:
   `uv run python -m sim.loop.run loop_recommended` (city 10 %, seed 1, about 10 min; same transform
@@ -315,15 +342,16 @@ before AAC; loudness = measured integrated loudness of the muxed AAC track (targ
 
 | film | size | frames | duration | MP4 | GIF | per frame | total | browser RSS max | disk max | loudness | voice |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| `city-24h` | 1920x1080 | 1200 | 40.00 s | 84.8 MB | 2.55 MB | 0.18 s | 306 s | 1319 MB | 299 MB | -16.6 LUFS | `94ad8c7c1c9d045a` |
+| `city-24h` | 1920x1080 | 1376 | 45.87 s | 93.2 MB | 2.59 MB | 0.17 s | 301 s | 1253 MB | 303 MB | -16.4 LUFS | `0ee7e479c3b0cd8e` |
 | `tahlia-street` | 1920x1080 | 900 | 30.00 s | 25.9 MB | 2.93 MB | 0.14 s | 176 s | 1067 MB | 127 MB | -16.9 LUFS | `d6159532e3419a82` |
 | `incident` | 1920x1080 | 1246 | 41.53 s | 40.4 MB | 2.23 MB | 0.16 s | 278 s | 1292 MB | 184 MB | -16.4 LUFS | `5a654a5099513955` |
 | `events` | 1920x1080 | 1204 | 40.13 s | 44.6 MB | 2.94 MB | 0.15 s | 261 s | 1447 MB | 191 MB | -16.5 LUFS | `a317dfdc0af44f95` |
 | `strategist` | 1920x1080 | 1413 | 47.10 s | 35.0 MB | 2.42 MB | 0.14 s | 278 s | 1286 MB | 152 MB | -16.6 LUFS | `83fefd7d0e152b21` |
 | `evacuation` | 1920x1080 | 1571 | 52.37 s | 34.6 MB | 1.66 MB | 0.12 s | 262 s | 1496 MB | 120 MB | -16.6 LUFS | `bb102eabf0b202f9` |
-| `policy-lab` | 1920x1080 | 1350 | 45.00 s | 47.9 MB | 1.90 MB | 0.19 s | 336 s | 1137 MB | 275 MB | -16.5 LUFS | `a0f1fd236b66a8b4` |
+| `policy-lab` | 1920x1080 | 1528 | 50.93 s | 51.9 MB | 1.78 MB | 0.18 s | 348 s | 1371 MB | 280 MB | -16.4 LUFS | `1357af6e18b0eae2` |
 | `loop` | 1920x1080 | 1370 | 45.67 s | 93.7 MB | 2.19 MB | 0.25 s | 439 s | 1098 MB | 360 MB | -16.5 LUFS | `7c24d6f2b63268a6` |
-| `showreel` | 1920x1080 | 5130 | 171.0 s | 192.0 MB | 2.61 MB | - | - | - | - | -16.1 LUFS | `9a7b02445042d790` |
+| `obhur-bridge` | 1920x1080 | 2411 | 80.37 s | 35.9 MB | 1.17 MB | 0.12 s | 355 s | 1593 MB | 138 MB | -16.4 LUFS | `1866a93322328c0c` |
+| `showreel` | 1920x1080 | 5589 | 186.3 s | 195.5 MB | 2.32 MB | - | - | - | - | -16.1 LUFS | `93a4fc76867803e3` |
 
 "per frame" is draw + screenshot (labels add about 1 ms); "total" adds the narration (cached
 after the first run), the bundle, chunk encoding, concat, the audio mux and the GIF. All eight

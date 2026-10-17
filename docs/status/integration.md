@@ -125,3 +125,44 @@ uv run python -m scripts.pass6_v2 summary              # rows for docs/policies.
 Details: docs/STATUS.md (Integration pass 6).
 
 INTEGRATE6: done
+
+## RENDER_V2 pass 7 (films on network v2) — 2026-10-17
+Re-rendered on main, one at a time (`make movie FILM=<name>`, Kokoro af_heart, -16 LUFS, subtitles;
+`scripts.movies.spec validate` and `narrate validate` before each): `city-24h` 45.87 s (93.2 MB, GIF
+2.59 MB, -16.4 LUFS), `policy-lab` 50.93 s (51.9 MB, GIF 1.78 MB, -16.4 LUFS), `obhur-bridge` 80.37 s
+(35.9 MB, GIF 1.17 MB, -16.4 LUFS), then the showreel 186.3 s (9 films, 195.5 MB, GIF 2.32 MB, -16.1
+LUFS). Each checked with ffprobe/ebur128: audio = video length to the frame, mov_text subtitle track,
+`.srt` beside the MP4, GIF < 3 MB. No SUMO run.
+
+Decisions:
+- RV2-001 run ids: the v2 policy runs keep bare ids under `runs/v2/` that collide with the v1 runs,
+  so they are exposed as symlinks `runs/v2-<policy> -> v2/<policy>` (remote_work_30,
+  staggered_schools_60 (+--control), cordon_center (+--control)); the API is unchanged. The v2
+  baseline was already listed at `runs/<id>`.
+- RV2-002 narration length: a separate late-anchored caveat line stretched `city-24h` to 108.6 s
+  (the stretch scales anchors too); it was folded into the closing line (45.87 s). `policy-lab` gives
+  one v2 figure per policy with its v1 figure (first draft 68 s, cut to 50.9 s).
+- RV2-003 obhur-bridge: no city-run map layer. The window network was cut from the first city
+  network and the bundle would only map v2 edges onto it by id; the city numbers are a result card
+  (literal KPIs from docs/obhur-bridge.md section 5) over the window difference map, captioned so.
+  B2 increment = the documented "about 8,100 VHT/day" (B3 minus B1). The card shot is 9 s in the
+  spec (tests cap specs at 45 s) and stretched x3.30 by the narration. Its first render failed once:
+  the showreel excerpt ended at the film end and rounding put it 0.3 ms past it; excerpt now [30, 44].
+- RV2-004 showreel: it embeds city-24h and policy-lab, so it was re-rendered; obhur-bridge, now
+  rendered on main, joins after loop (film_names() appends specs outside order.yaml). Headlines
+  updated (city-24h no longer says "forty seconds"; policy-lab = v2 remote-work VHT -8.7 %).
+  The six unchanged films' narrated renders were copied from `.worktrees/trackI/movies/` into
+  main's git-ignored `movies/` (specs, narration and landmarks identical to main).
+- RV2-005 Al Hamra: the only occurrence is the OSM district label on the policy-lab cordon shot,
+  the same as in the v1 render; TI-002 withdrew the Al Hamra evacuation demo and kept district names.
+  Not suppressed (would need label-filter code); flagged for the owner.
+
+Open: `docs/img/movies/` GIFs/stills (`make movies-docs`) and `site/index.html` (film lengths, the
+v1 policy table) still show v1; README results rows now quote v2 with v1 in brackets.
+Also open (verifier, all 7 checks PASS): the v2 baseline `runs/<id>` link (and `runs/v2/<id>`)
+points into `.worktrees/trackF/runs/`; move the run into main's `runs/` before removing that
+worktree. The `loop` film and its showreel headline (28,820 passengers/day) stay on the v1 run;
+the v2 Loop figure (14,630 riders/day) would need a loop re-render. "28 to 30 percent" teleports
+is the docs/obhur-bridge.md wording (0.296 control, 0.305 with bridges).
+
+RENDER_V2: done

@@ -1,5 +1,5 @@
 # TrafficTwin Jeddah — status
-Last updated: 2026-10-17 (integration pass 6: Track I movies v2 and Track F network v2 merged; policy re-evaluation on v2)
+Last updated: 2026-10-17 (integration pass 7: city-24h, policy-lab, obhur-bridge and the showreel re-rendered on the network-v2 runs; pass 6: Track I movies v2 and Track F network v2 merged; policy re-evaluation on v2)
 Environment: macOS (Apple M3 Pro, 11 cores, 18 GB RAM); Python 3.12.13 (uv-managed venv, uv 0.11.13);
 Eclipse SUMO 1.28.0 from the PyPI `eclipse-sumo` wheel (works on macOS arm64; brew not needed),
 SUMO_HOME = `.venv/lib/python3.12/site-packages/sumo`; osmium-tool 1.19.1 (brew); node 25, Vite 7,
@@ -26,7 +26,7 @@ All results: **synthetic demand, uncalibrated**.
 | RELEASE | Release readiness (Track G) | done (Track G), merged in integration pass 4 | CI + demo-smoke + Pages workflows, README, community files, `docs/release-checklist.md`; owner must remove the Esri crops from history before any push |
 | MODECHOICE | Loop mode choice (Track H) | done (Track H), merged in integration pass 4 | C1 central 19,530 (measured) / 31,450 (vendor) riders/day vs 28,820 at fixed alpha 0.3; demo window 24 / 58 reproduced on main; docs/loop-mode-choice.md; v2 city run (pass 6): 14,630 riders/day, relief 38,718 VHT/day, teleports 0.283 -> 0.265 |
 | OBHUR_BRIDGE | Obhur Creek bridges (Track J) | done (Track J, window scale), merged in integration pass 5; B1 and B3 city runs on v2 in pass 6 (B2, 3+3 pending) | six `network_change` policies validate; window: no effect beyond +/- 20 s; city v2 (10 %, seed 1, matched control): B3 -178,909 VHT/day (-9.2 %), B1 -170,801 (-8.8 %), teleports about 0.30 per vehicle, B1 span saturated; docs/obhur-bridge.md |
-| MOVIES_V2 | Narration, map labels, Obhur evacuation (Track I) | done (Track I), merged in integration pass 6 | 8 films + showreel re-rendered with Kokoro voice-over, subtitles, street/district/landmark labels, compass, scale bar, callouts; audio = video length on all 9; evacuation film moved to Obhur (`evac_obhur`); docs/status/trackI.md |
+| MOVIES_V2 | Narration, map labels, Obhur evacuation (Track I) | done (Track I), merged in integration pass 6 | 8 films + showreel re-rendered with Kokoro voice-over, subtitles, street/district/landmark labels, compass, scale bar, callouts; audio = video length on all 9; evacuation film moved to Obhur (`evac_obhur`); docs/status/trackI.md. Pass 7 (v2 films): `city-24h` 45.87 s, `policy-lab` 50.93 s and `obhur-bridge` 80.37 s (first render on main, city-scale v2 result card) re-rendered on the v2 runs, showreel 186.3 s (9 films); all -16.1 to -16.4 LUFS, audio = video, subtitles, GIFs < 3 MB; docs/movies.md |
 | NETWORK_V2 | Tier A network v2 (Track F) | blocked - teleport target (Track F), merged in integration pass 6 as the default profile | v2 `jeddah.v2.net.xml` (ae764558): 10 % weekday baseline teleports 28.3 % vs 50.5 % on m2 (target < 10 % not reached), mean delay 1,172.6 s vs 1,876.5 s; v1 and m2 still build; docs/network-v2.md |
 
 ## Integration — 2026-10-16

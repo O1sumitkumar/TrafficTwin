@@ -46,15 +46,16 @@ to the GitHub release, or rebuilt with `make movies` (needs the runs). Scenarios
 
 | film | what it shows | length | MP4 |
 |---|---|---|---|
-| `city-24h` | Tier A weekday baseline as a 24 h time-lapse, camera from the Corniche to the whole city | 40 s | 84.8 MB |
+| `city-24h` | Tier A weekday baseline (network v2) as a 24 h time-lapse, camera from the Corniche to the whole city | 45.9 s | 93.2 MB |
 | `tahlia-street` | Street level along Tahlia Street in the morning peak, vehicles coloured by speed | 30 s | 25.9 MB |
 | `incident` | A crash on the corridor into Madinah Road, split screen against its baseline | 41.5 s | 40.4 MB |
 | `events` | Heavy rain, a storm flood with closed flood sites, a motorcade | 40.1 s | 44.6 MB |
 | `strategist` | An 08:30 ambulance: no strategy, then the top 3 ranked options with reasons | 47.1 s | 35.0 MB |
 | `evacuation` | Obhur Creek mouth near the Jeddah Tower site: phased release with contraflow, clearance times (fictional) | 52.4 s | 34.6 MB |
-| `policy-lab` | Remote work, staggered schools and a cordon in difference mode | 45 s | 47.9 MB |
+| `policy-lab` | Remote work, staggered schools and a cordon in difference mode (network v2, v1 figures in the voice-over) | 50.9 s | 51.9 MB |
 | `loop` | The recommended Loop tunnel C1 against the weekday baseline | 45.7 s | 93.7 MB |
-| `showreel` | All eight as 20 s excerpts with title cards | 171 s | 192.0 MB |
+| `obhur-bridge` | Bridges across Sharm Obhur: window runs (no saving beyond noise), then the city-scale v2 result card | 80.4 s | 35.9 MB |
+| `showreel` | All nine as excerpts with title cards | 186.3 s | 195.5 MB |
 
 GIF previews are in [Movies](#movies); how the films are made: `docs/movies.md`.
 
@@ -67,10 +68,10 @@ are against the matching baseline on the same seed; run-to-run noise is about ±
 |---|---|---|
 | City network (OSM, 2026-10-14) | 156,126 edges, 62,513 junctions, 20,953 lane-km | `docs/network-qa.md` |
 | 24 h weekday baseline (Tier A, meso) | 389,289 vehicles; about 2 h uncached, peak about 3 GB RAM | `docs/population.md` |
-| 30 % remote work | mean delay -9.3 %, AM-peak delay -9.4 %, VKT -1.6 %, CO2 -6.9 % | `docs/policies.md` |
-| Schools staggered by 60 min | AM-peak delay -9.1 %, top-hour share -19 % (matched control) | `docs/policies.md` |
+| 30 % remote work | network v2: mean delay -11.4 %, AM-peak delay -13.2 %, VHT -8.7 %, CO2 -7.4 % (v1: -9.3 %, -9.4 %, -7.7 %, -6.9 %) | `docs/policies.md` |
+| Schools staggered by 60 min | network v2: AM-peak delay -1.8 %, top-hour share -13 % (v1: -9.1 %, -19 %; matched control) | `docs/policies.md` |
 | Ramadan weekday | +16 % vehicle trips, AM-peak delay -33 % | `docs/policies.md` |
-| Central cordon charge | mean delay +20 % (re-routing onto perimeter roads) | `docs/policies.md` |
+| Central cordon charge | network v2: mean delay +30 %, VHT +17 % (v1: +20 %, +12 %; re-routing onto perimeter roads) | `docs/policies.md` |
 | Crash on Tahlia (Tier B, micro) | window mean delay +5.7 % | `docs/events.md` |
 | Emergency strategist | top 3 options in 11.6 s; best ambulance route 68 s vs 173 s with no strategy | `docs/strategist.md` |
 | Evacuation, Obhur Creek mouth (fictional) | T50 / T90 / T100 = 933 / 1,702 / 2,115 s as written; strategist's balanced exits T90 1,402 s | `docs/evacuation.md` |

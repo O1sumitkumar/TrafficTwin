@@ -1,5 +1,6 @@
 # Narration for obhur-bridge (scripts/movies/narrate.py). Numbers only from the docs
-# (docs/obhur-bridge.md). Moved from the comment in obhur-bridge.yaml in integration pass 6.
+# (docs/obhur-bridge.md). Moved from the comment in obhur-bridge.yaml in integration pass 6;
+# city-scale v2 lines added in pass 7.
 film: obhur-bridge
 lines:
   - shot: site
@@ -12,6 +13,11 @@ lines:
     text: "Left, bridges at the mouth and mid-creek; right, the same vehicles and routing without them."
   - shot: difference
     at: 0.6
-    text: "The bridges carry about 600 and 400 vehicles an hour, but at window scale the time saved stays inside the noise: queues build at the landings."
-  - shot: difference
-    text: "Window scale, one peak hour, synthetic demand, uncalibrated."
+    text: "The bridges carry about 600 and 400 vehicles an hour, but at window scale, in one peak hour, the time saved stays inside the noise: queues build at the landings."
+  - shot: city-result
+    at: 0.6
+    text: "Over a whole weekday on the second city network, both bridges save 178,909 vehicle-hours a day, 9.2 percent."
+  - shot: city-result
+    text: "Almost all of it is the mouth bridge; the mid-creek bridge adds about 8,100."
+  - shot: city-result
+    text: "28 to 30 percent of vehicles still teleport in the city run, so read the size as indicative. Synthetic demand, uncalibrated."

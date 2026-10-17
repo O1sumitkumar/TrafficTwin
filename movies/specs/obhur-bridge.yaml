@@ -3,7 +3,11 @@
 # Both runs route the same vehicles one-shot on the same weights; only the bridges differ (TA-018,
 # A-obh-024). Runs: `python -m sim.bridge.window run --peak am --seed 1 --fcd control,obhur_bridge_b3`
 # then `python -m sim.bridge.window publish`. KPI values are the docs/obhur-bridge.md tables, never
-# recomputed here. Window-scale result now; the coordinator re-renders after the city run.
+# recomputed here. Window-scale shots, then a city-scale result card (pass 7): the B1 / B3 / B2-increment
+# VHT figures of the 24 h Tier A runs on network v2 (docs/obhur-bridge.md section 5) as literal KPIs.
+# The window network was cut from the first city network, so the v2 city runs are not drawn as a
+# map layer (their edges would only map by id onto a different network); the card's map stays the
+# window difference map, and the caption says so.
 # Film network = the first source referenced (b3, the bridge network), so the new links are drawn;
 # the control has no data on them (no-data colour). Vehicles are recorded only within 900 m of the
 # landings (A-obh FCD filter), so the trips layer shows the crossings, not the whole window.
@@ -20,8 +24,8 @@ film: obhur-bridge
 film: obhur-bridge
 title: Bridges across Sharm Obhur
 subtitle: Tier B window, bridges B1 + B2 (2+2 lanes) against the matched control, weekday AM peak hour
-duration_s: 36
-showreel: [12, 30]
+duration_s: 45
+showreel: [30, 44]          # end of the window difference map + the city-scale result card
 clock_t0: "00:00"            # sim_t is the absolute time of day (A-mov-007)
 tier: B
 title_card_s: 2.5
@@ -90,3 +94,24 @@ shots:
         - {label: "Time per vehicle, seed 1", value: 10.1, unit: s, decimals: 1, sign: true}
         - {label: "Time per vehicle, seed 2", value: -8.1, unit: s, decimals: 1, sign: true}
         - {label: "Noise band, +/-", value: 20, unit: s, decimals: 0}
+  - id: city-result
+    duration_s: 9            # the narration stretches it to fit its three lines
+    layers:
+      mode: diff
+      heat: b3
+      compare: ctrl
+      buildings: false
+      line: *b1
+      outline: [[39.11972, 21.73505], [39.11494, 21.74174], [39.11446, 21.74140], [39.11924, 21.73471]]
+      outline_label: "B2"
+    camera:
+      - {t: 0,  lon: 39.1200, lat: 21.7420, zoom: 12.8, pitch: 35, bearing: 35, sim_t: 25200}
+      - {t: 9, lon: 39.1250, lat: 21.7350, zoom: 12.2, pitch: 30, bearing: 15, ease: in_out}
+    hud:
+      caption: "City scale: a whole weekday on network v2, against the matched control"
+      detail: "Tier A 24 h runs, 10 % sample; 28-30 % of vehicles teleport and the B1 span is jammed in both peaks, so sizes are indicative. Map = the window run"
+      legend: diff
+      kpis:
+        - {label: "B1 mouth bridge, vehicle-hours/day", value: -170801, decimals: 0, sign: true}
+        - {label: "B1 + B2, vehicle-hours/day", value: -178909, decimals: 0, sign: true}
+        - {label: "B2 on top of B1, vehicle-hours/day", value: -8100, decimals: 0, sign: true}

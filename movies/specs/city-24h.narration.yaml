@@ -14,4 +14,4 @@ lines:
     sim_t: 57600
     text: "In the evening the network fills again, and the camera pulls back to the whole city."
   - shot: timelapse
-    text: "The city runs as a mesoscopic model on a 10 percent sample of a synthetic population. Synthetic demand, uncalibrated."
+    text: "A model caveat: 28.3 percent of vehicles still teleport through gridlock on this network; on the first network it was 50.5 percent. Synthetic demand, uncalibrated."
