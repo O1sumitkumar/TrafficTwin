@@ -14,6 +14,7 @@ logs/
 .env.*
 .venv/
 .venv-tts/
+.venv-tts-ar/
 __pycache__/
 *.pyc
 node_modules/
