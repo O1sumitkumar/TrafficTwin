@@ -172,3 +172,27 @@ def test_teleport_log_parsing(tmp_path: Path) -> None:
     assert res["top"][0]["where"] == "e1"
     assert res["on_junction_internal_share"] == 0.25
     assert res["on_guessed_ramps_share"] == 0.25
+
+
+def test_probe_on_demo_window(tmp_path: Path, demo_net: Path) -> None:
+    from sim.network.probe import probe, window_trips
+
+    trips = Path(__file__).resolve().parents[1] / "data" / "demo" / "demo.trips.xml"
+    sub = tmp_path / "w.xml"
+    assert window_trips(trips, sub, 0, 600) == sum(
+        1
+        for line in trips.read_text().splitlines()
+        if line.lstrip().startswith("<trip ")
+        and float(line.split('depart="')[1].split('"')[0]) < 600
+    )
+    res = probe(demo_net, trips, tmp_path / "p", begin=0, end=600, drain=300, sample=1.0, threads=2)
+    assert res["vehicles_loaded"] > 100
+    assert res["unroutable"] == 0
+    assert res["teleport_share"] is not None and 0 <= res["teleport_share"] < 0.05
+    assert res["mean_speed_kmh"] > 0
+    again = probe(
+        demo_net, trips, tmp_path / "q", begin=0, end=600, drain=300, sample=1.0, threads=2
+    )
+    assert (
+        again["teleports"] == res["teleports"] and again["mean_speed_kmh"] == res["mean_speed_kmh"]
+    )

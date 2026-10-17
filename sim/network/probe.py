@@ -32,7 +32,8 @@ _DEPART = re.compile(r'depart="([0-9.]+)"')
 
 
 def window_trips(src: Path, dst: Path, begin: float, end: float) -> int:
-    """Copy the vTypes and the trips departing in [begin, end) (streaming, line based)."""
+    """Copy everything but the trips outside [begin, end) (streaming; one `<trip .../>` per line,
+    as written by sim.population.export_trips and randomTrips)."""
     n = 0
     with src.open() as fin, dst.open("w") as fout:
         for line in fin:
@@ -42,7 +43,7 @@ def window_trips(src: Path, dst: Path, begin: float, end: float) -> int:
                 if m and begin <= float(m.group(1)) < end:
                     fout.write(line)
                     n += 1
-            elif not s.startswith("<!--") or n == 0:
+            else:  # vTypes, comments, root element: copied as they are
                 fout.write(line)
     return n
 
@@ -78,8 +79,18 @@ def probe(
     sample: float = 0.10,
     seed: int = 1,
     threads: int = 6,
+    overrides: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    """`overrides` replaces values of the baseline Tier A options (diagnostics only, e.g.
+    {"--time-to-teleport": "300"}); the result records them."""
     from sim.population.baseline import tier_a_options
+
+    sim_opts = tier_a_options()
+    for flag, value in (overrides or {}).items():
+        if flag in sim_opts:
+            sim_opts[sim_opts.index(flag) + 1] = value
+        else:
+            sim_opts += [flag, value]
 
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
@@ -112,7 +123,7 @@ def probe(
         "--seed", str(seed),
         "--statistic-output", str(out / "stats.xml"),
         "--log", str(out / "sumo.log"),
-        *tier_a_options(),
+        *sim_opts,
         *tau_options(sample),
     ]  # fmt: skip
     run_cmd(args, log=out / "probe.log")
@@ -131,6 +142,7 @@ def probe(
         "drain_s": drain,
         "sample": sample,
         "seed": seed,
+        "overrides": overrides or {},
         "trips_in_window": n_trips,
         "vehicles_loaded": loaded,
         "unroutable": n_trips - loaded,
@@ -167,9 +179,13 @@ def main(
     seed: int = typer.Option(1),
     threads: int = typer.Option(6),
     out_dir: Path = typer.Option(REPO_ROOT / "runs" / "probes"),
+    set_opt: list[str] = typer.Option(
+        [], "--set", help="diagnostic SUMO option override FLAG=VALUE (repeatable)"
+    ),
 ) -> None:
+    overrides = dict(o.split("=", 1) for o in set_opt)
     out = out_dir / f"{label}-{content_hash(net)[:8]}-{begin // 3600:02d}-{end // 3600:02d}"
-    res = probe(net, trips, out, begin, end, drain, sample, seed, threads)
+    res = probe(net, trips, out, begin, end, drain, sample, seed, threads, overrides)
     brief = {k: v for k, v in res.items() if k != "hotspots"}
     typer.echo(json.dumps(brief, indent=1))
 
