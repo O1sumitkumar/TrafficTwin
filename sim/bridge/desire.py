@@ -325,7 +325,7 @@ def plot(lines: pd.DataFrame, net: Path, policies: tuple[str, ...]) -> None:
 
     del net, is_city
     poly = creek_polygon()
-    fig, ax = plt.subplots(figsize=(8, 8))
+    fig, ax = plt.subplots(figsize=(8, 10))
     xs, ys = poly.exterior.xy
     ax.fill(xs, ys, color="#9ecae1", zorder=1, label="Sharm Obhur (OSM coastline)")
     top = lines.head(15)
@@ -357,8 +357,8 @@ def plot(lines: pd.DataFrame, net: Path, policies: tuple[str, ...]) -> None:
                 zorder=4,
                 label=f"{b.id.upper()} {b.name.split('(')[0].strip()}",
             )
-    ax.set_xlim(39.04, 39.22)
-    ax.set_ylim(21.62, 21.86)
+    ax.set_xlim(39.02, 39.26)
+    ax.set_ylim(21.50, 21.84)
     ax.set_aspect(1 / np.cos(np.radians(21.74)))
     ax.set_title(
         "Desire lines crossing Sharm Obhur, weekday (top 15 district pairs)\n"
