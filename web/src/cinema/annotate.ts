@@ -20,7 +20,7 @@ export interface Rect {
 
 // Display choices (not model assumptions).
 const STREET_MIN_ZOOM = [11.5, 12.5, 14.0, 15.0, 16.0]; // deck zoom at which each road class labels
-const STREET_SIZE = [16, 15, 14, 13, 12.5]; // px at 1080p
+const STREET_SIZE = [18, 17, 16, 15, 14]; // px at 1080p (the Arabic line is drawn at the same size)
 const DISTRICT_FULL_ZOOM = 13.3;
 const DISTRICT_OUT_ZOOM = 13.8;
 const SMOOTH_K = 8; // opacity = share of frames i-K..i placing the label
@@ -223,7 +223,7 @@ export class Annotator {
       ar: s.ar,
       color: [0, 0, 0],
       prio: 3_000_000 + this.streetRank[si]! * 1000 + Math.min(ai, 999),
-      lines: this.lines(s.en, s.ar, STREET_SIZE[c]!, c <= 1 ? 600 : 500, STREET_SIZE[c]! * 0.82, 500),
+      lines: this.lines(s.en, s.ar, STREET_SIZE[c]!, c <= 1 ? 600 : 500, STREET_SIZE[c]!, 500),
     }));
   }
 
@@ -240,7 +240,7 @@ export class Annotator {
       ar: d.ar,
       color: [0, 0, 0],
       prio: 2_000_000 + k,
-      lines: this.lines(d.en, d.ar, 22, 300, 17, 400),
+      lines: this.lines(d.en, d.ar, 22, 300, 20, 400),
     }));
   }
 
@@ -264,7 +264,7 @@ export class Annotator {
         ar: d.ar,
         color: [231, 183, 95],
         prio: 1_000_000 + k,
-        lines: this.lines(d.en, d.ar, 14, 600, 12, 500),
+        lines: this.lines(d.en, d.ar, 15, 600, 15, 500),
       }),
       dot,
     );

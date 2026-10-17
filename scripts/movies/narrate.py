@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -256,7 +257,10 @@ def _sim_anchor(shot: Any, sim_t: float) -> float:
     return keys[-1][0]
 
 
-def plan_timing(film: Film, nar: Narration, seconds: list[float], wavs: list[Path]) -> Timing:
+def plan_timing(
+    film: Film, nar: Narration, seconds: list[float], wavs: list[Path], fps: int | None = None
+) -> Timing:
+    """Place the lines, find each shot's stretch (with `fps`: stretched shots last whole frames)."""
     cfg = _settings()
     gap, lead, tail = float(cfg["gap_s"]), float(cfg["lead_s"]), float(cfg["tail_s"])
     by_shot: dict[str, list[int]] = {}
@@ -289,6 +293,8 @@ def plan_timing(film: Film, nar: Narration, seconds: list[float], wavs: list[Pat
             if need <= shot.duration_s * k + 1e-6:
                 break
             k = need / shot.duration_s
+            if fps:  # a whole number of frames, so the film's length is exact
+                k = math.ceil(shot.duration_s * k * fps - 1e-6) / (fps * shot.duration_s)
         stretch[shot.id] = k
         if idx:
             prev_end = timed[idx[-1]].end_s
@@ -323,14 +329,14 @@ def apply_timing(film: Film, timing: Timing) -> Film:
     return Film.model_validate(data)
 
 
-def prepare(film: Film) -> Timing | None:
+def prepare(film: Film, fps: int | None = None) -> Timing | None:
     """Speak a film's narration (cached) and plan its timing; None when the film has none."""
     nar = load_narration(film.film)
     if nar is None:
         return None
     voice = nar.voice or str(_settings()["voice"])
     wavs = speak([ln.text for ln in nar.lines], voice)
-    timing = plan_timing(film, nar, [wav_seconds(w) for w in wavs], wavs)
+    timing = plan_timing(film, nar, [wav_seconds(w) for w in wavs], wavs, fps)
     timing.voice = voice
     timing.versions = tts_versions()
     k_max = max(timing.stretch.values(), default=1.0)

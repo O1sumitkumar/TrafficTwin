@@ -1,5 +1,5 @@
 # Fictional evacuation at the Obhur Creek mouth (movies/specs/scenarios/evac_obhur_film.yaml, run
-# evac_obhur_film-obhur-s1-1572ddb3): order at 08:15, the strategist's fastest-clearance option far_first_full (far-first phased
+# evac_obhur_film-obhur-s1-83e89905): order at 08:15, the strategist's fastest-clearance option far_first_full (far-first phased
 # release in three bands, balanced exits, contraflow on three corridors from 08:25). The strategist's
 # recommended option is balanced exit guidance alone (docs/evacuation.md); the film says so.
 film: evacuation
@@ -11,7 +11,7 @@ clock_t0: "08:00"            # A-mov-007
 tier: B
 fictional: true
 sources:
-  evac: {run: evac_obhur_film-obhur-s1-1572ddb3}
+  evac: {run: evac_obhur_film-obhur-s1-83e89905}
 shots:
   - id: before
     duration_s: 8

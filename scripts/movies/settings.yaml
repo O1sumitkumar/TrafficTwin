@@ -94,6 +94,8 @@ heat:
     density_veh_km: 20.0
 
 # Voice-over (MOVIES_V2, scripts/movies/narrate.py): open TTS, fully offline, one voice for every film.
+# Display choices registered in docs/assumptions-trackI.md: A-mov-009 (model, voice, speed, seed),
+# A-mov-010 (lead, gap, tail, after_title), A-mov-011 (loudness, AAC).
 voice:
   engine: kokoro           # Kokoro-82M (Apache-2.0), run by scripts/movies/tts_kokoro.py in the TTS venv
   venv: .venv-tts          # created by `make voice-setup` (pinned scripts/movies/tts-requirements.txt)
@@ -110,7 +112,8 @@ voice:
   true_peak_db: -1.5
   aac_kbps: 160
 
-# Map labels (MOVIES_V2, scripts/movies/labels.py + web/src/cinema/annotate.ts): display choices.
+# Map labels (MOVIES_V2, scripts/movies/labels.py + web/src/cinema/annotate.ts): display choices,
+# A-mov-012 (names from OSM name:en / name), A-mov-013 (zoom gating), A-mov-014 (movies/landmarks.yaml).
 labels:
   # deck.gl zoom from which a street class is labelled: motorway/trunk, primary, secondary,
   # tertiary, local. Bundles drop classes the film's cameras never get close to.

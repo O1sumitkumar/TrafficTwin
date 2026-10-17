@@ -190,7 +190,7 @@ vehicles; flow check PASS, GEH < 5 on 100 % of 91 edges, total ratio 1.000).
 `evac_obhur`: order at 900 s, 1,500 vehicles (~3,750 persons) from 285 zone edges (1.42 km2), release 1200 s, run end 7200 s (horizon 6300 s after the order). Exits: `31134844#4` طريق الملك عبد العزيز (King Abdulaziz Road, south) 4 lanes; `43055955#5` طريق الملك عبد العزيز 3 lanes; `43065390#15.s3` طريق الكورنيش الشمالي (North Corniche) 3 lanes; `444402913#6` (unnamed ramp towards Madinah Road) 3 lanes; `240251260#0` طريق الكورنيش الشمالي 3 lanes; `43097485#13` طريق المدينة المنورة (Madinah Road) 2 lanes.
 Contraflow corridors: cf1 towards `31134844#4` (طريق الملك عبد العزيز, 1497 m, 4.49 lane-km); cf2 towards `240251260#0` (طريق الكورنيش الشمالي, 650 m, 0.65 lane-km); cf3 towards `444402913#6` (444402913#0, 1183 m, 3.55 lane-km). Edited net `data/windows/obhur/obhur.evac-c9c151686f.net.xml`.
 
-**Demo command** (`python -m sim.events.evacuation run --scenario evac_obhur --seed 1`, run `evac_obhur-obhur-s1-d462eb71`, wall 102.26 s):
+**Demo command** (`python -m sim.events.evacuation run --scenario evac_obhur --seed 1`, run `evac_obhur-obhur-s1-ecff823b`, wall 118.31 s):
 
 | run | T50 | T90 | T100 | out | teleports (evacuees) | background delay veh-h |
 |---|---|---|---|---|---|---|
@@ -222,7 +222,7 @@ Bottleneck edges (evacuation as written):
 
 Recommended: `balanced`; fastest clearance: `far_first_full`.
 
-**Film run** (`uv run python -m sim.events.evacuation run --scenario movies/specs/scenarios/evac_obhur_film.yaml --seed 1`: the `far_first_full` option written into a copy of the scenario, same crowd, zone, timing and seed; run `evac_obhur_film-obhur-s1-1572ddb3`, wall 85.39 s): T50 815 s, T90 1,349 s, T100 1,746 s, 1500/1500 out, contraflow on cf1-cf3 at 1,500 s, background +2.55 veh-h; identical clearance to the strategist's what-if of the same option.
+**Film run** (`uv run python -m sim.events.evacuation run --scenario movies/specs/scenarios/evac_obhur_film.yaml --seed 1`: the `far_first_full` option written into a copy of the scenario, same crowd, zone, timing and seed; run `evac_obhur_film-obhur-s1-83e89905`, wall 66.8 s): T50 815 s, T90 1,349 s, T100 1,746 s, 1500/1500 out, contraflow on cf1-cf3 at 1,500 s, background +2.55 veh-h; identical clearance to the strategist's what-if of the same option.
 
 ### Al Balad flood day (al_balad window)
 

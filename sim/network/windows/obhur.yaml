@@ -9,6 +9,7 @@
 # around the mouth to the Tower site, King Abdulaziz Rd (طريق الملك عبد العزيز) from 21.686 N to the
 # creek roundabout, and the Madinah Rd interchange ramps (39.115-39.135 E) whose links lead east to
 # Madinah Rd and Al Haramain Rd. Area counts water; the land area is close to the other windows'.
+# Polygon: A-evac-040 (docs/assumptions-trackI.md).
 name: obhur
 title: "Obhur Creek mouth and the Jeddah Tower site"
 # polygon: list of [lon, lat]

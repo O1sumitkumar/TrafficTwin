@@ -61,3 +61,8 @@ Everything stays **synthetic demand, uncalibrated**; the evacuation is fictional
 - **TI-010 Subtitles.** Homebrew's ffmpeg has neither libass (`subtitles` filter) nor `drawtext`,
   so the burnt-in subtitles are drawn by the HUD from the same lines; the MP4 also carries a soft
   mov_text track and `movies/<film>.srt` sits next to it. `--no-subtitles` / `--no-voice` exist.
+- **TI-012 Run ids after the register edit.** The evacuation run id hashes the settings file,
+  including the assumption texts; A-evac-035's text was updated (Obhur noise band) after the first
+  Obhur runs. Both runs were repeated with the committed settings: identical clearance, background
+  delay and teleports, new ids `evac_obhur-obhur-s1-ecff823b` and
+  `evac_obhur_film-obhur-s1-83e89905` (the old `d462eb71` / `1572ddb3` are superseded).

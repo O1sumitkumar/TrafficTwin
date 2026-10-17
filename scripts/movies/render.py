@@ -318,14 +318,18 @@ def loudness(path: Path, extra: list[str] | None = None) -> dict[str, Any]:
 
 
 def mux_voice(video: Path, wav: Path, srt: Path | None, out: Path) -> dict[str, Any]:
-    """video + voice WAV (+ SRT) -> MP4 with AAC voice (loudness-normalised) and mov_text subs."""
+    """video + voice WAV (+ SRT) -> MP4 with AAC voice (loudness-normalised) and mov_text subs.
+
+    loudnorm works in 100 ms blocks and pads its output to a whole block, so the track is trimmed
+    back to the voice WAV's exact length (= the film's frames / fps)."""
     v = load_settings()["voice"]
     m = loudness(wav)
+    dur = narrate.wav_seconds(wav)
     af = (
         f"loudnorm=I={v['lufs']}:TP={v['true_peak_db']}:LRA=11:measured_I={m['input_i']}:"
         f"measured_TP={m['input_tp']}:measured_LRA={m['input_lra']}:"
         f"measured_thresh={m['input_thresh']}:offset={m['target_offset']}:linear=true,"
-        "aresample=48000"
+        f"aresample=48000,atrim=end={dur:.6f}"
     )
     cmd = [ffmpeg(), "-y", "-loglevel", "error", "-i", str(video), "-i", str(wav)]
     maps = ["-map", "0:v", "-map", "1:a"]
@@ -433,7 +437,7 @@ def render_film(
     )
     t_start = time.time()
     work = movies_runs_dir() / film.film
-    timing = narrate.prepare(film) if voice else None
+    timing = narrate.prepare(film, fps) if voice else None
     if timing is not None:
         film = narrate.apply_timing(film, timing)
         log(f"{name}: narration {len(timing.lines)} lines, voice {timing.voice}, "

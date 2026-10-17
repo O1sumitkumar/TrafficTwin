@@ -3,6 +3,7 @@
 # the water from the Jeddah Tower site, in the obhur window. The zone is a generic polygon over the
 # creek-side street grid and car parks, not a real venue or an operational plan; crowd size, timing
 # and exits are invented. Real-site evacuation plans stay private. Synthetic demand, uncalibrated.
+# Crowd size and zone: A-evac-039 (fictional demo parameter, docs/assumptions-trackI.md).
 id: evac_obhur
 kind: scenario
 window: obhur

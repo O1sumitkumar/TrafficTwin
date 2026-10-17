@@ -314,7 +314,7 @@ def test_settings_assumptions_are_registered() -> None:
 
     settings = (REPO_ROOT / "scripts" / "movies" / "settings.yaml").read_text()
     ids = set(re.findall(r"A-mov-\d{3}", settings))
-    register = (REPO_ROOT / "docs" / "assumptions-trackE.md").read_text()
+    register = (REPO_ROOT / "docs" / "assumptions.md").read_text()  # merged (Track E + Track I)
     assert ids and ids <= set(re.findall(r"^\| (A-mov-\d{3}) ", register, re.M))
     for block in yaml.safe_load(settings).values():
         if isinstance(block, dict):

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -212,3 +213,36 @@ def test_tts_same_text_same_audio(tmp_path: Path) -> None:
     a, b = ((tmp_path / f"{k}.wav").read_bytes() for k in range(2))
     assert a == b and len(a) > 24000
     assert os.environ.get("HF_HUB_OFFLINE", "1")  # the worker runs offline by default
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="ffmpeg missing")
+def test_voice_mux_keeps_the_film_length(tmp_path: Path) -> None:
+    """loudnorm pads to 100 ms blocks: the muxed AAC track must still end with the video."""
+    import wave
+
+    from scripts.movies.render import mux_voice, probe, probe_audio
+
+    fps, frames = 30, 64  # 2.1333 s: not a whole number of 100 ms blocks
+    video = tmp_path / "v.mp4"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"color=c=black:s=64x36:r={fps}",
+         "-frames:v", str(frames), "-c:v", "libx264", "-pix_fmt", "yuv420p", str(video)],
+        check=True,
+    )  # fmt: skip
+    rate = 24000
+    wav = tmp_path / "voice.wav"
+    t = np.arange(round(frames / fps * rate)) / rate
+    with wave.open(str(wav), "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(rate)
+        w.writeframes((np.sin(2 * np.pi * 220 * t) * 8000).astype("<i2").tobytes())
+    srt = tmp_path / "x.srt"
+    narrate.write_srt([(0.1, 1.5, "Hello")], srt)
+    out = tmp_path / "out.mp4"
+    loud = mux_voice(video, wav, srt, out)
+    audio = probe_audio(out)
+    assert audio is not None and audio["codec"] == "aac"
+    assert audio["duration_s"] == pytest.approx(frames / fps, abs=0.025)
+    assert probe(out)["duration_s"] == pytest.approx(frames / fps, abs=0.025)
+    assert abs(loud["output_lufs"] - narrate._settings()["lufs"]) < 2.0
